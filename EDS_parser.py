@@ -7,11 +7,9 @@ Mòdul que extreu informació la EDS database
 """
 import urllib2, multiprocessing, sys, os, time, PDBfiles
 from decimal import Decimal
-from Common import logfile
 
 edsurl = "http://eds.bmc.uu.se/eds/dfs/PDB2/PDB1/PDB1_stat.lis"
 EDSdir = 'EDS_data'
-logfile = logfile % "EDS_error_log"
 residuelist = None
 
 if not os.path.isdir(EDSdir):
@@ -74,20 +72,15 @@ def parse_EDS(pdblist, ligandlist = []):
     macro_rsrdict = {}
     print "Obtenint informació de l'EDS, això pot trigar una estona..."
     pool = multiprocessing.Pool(multiprocessing.cpu_count()*10 + 1)
-    uhlog = open(logfile, "wb")
-    uhlog.write('')
     for pdbdict,  rsrdict in pool.map(get_EDS, pdblist):
         if pdbdict != {} and (pdbdict['IN_EDS'] == 'TRUE' or pdbdict['IN_EDS'] == 'FALSE'):
             pdboutdict[pdbdict['PDB_ID']] = pdbdict
-        else:
-            uhlog.write(pdbdict['PDB_ID'] + " " + str(pdbdict['IN_EDS']) + "\n")
         for ligand in rsrdict:
             macro_rsrdict[pdbdict['PDB_ID'].upper() + ligand.split()[0]] = {
             'PDB_ID':pdbdict['PDB_ID'].upper()
             , 'HET_ID': ligand.split()[0]
             , 'RSR':rsrdict[ligand]
             }
-    uhlog.close()
     pool.close()
     pool.join()
     return pdboutdict,  macro_rsrdict
