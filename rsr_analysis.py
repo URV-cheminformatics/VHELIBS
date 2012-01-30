@@ -31,7 +31,8 @@ def get_pdbs_with_good_rsr(rsr_upper=RSR_upper):
             pdbid_listdict[pdbid][1].append(hetid)
 
     pool = multiprocessing.Pool()
-    results = pool.map(parse_binding_site, pdbid_listdict.itervalues())
+    results = pool.map(parse_binding_site, pdbid_listdict.values())
+    #results = (parse_binding_site(value) for value in pdbid_listdict.itervalues())
     resultdict = {}
     for pdbid, ligandresidues, residues_to_exam, binding_site in results:
         resultdict[pdbid] = ligandresidues, residues_to_exam, binding_site
@@ -61,7 +62,8 @@ def parse_binding_site(queryrow):
         line = line.strip()
         if line[:6] in ("ATOM  ", "HETATM"):
             atom = PdbAtom(line)
-            atom.rsr = float(rsrdict[line[17:27]])
+            if atom.residue in rsrdict:
+                atom.rsr = float(rsrdict[atom.residue])
             if line[:6] == "ATOM  ":
                 protein_atoms.add(atom)
                 if atom.name[1:3] == 'CA':  #Is alpha-carbon
@@ -100,7 +102,7 @@ def parse_binding_site(queryrow):
 
 
 def classificate_residue(atom, good_rsr, dubious_rsr, bad_rsr):
-    if atom.rsr <= RSR_upper:
+    if atom.rsr != None and atom.rsr <= RSR_upper:
         if atom.rsr <= RSR_lower:
             good_rsr.add(atom.residue)
         else:
@@ -126,6 +128,7 @@ class PdbAtom(object):
         self.residue = record[17:27]
         self.hetid = self.residue[:3].strip()
         self.xyz = (float(record[30:38]), float(record[38:46]), float(record[46:54]))
+        self.rsr = None
     def __or__(self, other):
         """
         Return squared distance
