@@ -23,8 +23,13 @@ def reslist_to_sel(reslist):
         resname = res[:3]
         chain = res[4]
         resnum = res[5:].strip()
-        sellist.append('(chain %s and residue %s)' % (chain, resnum))
-    return ' or '.join(sellist)
+        if not resnum.isdigit():
+            for char in resnum:
+                if not char.isdigit():
+                    resnum = resnum.replace(char, '')
+        print 'Transformant %s en %s' % (res, "(chain '%s' and residue %s)" % (chain, resnum))
+        sellist.append("(chain '%s' and residue %s)" % (chain, resnum))
+    return sellist
 
 def main():
     if not len(sys.argv) or os.path.abspath(__file__) == os.path.abspath(sys.argv[-1]):
@@ -45,10 +50,10 @@ def main():
         ans = raw_input()
         answered = False
         while not answered:
-            if ans.lower().strip() in ('sí', 'si', 'yes', 'ja', 'da', 'bai', 'oui', 'oc', 'òc','jes', 'yeah', 'sim', 'ok', 'Oook'):
+            if ans.lower().strip() in ('sí', 'si', 'yes', 'ja', 'da', 'bai', 'oui', 'oc', 'òc','jes', 'yeah', 'sim', 'ok', 'Oook', 'y', 's'):
                 csvfilename = basename + '_wip.csv'
                 answered = True
-            elif ans.lower().strip() in ('no', 'non', 'nein', 'nope', 'ez', 'ne', 'pas', 'não', 'nao', 'Eeek'):
+            elif ans.lower().strip() in ('no', 'non', 'nein', 'nope', 'ez', 'ne', 'pas', 'não', 'nao', 'Eeek', 'n', 'niet'):
                 answered = True
             else:
                 ans = raw_input()
@@ -104,7 +109,7 @@ def main():
     frame.add(mvp, BorderLayout.CENTER)
     frame.pack()
     frame.show()
-    moleculeViewer.moleculeRenderer.execute('set selectcount off; set symmetry off;')
+    moleculeViewer.moleculeRenderer.execute('set selectcount off; set symmetry on;')
 
     #moleculeViewer.moleculeRenderer.execute('molecule load pdb_files/P00491/2A0W.pdb.gz pdb_files/P00491/2A0W.pdb.gz;')
 
@@ -145,17 +150,27 @@ def main():
             ligands_selection = reslist_to_sel(ligandresidues)
             binding_site_selection = reslist_to_sel(binding_site)
             exam_residues_selection = reslist_to_sel(residues_to_exam)
+            moleculeViewer.moleculeRenderer.execute('select all;')
             moleculeViewer.moleculeRenderer.execute('display lines off all;')
-            moleculeViewer.moleculeRenderer.execute('display sticks on %s;' % exam_residues_selection)
-            moleculeViewer.moleculeRenderer.execute('color cyan %s;' % exam_residues_selection)
-            moleculeViewer.moleculeRenderer.execute('display lines on %s;' % binding_site_selection)
-            moleculeViewer.moleculeRenderer.execute('display spheres on %s;' % ligands_selection)
-            moleculeViewer.moleculeRenderer.execute('color magenta %s;' % ligands_selection)
+            moleculeViewer.moleculeRenderer.execute('select none;')
+            for bsres in binding_site_selection:
+                moleculeViewer.moleculeRenderer.execute('display sticks on %s;' % bsres)
+                moleculeViewer.moleculeRenderer.execute('color cyan %s;' % bsres)
+                moleculeViewer.moleculeRenderer.repaint()
+            for examres in exam_residues_selection:
+                moleculeViewer.moleculeRenderer.execute('append %s;' % examres)
+                moleculeViewer.moleculeRenderer.execute('display sticks on %s;' % examres)
+                moleculeViewer.moleculeRenderer.execute('color_by_atom;')
+            for ligandres in ligands_selection:
+                moleculeViewer.moleculeRenderer.execute('append %s;' % ligandres)
+                moleculeViewer.moleculeRenderer.execute('display sticks on %s;' % ligandres)
+                moleculeViewer.moleculeRenderer.execute('color magenta %s;' % ligandres)
+
             moleculeViewer.moleculeRenderer.repaint()
-            moleculeViewer.moleculeRenderer.execute('select %s;' % exam_residues_selection)
             selectedAtoms = moleculeRenderer.getSelectedOrLabelledAtoms()
             moleculeRenderer.setCenter(selectedAtoms)
             moleculeViewer.moleculeRenderer.repaint()
+            selectiondict = {'bs':binding_site_selection, 'ligands':ligands_selection, 'resex':exam_residues_selection}
 
             try:
                 if not os.path.isfile(localmap):
@@ -173,10 +188,12 @@ def main():
                     archivefile.close()
                     archivefile = tarfile.open(localarchive)
                     archivefile.extract(relmap, datadir)
+                    archivefile.close()
                 moleculeViewer.moleculeRenderer.execute('map load %s %s;' % (pdbid, localmap))
-                moleculeViewer.moleculeRenderer.execute('select %s or %s or %s;' % exam_residues_selection, ligands_selection, binding_site_selection)
+                #moleculeViewer.moleculeRenderer.execute('select %s or %s or %s;' % exam_residues_selection, ligands_selection, binding_site_selection)
                 selectedAtoms = moleculeRenderer.getSelectedOrLabelledAtoms()
                 moleculeRenderer.clipMaps(None, selectedAtoms, True)
+                moleculeViewer.moleculeRenderer.execute('select none;')
                 moleculeViewer.moleculeRenderer.repaint()
             except Exception,  e:
                 print 'Impossible carregar el mapa de densitat electronica per %s' % pdbid
@@ -189,12 +206,14 @@ def main():
         #Descarregar estructura
         #Carregar estructura
         #Fer visible només els lligands i els residus d'interès
-        print '> Possibles ordres: '
+        print '> Ordres especials: '
         print "good : Considera l'estructura com a bona, la desa a %s" % goodfilename
         print "bad : Considera l'estructura com a incorrecta, la desa a %s" % badfilename
         print "dubious : Considera l'estructura com a dubtosa, la desa a %s" % dubiousfilename
         print "<pdbid> : carrega l'estructura <pdbid>"
         print "list : mostra la llista d'estructures"
+        print "selectbs | selectligands | selectresex :select binding site, ligands or residues to exam, respectively"
+        print "resetmap : re-clips the map to the ligands and residues to exam"
         print ">>>",
         inp = raw_input()
         #inp = 'bad'
@@ -216,8 +235,28 @@ def main():
                 csvfile.writerow([pdbid, ';'.join(residues_to_exam), ';'.join(ligandresidues),';'.join(binding_site)])
             outfile.close()
             pdbid = None
+        elif inp.lower() in ('selectbs', 'selectligands', 'selectresex'):
+            target = inp.lower().strip().replace('select', '')
+            for res in selectiondict[target]:
+                moleculeViewer.moleculeRenderer.execute('append %s;' % res)
+            moleculeViewer.moleculeRenderer.repaint()
+        elif inp.lower().strip() == 'resetmap':
+            moleculeViewer.moleculeRenderer.execute('select none;')
+            for res in (selectiondict['ligands'] + selectiondict['resex']):
+                moleculeViewer.moleculeRenderer.execute('append %s;' % res)
+            selectedAtoms = moleculeRenderer.getSelectedOrLabelledAtoms()
+            moleculeRenderer.clipMaps(None, selectedAtoms, True)
+            moleculeViewer.moleculeRenderer.execute('select none;')
+            moleculeViewer.moleculeRenderer.repaint()
         else:
-            print "### Ordre o codi PDB no reconeguts: '%s'. Torna-ho a provar ###" % inp
+            try:
+                if inp[-1] != ';':
+                    inp += ';'
+                moleculeViewer.moleculeRenderer.execute(inp)
+                moleculeViewer.moleculeRenderer.repaint()
+            except Exception, e:
+                print e
+                print "### Ordre o codi PDB no reconeguts: '%s'. Torna-ho a provar ###" % inp
 
        #Netejar-ho tot
 
