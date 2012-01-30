@@ -1,4 +1,4 @@
-cp visualitzador.py one-jar/src/
+cp *.py one-jar/src/
 cp Main.java one-jar/java-src/
 cd one-jar
 ant clean
