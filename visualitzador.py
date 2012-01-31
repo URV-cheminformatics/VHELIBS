@@ -1,5 +1,7 @@
-#-*- coding: utf-8 -*-
-
+# -*- coding: utf-8 -*-
+#
+#   Copyright 2012 Adrià Cereto Massagué <adrian.cereto@.urv.cat>
+#
 import sys
 import os
 import csv
