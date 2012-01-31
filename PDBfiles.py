@@ -16,12 +16,6 @@ PREFIX = "data"
 hetdict = None
 inchidict = None
 
-try:
-    from config import rapid
-except:
-    rapid = True
-
-
 def get_pdb_file(pdbcode, filename = None):
     """
     Es descarrega un fitxer del PDB
@@ -35,8 +29,6 @@ def get_pdb_file(pdbcode, filename = None):
         tries += 1
         try:
             if os.path.isfile(filename):
-                if rapid:
-                    return
                 handler = urllib2.urlopen(url)
                 filesize = handler.info().get('Content-Length')
                 if filesize:
@@ -236,7 +228,7 @@ def setglobaldicts():
     global hetdict
     global inchidict
     hetdict = get_ligand_pdb_dict()
-    inchidict = get_inchi_list()
+    #inchidict = get_inchi_list()
 
 if __name__ == "__main__":
     print "No"

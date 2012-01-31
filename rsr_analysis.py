@@ -1,48 +1,36 @@
 #/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-#   Copyright 2010, 2011 Adrià Cereto Massagué <adrian.cereto@.urv.cat>
+#   Copyright 2011 - 2012 Adrià Cereto Massagué <adrian.cereto@.urv.cat>
 #
 import os, gzip, multiprocessing
-import db_updater, PDBfiles, EDS_parser
-
-from config import host,  user,  password,  database
-
+import PDBfiles, EDS_parser
 
 RSR_upper = 0.4
 RSR_lower = 0.24
 outer_distance = 10**2
 inner_distance = 4.5**2
-sql_query = """SELECT DISTINCT pdb_ligands.PDB_ID, pdb_ligands.HET_ID, pdb.UNIPROT_ACCN FROM pdb_ligands inner join pdb
-    ON pdb_ligands.PDB_ID = pdb.PDB_ID
-WHERE RSR < %s """
 
-def get_pdbs_with_good_rsr(rsr_upper=RSR_upper):
-    """
-    """
-    pdbid_listdict = {}
-    db = db_updater.myDB(host,  user,  password,  database)
-    queryresults = db.execute(sql_query % rsr_upper)
-    for queryrow in queryresults:
-        pdbid, hetid, accn = queryrow
-        if not pdbid in pdbid_listdict:
-            pdbid_listdict[pdbid] = (pdbid, [hetid, ], accn)
-        else:
-            pdbid_listdict[pdbid][1].append(hetid)
-
-    pool = multiprocessing.Pool()
-    results = pool.map(parse_binding_site, pdbid_listdict.values())
-    #results = (parse_binding_site(value) for value in pdbid_listdict.itervalues())
-    resultdict = {}
+def get_pdbs_with_good_rsr(pdblist, rsr_upper=RSR_upper, rsr_lower = RSR_lower):
+    if not rsr_upper > rsr_lower:
+        print '%s is higher than %s!' % (rsr_lower, rsr_upper)
+        raise ValueError
+    argsarray = []
+    for pdbid in pdblist:
+        argsarray.append((pdbid.upper(), rsr_upper, rsr_lower))
+    PDBfiles.setglobaldicts()
+    pool = multiprocessing.Pool(multiprocessing.cpu_count())
+    results = pool.map(parse_binding_site, argsarray)
     for pdbid, ligandresidues, residues_to_exam, binding_site in results:
         resultdict[pdbid] = ligandresidues, residues_to_exam, binding_site
     return resultdict
 
-def parse_binding_site(queryrow):
+def parse_binding_site(argtuple):
     """
-    queryrow = (PDB_ID, [HET_ID,], UNIPROT_ACCN)
+    argtuple = (pdbid, rsr_upper, rsr_lower)
     """
-    pdbid, hetids_list, accn = queryrow
+    pdbid, rsr_upper, rsr_lower = argtuple
+    hetids_list = PDBfiles.hetdict[pdbid]
     residues_to_exam = set()
     ligand_residues = set()
     binding_sites = set()
@@ -50,13 +38,14 @@ def parse_binding_site(queryrow):
     dubious_rsr = set()
     bad_rsr = set()
     protein_atoms = set()
-    ligand_all_atoms_dict = {hetid:set() for hetid in hetids_list}
+    ligand_all_atoms_dict = {}
+    for hetid in hetids_list:
+        ligand_all_atoms_dict[hetid] = set()
     protein_ca_atoms = set()
-    pdbfilepath = os.path.join(PDBfiles.PREFIX, accn, pdbid + ".pdb.gz")
+    pdbfilepath = os.path.join(PDBfiles.PREFIX, pdbid.lower(), pdbid.lower() + ".pdb.gz")
     pdbdict, rsrdict = EDS_parser.get_EDS(pdbid)
     if not os.path.isfile(pdbfilepath):
-        print('%s is not a file!' % pdbfilepath)
-        return None
+        PDBfiles.get_pdb_file(pdbid, pdbfilepath)
     pdbfile = gzip.GzipFile(pdbfilepath)
     for line in pdbfile:
         line = line.strip()
@@ -110,12 +99,6 @@ def classificate_residue(atom, good_rsr, dubious_rsr, bad_rsr):
     else:
         bad_rsr.add(atom.residue)
 
-
-
-#                if atom.name[1:3] == 'CA': #Is alpha-carbon
-#                    pass
-
-
 class PdbAtom(object):
     """
     Represents an atom from a PDB file
@@ -140,8 +123,11 @@ class PdbAtom(object):
 
 
 if __name__ == '__main__':
-    import csv
-    resultdict = get_pdbs_with_good_rsr()
+    import csv, sys
+    print sys.argv[-1]
+    pdblistfile = open(sys.argv[-1], 'rb')
+    pdblist = (line.strip() for line in pdblistfile)
+    resultdict = get_pdbs_with_good_rsr(pdblist)
     outfile = open('rsr_analysis.csv', 'wb')
     csvfile = csv.writer(outfile)
     csvfile.writerow(['PDB ID', "Residues to exam", "Ligand Residues", "Binding Site Residues"])

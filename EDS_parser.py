@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
 #
-#   Copyright 2010, 2011 Adrián Cereto Massagué <adrian.cereto@.urv.cat>
+#   Copyright 2010 - 2012 Adrián Cereto Massagué <adrian.cereto@.urv.cat>
 #
 """
 Mòdul que extreu informació la EDS database
 """
-import urllib2, multiprocessing, sys, os, time, PDBfiles
+import urllib2, multiprocessing, sys, os, time
+import PDBfiles
 from decimal import Decimal
 
 edsurl = "http://eds.bmc.uu.se/eds/dfs/PDB2/PDB1/PDB1_stat.lis"
-EDSdir = 'EDS_data'
+EDSdir = 'data'
 residuelist = None
 
 if not os.path.isdir(EDSdir):
@@ -21,7 +22,10 @@ def get_EDS(pdbid):
     """
     pdbdict={'PDB_ID':pdbid.upper(),'IN_EDS':None}
     rsrdict = {}
-    statfilepath = os.path.join(EDSdir, '%s_stat.lis' % pdbid.lower())
+    downloaddir = os.path.join(EDSdir, pdbid.lower())
+    if not os.path.isdir(downloaddir):
+        os.makedirs(downloaddir)
+    statfilepath = os.path.join(downloaddir,  '%s_stat.lis' % pdbid.lower())
     try:
         try:
             statfile = open(statfilepath, 'rb')
@@ -71,7 +75,7 @@ def parse_EDS(pdblist, ligandlist = []):
     pdboutdict = {}
     macro_rsrdict = {}
     print "Obtenint informació de l'EDS, això pot trigar una estona..."
-    pool = multiprocessing.Pool(multiprocessing.cpu_count()*10 + 1)
+    pool = multiprocessing.Pool(multiprocessing.cpu_count())
     for pdbdict,  rsrdict in pool.map(get_EDS, pdblist):
         if pdbdict != {} and (pdbdict['IN_EDS'] == 'TRUE' or pdbdict['IN_EDS'] == 'FALSE'):
             pdboutdict[pdbdict['PDB_ID']] = pdbdict
