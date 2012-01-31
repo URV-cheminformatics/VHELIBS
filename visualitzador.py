@@ -12,10 +12,15 @@ from java.lang import System
 import astex.MoleculeViewer as MoleculeViewer
 #print 'astex importat'
 
-PDBbase = "http://www.rcsb.org/pdb/files/%s.pdb.gz"
-edsurl = "http://eds.bmc.uu.se/eds/dfs/PDB2/PDB1/PDB1.tar.gz"
+import EDS_parser
+edsurl = EDS_parser.edsurl
 
-datadir = 'data'
+import PDBfiles
+PDBfiles.PREFIX = EDS_parser.EDSdir
+datadir = PDBfiles.PREFIX
+
+PDBbase = "http://www.rcsb.org/pdb/files/%s.pdb.gz"
+
 if not os.path.isdir(datadir):
     os.mkdir(datadir)
 
@@ -134,13 +139,7 @@ def main():
             if not os.path.isfile(localpdb):
                 if not os.path.isdir(os.path.join(datadir, pdbid.lower())):
                     os.mkdir(os.path.join(datadir, pdbid.lower()))
-                url = PDBbase % pdbid
-                print 'Descarregant %s' % url
-                remotepdb = urllib2.urlopen(url)
-                localfile = open(localpdb,'wb')
-                localfile.write(remotepdb.read())
-                localfile.close()
-                remotepdb.close()
+                PDBfiles.get_pdb_file(pdbid.lower())
             relmap = os.path.join(pdbid.lower(), pdbid.lower() + '.omap')
             localmap = os.path.join(datadir, relmap)
             #Visualitzar a l'astex
@@ -192,6 +191,7 @@ def main():
                     archivefile.extract(relmap, datadir)
                     archivefile.close()
                 moleculeViewer.moleculeRenderer.execute('map load %s %s;' % (pdbid, localmap))
+                moleculeViewer.moleculeRenderer.execute('map %s contour 0 yellow;' % (pdbid))
                 #moleculeViewer.moleculeRenderer.execute('select %s or %s or %s;' % exam_residues_selection, ligands_selection, binding_site_selection)
                 selectedAtoms = moleculeRenderer.getSelectedOrLabelledAtoms()
                 moleculeRenderer.clipMaps(None, selectedAtoms, True)
