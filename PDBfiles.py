@@ -5,7 +5,11 @@
 """
 Mòdul encarregat de manipular i descarregar fitxers del PDB
 """
-import os, shutil, gzip, multiprocessing, urllib2, time
+import os, shutil, gzip, urllib2, time, sys
+if sys.platform.startswith('java'):
+    import multithreading as multiprocessing
+else:
+    import multiprocessing
 from cofactors import ligand_blacklist
 
 #Els fitxers .pdb es poden baixar comprimits des de la següent url, substituint %s pel codi del PDB
@@ -25,10 +29,12 @@ def get_pdb_file(pdbcode, filename = None):
     if not filename:
         filename = os.path.split(url)[1]
     tries = 0
-    while tries <= 3:
+    downloaded = False
+    while tries <= 3 and not downloaded:
         tries += 1
         try:
             if os.path.isfile(filename):
+                return
                 handler = urllib2.urlopen(url)
                 filesize = handler.info().get('Content-Length')
                 if filesize:
@@ -42,6 +48,8 @@ def get_pdb_file(pdbcode, filename = None):
             filehandle.write(handler.read())
             filehandle.close()
             handler.close()
+            downloaded = True
+            return
             tries = 999
         except Exception, e:
             print "No s'ha pogut descarregar",  url

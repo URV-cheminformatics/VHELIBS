@@ -5,7 +5,11 @@
 """
 Mòdul que extreu informació la EDS database
 """
-import urllib2, multiprocessing, sys, os, time
+import urllib2, sys, os, time
+if sys.platform.startswith('java'):
+    import multithreading as multiprocessing
+else:
+    import multiprocessing
 import PDBfiles
 from decimal import Decimal
 
