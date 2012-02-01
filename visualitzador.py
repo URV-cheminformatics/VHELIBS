@@ -122,6 +122,19 @@ def main():
 
 
     ###
+    helpmsg = ''
+    helpmsg += '> Special commands:\n'
+    helpmsg += "help : print this message"
+    helpmsg += "good : Considera l'estructura com a bona, la desa a %s\n" % goodfilename
+    helpmsg += "bad : Considera l'estructura com a incorrecta, la desa a %s\n" % badfilename
+    helpmsg += "dubious : Considera l'estructura com a dubtosa, la desa a %s\n" % dubiousfilename
+    helpmsg += "<pdbid> : load this structure from the queue\n"
+    helpmsg += "list : shows the queue of structures\n"
+    helpmsg += "selectbs | selectligands | selectresex :select binding site, ligands or residues to exam, respectively\n"
+    helpmsg += "resetmap : re-clips the map to the ligands and residues to exam\n"
+    helpmsg += "Com fer servir l'OpenAstexViewer:\n"
+    helpmsg += "http://openastexviewer.net/web/interface.html\n"
+    print helpmsg
     if not os.path.isdir('PDB'):
         os.mkdir('PDB')
     pdbid = None
@@ -139,7 +152,7 @@ def main():
             if not os.path.isfile(localpdb):
                 if not os.path.isdir(os.path.join(datadir, pdbid.lower())):
                     os.mkdir(os.path.join(datadir, pdbid.lower()))
-                PDBfiles.get_pdb_file(pdbid.lower())
+                PDBfiles.get_pdb_file(pdbid.lower(), localpdb)
             relmap = os.path.join(pdbid.lower(), pdbid.lower() + '.omap')
             localmap = os.path.join(datadir, relmap)
             #Visualitzar a l'astex
@@ -155,9 +168,13 @@ def main():
             moleculeViewer.moleculeRenderer.execute('display lines off all;')
             moleculeViewer.moleculeRenderer.execute('select none;')
             for bsres in binding_site_selection:
-                moleculeViewer.moleculeRenderer.execute('display sticks on %s;' % bsres)
-                moleculeViewer.moleculeRenderer.execute('color cyan %s;' % bsres)
+                moleculeViewer.moleculeRenderer.execute('append %s;' % bsres)
+                moleculeViewer.moleculeRenderer.execute('display lines on %s;' % bsres)
+                moleculeViewer.moleculeRenderer.execute('color white %s;' % bsres)
                 moleculeViewer.moleculeRenderer.repaint()
+            selectedAtoms = moleculeRenderer.getSelectedOrLabelledAtoms()
+            moleculeRenderer.setCenter(selectedAtoms)
+            moleculeViewer.moleculeRenderer.execute('select none;')
             for examres in exam_residues_selection:
                 moleculeViewer.moleculeRenderer.execute('append %s;' % examres)
                 moleculeViewer.moleculeRenderer.execute('display sticks on %s;' % examres)
@@ -168,8 +185,6 @@ def main():
                 moleculeViewer.moleculeRenderer.execute('color magenta %s;' % ligandres)
 
             moleculeViewer.moleculeRenderer.repaint()
-            selectedAtoms = moleculeRenderer.getSelectedOrLabelledAtoms()
-            moleculeRenderer.setCenter(selectedAtoms)
             moleculeViewer.moleculeRenderer.repaint()
             selectiondict = {'bs':binding_site_selection, 'ligands':ligands_selection, 'resex':exam_residues_selection}
 
@@ -179,7 +194,7 @@ def main():
                     generate = urllib2.urlopen(genurl)
                     generate.read()
                     generate.close()
-                    url = edsurl.replace('PDB1', pdbid.lower()).replace('PDB2', pdbid[1:3].lower())
+                    url = edsurl.replace('PDB1', pdbid.lower()).replace('PDB2', pdbid[1:3].lower()).replace('_stat.lis', '.tar.gz')
                     print 'Descarregant %s' % url
                     remotearchive = urllib2.urlopen(url)
                     localarchive = os.path.join(datadir, pdbid.lower(), os.path.basename(url))
@@ -198,24 +213,15 @@ def main():
                 moleculeViewer.moleculeRenderer.execute('select none;')
                 moleculeViewer.moleculeRenderer.repaint()
             except Exception,  e:
+                print e
                 print 'Impossible carregar el mapa de densitat electronica per %s' % pdbid
             needreload = False
         print "\n####################################"
         print "Visualitzant l'estructura %s" % pdbid
         print "####################################\n"
-        print "Com fer servir l'OpenAstexViewer:"
-        print "http://openastexviewer.net/web/interface.html"
         #Descarregar estructura
         #Carregar estructura
         #Fer visible només els lligands i els residus d'interès
-        print '> Ordres especials: '
-        print "good : Considera l'estructura com a bona, la desa a %s" % goodfilename
-        print "bad : Considera l'estructura com a incorrecta, la desa a %s" % badfilename
-        print "dubious : Considera l'estructura com a dubtosa, la desa a %s" % dubiousfilename
-        print "<pdbid> : carrega l'estructura <pdbid>"
-        print "list : mostra la llista d'estructures"
-        print "selectbs | selectligands | selectresex :select binding site, ligands or residues to exam, respectively"
-        print "resetmap : re-clips the map to the ligands and residues to exam"
         print ">>>",
         inp = raw_input()
         #inp = 'bad'
@@ -225,6 +231,8 @@ def main():
             needreload = True
         elif inp.lower() == 'list':
             print resultdict.keys()
+        elif inp.lower() == 'help':
+            print helpmsg
         elif inp.lower() in ('good', 'bad', 'dubious'):
             ligandresidues, residues_to_exam, binding_site = resultdict.pop(pdbid)
             writerdict[inp.lower()].writerow([pdbid, ';'.join(residues_to_exam), ';'.join(ligandresidues),';'.join(binding_site)])
