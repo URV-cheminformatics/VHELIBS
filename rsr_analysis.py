@@ -142,25 +142,36 @@ class PdbAtom(object):
             return (self.xyz[0] - other.xyz[0])**2 + (self.xyz[1] - other.xyz[1])**2 + (self.xyz[2] - other.xyz[2])**2
 
 
-def main(argv=[]):
-    import csv, math
+def main(filepath, pdbidslist=[], rsr_upper=RSR_upper, rsr_lower = RSR_lower, distance=None, outputfile='rsr_analysis.csv'):
+    import csv, math, itertools
+    if distance != None:
+        global outer_distance
+        global inner_distance
+        distfactor = outer_distance/inner_distance
+        inner_distance = distance**2
+        if not outer_distance > inner_distance:
+           outer_distance =  inner_distance*distfactor
     #print sys.argv[-1]
     PDBfiles.setglobaldicts()
-    rsr_upper=RSR_upper
-    rsr_lower = RSR_lower
-    pdblistfile = open(argv[-1], 'rb')
-    pdblist = (line.strip() for line in pdblistfile)
+    if filepath:
+        pdblistfile = open(filepath, 'rb')
+        pdblist = (line.strip() for line in pdblistfile)
+        if pdbidslist:
+            pdblist = itertools.chain(pdbidslist, pdblist)
+    elif pdbidslist:
+        pdblist = pdbidslist
     if not rsr_upper > rsr_lower:
         print '%s is higher than %s!' % (rsr_lower, rsr_upper)
         raise ValueError
     argsarray = []
     resultdict = {}
-    outfile = open('rsr_analysis.csv', 'wb')
+    outfile = open(outputfile, 'wb')
     csvfile = csv.writer(outfile)
     csvfile.writerow(['PDB ID', "Residues to exam", "Ligand Residues", "Binding Site Residues"])
     for pdbid in pdblist:
         argsarray.append((pdbid.upper(), rsr_upper, rsr_lower))
-    pdblistfile.close()
+    if filepath:
+        pdblistfile.close()
     #results = (parse_binding_site(argstuple) for argstuple in argsarray)
     chunksize = int(math.sqrt(len(argsarray)))
     pool = multiprocessing.Pool(multiprocessing.cpu_count())
@@ -177,4 +188,14 @@ def main(argv=[]):
     pool.join()
 
 if __name__ == '__main__':
-    main(sys.argv)
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-i','--pdbids', nargs='+', type=str, metavar='PDBID', help='list of PDB ids')
+    parser.add_argument('-u','--rsr_upper', type=float, default=RSR_upper, metavar='FLOAT', help='set maximum RSR value for each residue (residues with a higher RSR will be discarded)')
+    parser.add_argument('-l','--rsr_lower', type=float, default=RSR_lower, metavar='FLOAT', help='set minimum RSR value for each residue (residues with a lower RSR value will be directly considered right)')
+    parser.add_argument('-d','--distance', type=float, default=4.5, metavar='Å', help='consider part of the binding sites all the residues nearer than this to the ligand (in Å)')
+    parser.add_argument('-f','--pdbidfile', metavar='PATH', type=unicode, default=None, required=False, help='text file containing a list of PDB ids, one per line')
+    parser.add_argument('-o','--outputfile', metavar='PATH', type=unicode, default='rsr_analysis.csv', required=False, help='output file name')
+    values = parser.parse_args()
+    print values
+    main(values.pdbidfile, pdbidslist = values.pdbids, rsr_upper=values.rsr_upper, rsr_lower = values.rsr_lower, distance=values.distance, outputfile = values.outputfile)
