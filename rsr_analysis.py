@@ -3,34 +3,62 @@
 #
 #   Copyright 2011 - 2012 Adrià Cereto Massagué <adrian.cereto@.urv.cat>
 #
-import os, gzip, sys
+import os, gzip, sys, urllib2
 if sys.platform.startswith('java'):
     import multithreading as multiprocessing
 else:
     import multiprocessing
 
 import PDBfiles, EDS_parser
+from cofactors import ligand_blacklist
 
 RSR_upper = 0.4
 RSR_lower = 0.24
 outer_distance = 10**2
 inner_distance = 4.5**2
 
-def get_pdbs_with_good_rsr(pdblist, rsr_upper=RSR_upper, rsr_lower = RSR_lower):
-    if not rsr_upper > rsr_lower:
-        print '%s is higher than %s!' % (rsr_lower, rsr_upper)
-        raise ValueError
-    argsarray = []
-    resultdict = {}
-    for pdbid in pdblist:
-        argsarray.append((pdbid.upper(), rsr_upper, rsr_lower))
-    PDBfiles.setglobaldicts()
-    #pool = multiprocessing.Pool(multiprocessing.cpu_count())
-    #results = pool.map(parse_binding_site, argsarray)
-    results = (parse_binding_site(argstuple) for argstuple in argsarray)
-    for pdbid, ligandresidues, residues_to_exam, binding_site in results:
-        resultdict[pdbid] = ligandresidues, residues_to_exam, binding_site
-    return resultdict
+###Create the argument parser###
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument('-i','--pdbids', nargs='+', default=[], type=str, metavar='PDBID', help='list of PDB ids')
+parser.add_argument('-s','--swissprot', nargs='+', default=[], type=str, metavar='SP_AN [or SP_NAME]', help='list of Swiss-Prot protein names or accession numbers')
+parser.add_argument('-u','--rsr_upper', type=float, default=RSR_upper, metavar='FLOAT', help='set maximum RSR value for each residue (residues with a higher RSR will be discarded)')
+parser.add_argument('-l','--rsr_lower', type=float, default=RSR_lower, metavar='FLOAT', help='set minimum RSR value for each residue (residues with a lower RSR value will be directly considered right)')
+parser.add_argument('-d','--distance', type=float, default=4.5, metavar='Å', help='consider part of the binding sites all the residues nearer than this to the ligand (in Å)')
+parser.add_argument('-f','--pdbidfile', metavar='PATH', type=unicode, default=None, required=False, help='text file containing a list of PDB ids, one per line')
+parser.add_argument('-o','--outputfile', metavar='PATH', type=unicode, default='rsr_analysis.csv', required=False, help='output file name')
+#######################
+
+def get_sptopdb_dict():
+    """
+    Returns a dictionary containing the pdb entries for each Swiss-Prot entry
+    """
+    url = "http://www.uniprot.org/docs/pdbtosp.txt"
+    sptopdb_dict = {}
+    temppdbdict = {}
+    reader = urllib2.urlopen(url)
+    pdbid = None
+    for line in reader:
+        if not len(line) > 28:
+            continue
+        if line[:28].strip():
+            line_stripped = line.strip()
+            if line_stripped:
+                pdbid_candidate = line_stripped.split()[0]
+                if len(pdbid_candidate) == 4 and pdbid_candidate.isupper():
+                    pdbid = pdbid_candidate
+                    if pdbid not in temppdbdict:
+                        temppdbdict[pdbid] = set()
+        if pdbid:
+            spinfo = line[28:].strip()
+            temppdbdict[pdbid].update([item.strip() for item in spinfo.split(',') if item])
+    reader.close()
+    for pdbid in temppdbdict:
+        for sp_id in temppdbdict[pdbid]:
+            if sp_id not in sptopdb_dict:
+                sptopdb_dict[sp_id] = set()
+            sptopdb_dict[sp_id].add(pdbid)
+    return sptopdb_dict
 
 def parse_binding_site(argtuple):
     """
@@ -38,7 +66,11 @@ def parse_binding_site(argtuple):
     """
     #print argtuple
     pdbid, rsr_upper, rsr_lower = argtuple
-    hetids_list = PDBfiles.hetdict[pdbid.lower()]
+    try:
+        hetids_list = PDBfiles.hetdict[pdbid.lower()]
+    except KeyError:
+        hetids_list =[]
+        future_hetids_list = set()
     residues_to_exam = set()
     ligand_residues = set()
     binding_sites = set()
@@ -53,6 +85,9 @@ def parse_binding_site(argtuple):
     protein_ca_atoms = set()
     pdbfilepath = os.path.join(PDBfiles.PREFIX, pdbid.lower(), pdbid.upper() + ".pdb.gz")
     pdbdict, rsrdict = EDS_parser.get_EDS(pdbid)
+    if pdbdict['IN_EDS'] != 'TRUE':
+        print "No EDS data available for %s, it will be discarded" % pdbid
+        return  (None, None, None, None)
     if not os.path.isfile(pdbfilepath):
         PDBfiles.get_pdb_file(pdbid.upper(), pdbfilepath)
     pdbfile = gzip.GzipFile(pdbfilepath)
@@ -69,8 +104,11 @@ def parse_binding_site(argtuple):
                     protein_atoms.add(atom)
                     if atom.name[1:3] == 'CA':  #Is alpha-carbon
                         protein_ca_atoms.add(atom)
-                elif atom.hetid in hetids_list:
+                elif atom.hetid in hetids_list or (not hetids_list and atom.hetid not in ligand_blacklist):
                     ligand_residues.add(atom.residue)
+                    if not hetids_list and atom.hetid not in ligand_all_atoms_dict:
+                        future_hetids_list.add(atom.hetid)
+                        ligand_all_atoms_dict[atom.hetid] = set()
                     ligand_all_atoms_dict[atom.hetid].add(atom)
     except IOError, error:
         print pdbfilepath
@@ -80,6 +118,8 @@ def parse_binding_site(argtuple):
         if error:
             return  (None, None, None, None)
     #Now let's find binding site distance
+    if not hetids_list:
+        hetids_list = future_hetids_list
     for hetid in hetids_list:
         #print hetid
         #Generate outer distance set
@@ -95,11 +135,11 @@ def parse_binding_site(argtuple):
         for atom in protein_atoms:
             if atom.residue not in outer_binding_site:
                 continue
-            classificate_residue(atom, good_rsr, dubious_rsr, bad_rsr, rsr_upper=rsr_upper, rsr_lower = rsr_lower)
             for ligandatom in ligand_all_atoms_dict[hetid]:
                 distance = atom | ligandatom
-                if distance <= outer_distance:
+                if distance <= inner_distance:
                     inner_binding_site.add(atom.residue)
+                    classificate_residue(atom, good_rsr, dubious_rsr, bad_rsr, rsr_upper=rsr_upper, rsr_lower = rsr_lower)
                     break
         if not inner_binding_site <= good_rsr:
             #Not all  the residues from here have good rsr
@@ -142,8 +182,11 @@ class PdbAtom(object):
             return (self.xyz[0] - other.xyz[0])**2 + (self.xyz[1] - other.xyz[1])**2 + (self.xyz[2] - other.xyz[2])**2
 
 
-def main(filepath, pdbidslist=[], rsr_upper=RSR_upper, rsr_lower = RSR_lower, distance=None, outputfile='rsr_analysis.csv'):
-    import csv, math, itertools
+def main(filepath, pdbidslist=[], swissprotlist = [], rsr_upper=RSR_upper, rsr_lower = RSR_lower, distance=None, outputfile='rsr_analysis.csv'):
+    import csv, itertools
+    if not rsr_upper > rsr_lower:
+        print '%s is higher than %s!' % (rsr_lower, rsr_upper)
+        raise ValueError
     if distance != None:
         global outer_distance
         global inner_distance
@@ -153,49 +196,53 @@ def main(filepath, pdbidslist=[], rsr_upper=RSR_upper, rsr_lower = RSR_lower, di
            outer_distance =  inner_distance*distfactor
     #print sys.argv[-1]
     PDBfiles.setglobaldicts()
+    pdblist = pdbidslist
+    if swissprotlist:
+        sptopdb_dict = get_sptopdb_dict()
+        for swissprot_id in swissprotlist:
+            for key in sptopdb_dict:
+                if swissprot_id in key:
+                    pdblist = itertools.chain(pdblist, sptopdb_dict[key])
     if filepath:
         pdblistfile = open(filepath, 'rb')
-        pdblist = (line.strip() for line in pdblistfile)
-        if pdbidslist:
-            pdblist = itertools.chain(pdbidslist, pdblist)
-    elif pdbidslist:
-        pdblist = pdbidslist
+        pdblist = itertools.chain(pdblist, (line.strip() for line in pdblistfile if line.strip()))
     if not rsr_upper > rsr_lower:
         print '%s is higher than %s!' % (rsr_lower, rsr_upper)
         raise ValueError
-    argsarray = []
     resultdict = {}
     outfile = open(outputfile, 'wb')
     csvfile = csv.writer(outfile)
     csvfile.writerow(['PDB ID', "Residues to exam", "Ligand Residues", "Binding Site Residues"])
-    for pdbid in pdblist:
-        argsarray.append((pdbid.upper(), rsr_upper, rsr_lower))
+    basename = os.path.splitext(os.path.basename(outputfile))[0]
+    goodfile = None
+    argsarray = ((pdbid.upper(), rsr_upper, rsr_lower) for pdbid in pdblist if pdbid)
     if filepath:
         pdblistfile.close()
     #results = (parse_binding_site(argstuple) for argstuple in argsarray)
-    chunksize = int(math.sqrt(len(argsarray)))
+    #chunksize = int(math.sqrt(len(argsarray)))
     pool = multiprocessing.Pool(multiprocessing.cpu_count())
-    results = pool.imap_unordered(parse_binding_site, argsarray, chunksize)
+    results = pool.imap_unordered(parse_binding_site, argsarray)
     print 'Calculating...'
     for pdbid, ligandresidues, residues_to_exam, binding_site in results:
         if pdbid == None:
             continue
         if not residues_to_exam:
-            continue
-        csvfile.writerow([pdbid, ';'.join(residues_to_exam), ';'.join(ligandresidues),';'.join(binding_site)])
+            if not ligandresidues:
+                print '%s has no actual ligands, it will be discarded' % pdbid
+            else:
+                if not goodfile:
+                    goodfilename = basename + '_good.csv'
+                    goodfile = open(goodfilename,'ab')
+                    goodwriter = csv.writer(goodfile)
+                    goodwriter.writerow(['PDB ID', "Residues to exam", "Ligand Residues", "Binding Site Residues"])
+                goodwriter.writerow([pdbid, '', ';'.join(ligandresidues),';'.join(binding_site)])
+        else:
+            csvfile.writerow([pdbid, ';'.join(residues_to_exam), ';'.join(ligandresidues),';'.join(binding_site)])
     outfile.close()
     pool.terminate()
     pool.join()
 
 if __name__ == '__main__':
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-i','--pdbids', nargs='+', type=str, metavar='PDBID', help='list of PDB ids')
-    parser.add_argument('-u','--rsr_upper', type=float, default=RSR_upper, metavar='FLOAT', help='set maximum RSR value for each residue (residues with a higher RSR will be discarded)')
-    parser.add_argument('-l','--rsr_lower', type=float, default=RSR_lower, metavar='FLOAT', help='set minimum RSR value for each residue (residues with a lower RSR value will be directly considered right)')
-    parser.add_argument('-d','--distance', type=float, default=4.5, metavar='Å', help='consider part of the binding sites all the residues nearer than this to the ligand (in Å)')
-    parser.add_argument('-f','--pdbidfile', metavar='PATH', type=unicode, default=None, required=False, help='text file containing a list of PDB ids, one per line')
-    parser.add_argument('-o','--outputfile', metavar='PATH', type=unicode, default='rsr_analysis.csv', required=False, help='output file name')
     values = parser.parse_args()
     print values
-    main(values.pdbidfile, pdbidslist = values.pdbids, rsr_upper=values.rsr_upper, rsr_lower = values.rsr_lower, distance=values.distance, outputfile = values.outputfile)
+    main(values.pdbidfile, pdbidslist = values.pdbids, swissprotlist =values.swissprot , rsr_upper=values.rsr_upper, rsr_lower = values.rsr_lower, distance=values.distance, outputfile = values.outputfile)
