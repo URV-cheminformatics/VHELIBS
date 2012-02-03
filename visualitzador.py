@@ -7,7 +7,7 @@ import os
 import csv
 import urllib2
 import tarfile
-from java.awt import Frame,  Panel, BorderLayout, FlowLayout, Label, TextField
+from java.awt import Frame, Panel, BorderLayout, FlowLayout, Label, TextField
 from java.lang import System
 import astex.MoleculeViewer as MoleculeViewer
 #print 'astex importat'
@@ -27,24 +27,29 @@ if not os.path.isdir(datadir):
 def reslist_to_sel(reslist):
     sellist = []
     for res in reslist:
-        resname = res[:3]
-        chain = res[4]
-        resnum = res[5:].strip()
-        if not resnum.isdigit():
-            for char in resnum:
-                if not char.isdigit():
-                    resnum = resnum.replace(char, '')
-        print 'Transformant %s en %s' % (res, "(chain '%s' and residue %s)" % (chain, resnum))
-        sellist.append("(chain '%s' and residue %s)" % (chain, resnum))
+        if res.strip():
+            try:
+                resname = res[:3]
+                chain = res[4]
+                resnum = res[5:].strip()
+                if not resnum.isdigit():
+                    for char in resnum:
+                        if not char.isdigit():
+                            resnum = resnum.replace(char, '')
+                #print 'Transformant %s en %s' % (res, "(chain '%s' and residue %s)" % (chain, resnum))
+                sellist.append("(chain '%s' and residue %s)" % (chain, resnum))
+            except IndexError:
+                print "Malformed residue string:"
+                print res
     return sellist
 
 def main():
     if not len(sys.argv) or os.path.abspath(__file__) == os.path.abspath(sys.argv[-1]):
         print "Falta un argument: el fitxer de resultats"
         return
-    print 'Carregant dades...',
-    resultdict = {}
     csvfilename = sys.argv[-1]
+    print 'Loading data from %s...' % csvfilename,
+    resultdict = {}
     if not os.path.isfile(csvfilename):
         print 'El fitxer %s no existeix' % csvfilename
         return(1)
@@ -65,7 +70,12 @@ def main():
             else:
                 ans = raw_input()
     csvfile = open(csvfilename, 'rb')
-    dialect = csv.Sniffer().sniff(csvfile.read(1024))
+    try:
+        dialect = csv.Sniffer().sniff(csvfile.read(1024))
+    except csv.Error,  e:
+        print e
+        dialect = 'excel'
+        print 'using default dialect: %s' % dialect
     csvfile.seek(0)
     reader = csv.reader(csvfile, dialect)
     for pdbid, residues_to_exam_string, ligandresidues_string, binding_site_string in reader:
@@ -91,6 +101,7 @@ def main():
     dubiousfile = open(dubiousfilename,'ab')
     dubiouswriter = csv.writer(dubiousfile, dialect)
     writerdict = {'good':goodwriter, 'bad':badwriter, 'dubious':dubiouswriter}
+    filesdict = {'good':goodfile, 'bad':badfile, 'dubious':dubiousfile}
     ###
     #Carrega l'astex
     ###
@@ -123,23 +134,26 @@ def main():
 
     ###
     helpmsg = ''
-    helpmsg += '> Special commands:\n'
-    helpmsg += "help : print this message"
-    helpmsg += "good : Considera l'estructura com a bona, la desa a %s\n" % goodfilename
-    helpmsg += "bad : Considera l'estructura com a incorrecta, la desa a %s\n" % badfilename
-    helpmsg += "dubious : Considera l'estructura com a dubtosa, la desa a %s\n" % dubiousfilename
-    helpmsg += "<pdbid> : load this structure from the queue\n"
-    helpmsg += "list : shows the queue of structures\n"
-    helpmsg += "selectbs | selectligands | selectresex :select binding site, ligands or residues to exam, respectively\n"
-    helpmsg += "resetmap : re-clips the map to the ligands and residues to exam\n"
-    helpmsg += "Com fer servir l'OpenAstexViewer:\n"
-    helpmsg += "http://openastexviewer.net/web/interface.html\n"
+    helpmsg += """> Special commands:
+help : print this message
+good : Considera l'estructura com a bona, la desa a %s
+bad : Considera l'estructura com a incorrecta, la desa a %s
+dubious : Considera l'estructura com a dubtosa, la desa a %s
+<pdbid> : load this structure from the queue
+list : shows the queue of structures
+selectbs : select binding site residues
+selectligands : select ligand residues
+selectresex : select residues to exam from the binding site
+reclipmap : re-clips the map to the ligands and residues to exam
+Com fer servir l'OpenAstexViewer:
+http://openastexviewer.net/web/interface.html """ % (goodfilename, badfilename , dubiousfilename, )
     print helpmsg
     if not os.path.isdir('PDB'):
         os.mkdir('PDB')
     pdbid = None
     needreload = False
     while resultdict:
+        inp = ';'
         if not pdbid:
             pdbid = resultdict.keys()[0]
             needreload = True
@@ -147,83 +161,90 @@ def main():
             #Netejar
             moleculeViewer.moleculeRenderer.execute('molecule remove *;')
             moleculeViewer.moleculeRenderer.execute('map remove *;')
-            #Descarregar pdb
-            localpdb = os.path.join(datadir, pdbid.lower(), pdbid + '.pdb.gz')
-            if not os.path.isfile(localpdb):
-                if not os.path.isdir(os.path.join(datadir, pdbid.lower())):
-                    os.mkdir(os.path.join(datadir, pdbid.lower()))
-                PDBfiles.get_pdb_file(pdbid.lower(), localpdb)
-            relmap = os.path.join(pdbid.lower(), pdbid.lower() + '.omap')
-            localmap = os.path.join(datadir, relmap)
-            #Visualitzar a l'astex
-            moleculeViewer.moleculeRenderer.execute('molecule load %s %s;' % (pdbid, localpdb))
-            moleculeViewer.moleculeRenderer.repaint()
-            exam_residues_selection = []
-            binding_site_selection = []
             ligandresidues, residues_to_exam, binding_site = resultdict[pdbid]
-            ligands_selection = reslist_to_sel(ligandresidues)
-            binding_site_selection = reslist_to_sel(binding_site)
-            exam_residues_selection = reslist_to_sel(residues_to_exam)
-            moleculeViewer.moleculeRenderer.execute('select all;')
-            moleculeViewer.moleculeRenderer.execute('display lines off all;')
-            moleculeViewer.moleculeRenderer.execute('select none;')
-            for bsres in binding_site_selection:
-                moleculeViewer.moleculeRenderer.execute('append %s;' % bsres)
-                moleculeViewer.moleculeRenderer.execute('display lines on %s;' % bsres)
-                moleculeViewer.moleculeRenderer.execute('color white %s;' % bsres)
+            if ligandresidues == ['']:
+                print 'Structure without ligands!'
+                print 'Skipping it'
+                inp = 'dubious'
+            else:
+                #Descarregar pdb
+                localpdb = os.path.join(datadir, pdbid.lower(), pdbid + '.pdb.gz')
+                if not os.path.isfile(localpdb):
+                    if not os.path.isdir(os.path.join(datadir, pdbid.lower())):
+                        os.mkdir(os.path.join(datadir, pdbid.lower()))
+                    PDBfiles.get_pdb_file(pdbid.lower(), localpdb)
+                relmap = os.path.join(pdbid.lower(), pdbid.lower() + '.omap')
+                localmap = os.path.join(datadir, relmap)
+                #Visualitzar a l'astex
+                moleculeViewer.moleculeRenderer.execute('molecule load %s %s;' % (pdbid, localpdb))
                 moleculeViewer.moleculeRenderer.repaint()
-            selectedAtoms = moleculeRenderer.getSelectedOrLabelledAtoms()
-            moleculeRenderer.setCenter(selectedAtoms)
-            moleculeViewer.moleculeRenderer.execute('select none;')
-            for examres in exam_residues_selection:
-                moleculeViewer.moleculeRenderer.execute('append %s;' % examres)
-                moleculeViewer.moleculeRenderer.execute('display sticks on %s;' % examres)
-                moleculeViewer.moleculeRenderer.execute('color_by_atom;')
-            for ligandres in ligands_selection:
-                moleculeViewer.moleculeRenderer.execute('append %s;' % ligandres)
-                moleculeViewer.moleculeRenderer.execute('display sticks on %s;' % ligandres)
-                moleculeViewer.moleculeRenderer.execute('color magenta %s;' % ligandres)
-
-            moleculeViewer.moleculeRenderer.repaint()
-            moleculeViewer.moleculeRenderer.repaint()
-            selectiondict = {'bs':binding_site_selection, 'ligands':ligands_selection, 'resex':exam_residues_selection}
-
-            try:
-                if not os.path.isfile(localmap):
-                    genurl = 'http://eds.bmc.uu.se/cgi-bin/eds/gen_zip.pl?pdbCode=' + pdbid.lower()
-                    generate = urllib2.urlopen(genurl)
-                    generate.read()
-                    generate.close()
-                    url = edsurl.replace('PDB1', pdbid.lower()).replace('PDB2', pdbid[1:3].lower()).replace('_stat.lis', '.tar.gz')
-                    print 'Descarregant %s' % url
-                    remotearchive = urllib2.urlopen(url)
-                    localarchive = os.path.join(datadir, pdbid.lower(), os.path.basename(url))
-                    archivefile = open(localarchive, 'wb')
-                    archivefile.write(remotearchive.read())
-                    remotearchive.close()
-                    archivefile.close()
-                    archivefile = tarfile.open(localarchive)
-                    archivefile.extract(relmap, datadir)
-                    archivefile.close()
-                moleculeViewer.moleculeRenderer.execute('map load %s %s;' % (pdbid, localmap))
-                moleculeViewer.moleculeRenderer.execute('map %s contour 0 yellow;' % (pdbid))
-                #moleculeViewer.moleculeRenderer.execute('select %s or %s or %s;' % exam_residues_selection, ligands_selection, binding_site_selection)
-                selectedAtoms = moleculeRenderer.getSelectedOrLabelledAtoms()
-                moleculeRenderer.clipMaps(None, selectedAtoms, True)
+                exam_residues_selection = []
+                binding_site_selection = []
+                ligands_selection = reslist_to_sel(ligandresidues)
+                binding_site_selection = reslist_to_sel(binding_site)
+                exam_residues_selection = reslist_to_sel(residues_to_exam)
+                moleculeViewer.moleculeRenderer.execute('select all;')
+                moleculeViewer.moleculeRenderer.execute('display lines off all;')
                 moleculeViewer.moleculeRenderer.execute('select none;')
+                for bsres in binding_site_selection:
+                    moleculeViewer.moleculeRenderer.execute('append %s;' % bsres)
+                    moleculeViewer.moleculeRenderer.execute('display lines on %s;' % bsres)
+                    moleculeViewer.moleculeRenderer.execute('color white %s;' % bsres)
+                    moleculeViewer.moleculeRenderer.repaint()
+                selectedAtoms = moleculeRenderer.getSelectedOrLabelledAtoms()
+                moleculeRenderer.setCenter(selectedAtoms)
+                moleculeViewer.moleculeRenderer.execute('select none;')
+                for examres in exam_residues_selection:
+                    moleculeViewer.moleculeRenderer.execute('append %s;' % examres)
+                    moleculeViewer.moleculeRenderer.execute('display sticks on %s;' % examres)
+                    moleculeViewer.moleculeRenderer.execute('color_by_atom;')
+                    moleculeViewer.moleculeRenderer.repaint()
+                for ligandres in ligands_selection:
+                    moleculeViewer.moleculeRenderer.execute('append %s;' % ligandres)
+                    moleculeViewer.moleculeRenderer.execute('display sticks on %s;' % ligandres)
+                    moleculeViewer.moleculeRenderer.execute('color magenta %s;' % ligandres)
+                    moleculeViewer.moleculeRenderer.repaint()
+
                 moleculeViewer.moleculeRenderer.repaint()
-            except Exception,  e:
-                print e
-                print 'Impossible carregar el mapa de densitat electronica per %s' % pdbid
-            needreload = False
-        print "\n####################################"
-        print "Visualitzant l'estructura %s" % pdbid
-        print "####################################\n"
-        #Descarregar estructura
-        #Carregar estructura
-        #Fer visible només els lligands i els residus d'interès
-        print ">>>",
-        inp = raw_input()
+                selectiondict = {'bs':binding_site_selection, 'ligands':ligands_selection, 'resex':exam_residues_selection}
+
+                try:
+                    if not os.path.isfile(localmap):
+                        genurl = 'http://eds.bmc.uu.se/cgi-bin/eds/gen_zip.pl?pdbCode=' + pdbid.lower()
+                        generate = urllib2.urlopen(genurl)
+                        generate.read()
+                        generate.close()
+                        url = edsurl.replace('PDB1', pdbid.lower()).replace('PDB2', pdbid[1:3].lower()).replace('_stat.lis', '.tar.gz')
+                        print 'Descarregant %s' % url
+                        remotearchive = urllib2.urlopen(url)
+                        localarchive = os.path.join(datadir, pdbid.lower(), os.path.basename(url))
+                        archivefile = open(localarchive, 'wb')
+                        archivefile.write(remotearchive.read())
+                        remotearchive.close()
+                        archivefile.close()
+                        archivefile = tarfile.open(localarchive)
+                        archivefile.extract(relmap, datadir)
+                        archivefile.close()
+                    moleculeViewer.moleculeRenderer.execute('map load %s %s;' % (pdbid, localmap))
+                    moleculeViewer.moleculeRenderer.execute('map %s contour 0 yellow;' % (pdbid))
+                    #moleculeViewer.moleculeRenderer.execute('select %s or %s or %s;' % exam_residues_selection, ligands_selection, binding_site_selection)
+                    selectedAtoms = moleculeRenderer.getSelectedOrLabelledAtoms()
+                    moleculeRenderer.clipMaps(None, selectedAtoms, True)
+                    moleculeViewer.moleculeRenderer.execute('select none;')
+                    moleculeViewer.moleculeRenderer.repaint()
+                except Exception,  e:
+                    print e
+                    print 'Impossible carregar el mapa de densitat electronica per %s' % pdbid
+                needreload = False
+            print "\n####################################"
+            print "Visualitzant l'estructura %s" % pdbid
+            print "####################################\n"
+            #Descarregar estructura
+            #Carregar estructura
+            #Fer visible només els lligands i els residus d'interès
+        while not inp or inp == ';':
+            print ">>>",
+            inp = raw_input().strip()
         #inp = 'bad'
         print
         if inp.upper() in resultdict:
@@ -236,6 +257,7 @@ def main():
         elif inp.lower() in ('good', 'bad', 'dubious'):
             ligandresidues, residues_to_exam, binding_site = resultdict.pop(pdbid)
             writerdict[inp.lower()].writerow([pdbid, ';'.join(residues_to_exam), ';'.join(ligandresidues),';'.join(binding_site)])
+            filesdict[inp.lower()].flush()
             ###
             outfile = open(basename + '_wip.csv', 'wb')
             csvfile = csv.writer(outfile)
@@ -250,7 +272,7 @@ def main():
             for res in selectiondict[target]:
                 moleculeViewer.moleculeRenderer.execute('append %s;' % res)
             moleculeViewer.moleculeRenderer.repaint()
-        elif inp.lower().strip() == 'resetmap':
+        elif inp.lower().strip() == 'reclipmap':
             moleculeViewer.moleculeRenderer.execute('select none;')
             for res in (selectiondict['ligands'] + selectiondict['resex']):
                 moleculeViewer.moleculeRenderer.execute('append %s;' % res)
@@ -267,7 +289,7 @@ def main():
             except Exception, e:
                 print e
                 print "### Ordre o codi PDB no reconeguts: '%s'. Torna-ho a provar ###" % inp
-
        #Netejar-ho tot
-
+    for file in filesdict.values():
+        file.close()
     print "Enhorabona! S'han acabat les estructures!"
