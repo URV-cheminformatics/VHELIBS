@@ -89,7 +89,7 @@ def main():
         print 'Dades carregades'
     if not resultdict:
         print 'Fitxer sense dades!'
-        exit()
+        return
     csvfile.close()
     goodfilename = basename + '_good.csv'
     goodfile = open(goodfilename,'ab')
@@ -237,7 +237,7 @@ http://openastexviewer.net/web/interface.html """ % (goodfilename, badfilename ,
                     print 'Impossible carregar el mapa de densitat electronica per %s' % pdbid
                 needreload = False
             print "\n####################################"
-            print "Visualitzant l'estructura %s" % pdbid
+            print "Viewing structure %s" % pdbid
             print "####################################\n"
             #Descarregar estructura
             #Carregar estructura
