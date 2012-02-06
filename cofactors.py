@@ -194,6 +194,7 @@ ligand_blacklist = {
 , 'SRM': 'Siroheme'
 , 'UQ8': 'UBIQUINONE-8'
 , 'NAG': 'NAG'
+, 'HOH': 'Water'
 }
 
 
