@@ -110,6 +110,8 @@ def parse_binding_site(argtuple):
                         future_hetids_list.add(atom.hetid)
                         ligand_all_atoms_dict[atom.hetid] = set()
                     ligand_all_atoms_dict[atom.hetid].add(atom)
+                    #print atom.rsr
+                    classificate_residue(atom, good_rsr, dubious_rsr, bad_rsr, rsr_upper=rsr_upper, rsr_lower = rsr_lower)
     except IOError, error:
         print pdbfilepath
         print error
@@ -141,22 +143,25 @@ def parse_binding_site(argtuple):
                     inner_binding_site.add(atom.residue)
                     classificate_residue(atom, good_rsr, dubious_rsr, bad_rsr, rsr_upper=rsr_upper, rsr_lower = rsr_lower)
                     break
-        if not inner_binding_site <= good_rsr:
+        if not (inner_binding_site <= good_rsr and set(ligand_all_atoms_dict.keys()) <= good_rsr):
             #Not all  the residues from here have good rsr
             residues_to_exam.update(dubious_rsr | bad_rsr)
         binding_sites.update(inner_binding_site)
     #print ligand_residues
     return (pdbid, ligand_residues, residues_to_exam, binding_sites)
 
-
-
 def classificate_residue(atom, good_rsr, dubious_rsr, bad_rsr, rsr_upper=RSR_upper, rsr_lower = RSR_lower):
+    #print 'comparing %s with upper %s' % ( atom.rsr ,  rsr_upper)
     if atom.rsr != None and atom.rsr <= rsr_upper:
+        #print 'comparing %s with lower %s' % ( atom.rsr ,  rsr_lower)
         if atom.rsr <= rsr_lower:
             good_rsr.add(atom.residue)
+            #print '%s is lower!' % atom.rsr
         else:
+            #print 'added to dubious'
             dubious_rsr.add(atom.residue)
     else:
+        #print 'added to bad'
         bad_rsr.add(atom.residue)
 
 class PdbAtom(object):
@@ -182,7 +187,7 @@ class PdbAtom(object):
             return (self.xyz[0] - other.xyz[0])**2 + (self.xyz[1] - other.xyz[1])**2 + (self.xyz[2] - other.xyz[2])**2
 
 
-def main(filepath, pdbidslist=[], swissprotlist = [], rsr_upper=RSR_upper, rsr_lower = RSR_lower, distance=None, outputfile='rsr_analysis.csv'):
+def main(filepath = None, pdbidslist=[], swissprotlist = [], rsr_upper=RSR_upper, rsr_lower = RSR_lower, distance=None, outputfile='rsr_analysis.csv'):
     import csv, itertools
     if not rsr_upper > rsr_lower:
         print '%s is higher than %s!' % (rsr_lower, rsr_upper)
@@ -244,5 +249,5 @@ def main(filepath, pdbidslist=[], swissprotlist = [], rsr_upper=RSR_upper, rsr_l
 
 if __name__ == '__main__':
     values = parser.parse_args()
-    print values
+    #print values
     main(values.pdbidfile, pdbidslist = values.pdbids, swissprotlist =values.swissprot , rsr_upper=values.rsr_upper, rsr_lower = values.rsr_lower, distance=values.distance, outputfile = values.outputfile)
