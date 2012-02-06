@@ -37,6 +37,7 @@ def get_EDS(pdbid):
         except:
             tries = 0
             url = edsurl.replace('PDB1', pdbid.lower()).replace('PDB2', pdbid[1:3].lower())
+            print 'Downloading %s' % url
             while tries <=3:
                 tries += 1
                 try:
