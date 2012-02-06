@@ -21,6 +21,13 @@ datadir = PDBfiles.PREFIX
 
 PDBbase = "http://www.rcsb.org/pdb/files/%s.pdb.gz"
 
+if not len(sys.argv):
+    sys.argv.append('-h')
+import rsr_analysis
+parser = rsr_analysis.parser
+parser.add_argument('-c','--csvfile', metavar='CSVFILE', type=unicode, default=None, required=False, help='CSV file containing results from a previous RSR analysis')
+parser.add_argument('--no-view', required=False, action='store_true', help="Do not visualize the generated csv file")
+
 if not os.path.isdir(datadir):
     os.mkdir(datadir)
 
@@ -44,14 +51,21 @@ def reslist_to_sel(reslist):
     return sellist
 
 def main():
-    if not len(sys.argv) or os.path.abspath(__file__) == os.path.abspath(sys.argv[-1]):
-        print "Falta un argument: el fitxer de resultats"
+    values = parser.parse_args(sys.argv)
+    if not (values.csvfile or values.pdbidfile or values.pdbids or values.swissprot) :
+        print "Use the -h or --help options to see how to use this program"
         return
-    csvfilename = sys.argv[-1]
+    csvfilename = values.csvfile
+    if not csvfilename:
+        rsr_analysis.main(values.pdbidfile, pdbidslist = values.pdbids, swissprotlist =values.swissprot , rsr_upper=values.rsr_upper, rsr_lower = values.rsr_lower, distance=values.distance, outputfile = values.outputfile)
+        if values.no_view:
+            return 0
+        else:
+            csvfilename = values.outputfile
     print 'Loading data from %s...' % csvfilename,
     resultdict = {}
     if not os.path.isfile(csvfilename):
-        print 'El fitxer %s no existeix' % csvfilename
+        print 'File %s does not exist' % csvfilename
         return(1)
     basename = os.path.splitext(os.path.basename(csvfilename))[0]
     if csvfilename.endswith('_wip.csv'):
