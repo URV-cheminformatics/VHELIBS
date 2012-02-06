@@ -191,6 +191,11 @@ http://openastexviewer.net/web/interface.html """ % (goodfilename, badfilename ,
                     moleculeViewer.moleculeRenderer.execute('display lines on %s;' % bsres)
                     moleculeViewer.moleculeRenderer.execute('color white %s;' % bsres)
                     moleculeViewer.moleculeRenderer.repaint()
+                for ligandres in ligands_selection:
+                    moleculeViewer.moleculeRenderer.execute('append %s;' % ligandres)
+                    moleculeViewer.moleculeRenderer.execute('display sticks on %s;' % ligandres)
+                    moleculeViewer.moleculeRenderer.execute('color magenta %s;' % ligandres)
+                    moleculeViewer.moleculeRenderer.repaint()
                 selectedAtoms = moleculeRenderer.getSelectedOrLabelledAtoms()
                 moleculeRenderer.setCenter(selectedAtoms)
                 moleculeViewer.moleculeRenderer.execute('select none;')
@@ -201,11 +206,6 @@ http://openastexviewer.net/web/interface.html """ % (goodfilename, badfilename ,
                     moleculeViewer.moleculeRenderer.repaint()
                 for ligandres in ligands_selection:
                     moleculeViewer.moleculeRenderer.execute('append %s;' % ligandres)
-                    moleculeViewer.moleculeRenderer.execute('display sticks on %s;' % ligandres)
-                    moleculeViewer.moleculeRenderer.execute('color magenta %s;' % ligandres)
-                    moleculeViewer.moleculeRenderer.repaint()
-
-                moleculeViewer.moleculeRenderer.repaint()
                 selectiondict = {'bs':binding_site_selection, 'ligands':ligands_selection, 'resex':exam_residues_selection}
 
                 try:
