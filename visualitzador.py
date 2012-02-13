@@ -190,7 +190,7 @@ http://openastexviewer.net/web/interface.html """ % (goodfilename, badfilename ,
                 relmap = os.path.join(pdbid.lower(), pdbid.lower() + '.omap')
                 localmap = os.path.join(datadir, relmap)
                 #Visualitzar a l'astex
-                moleculeViewer.moleculeRenderer.execute('molecule load %s %s;' % (pdbid, localpdb))
+                moleculeViewer.moleculeRenderer.execute('molecule load "%s" "%s";' % (pdbid, localpdb))
                 moleculeViewer.moleculeRenderer.repaint()
                 exam_residues_selection = []
                 binding_site_selection = []
@@ -200,6 +200,7 @@ http://openastexviewer.net/web/interface.html """ % (goodfilename, badfilename ,
                 moleculeViewer.moleculeRenderer.execute('select all;')
                 moleculeViewer.moleculeRenderer.execute('display lines off all;')
                 moleculeViewer.moleculeRenderer.execute('select none;')
+                moleculeViewer.moleculeRenderer.execute('display lines off all;')
                 for bsres in binding_site_selection:
                     moleculeViewer.moleculeRenderer.execute('append %s;' % bsres)
                     moleculeViewer.moleculeRenderer.execute('display lines on %s;' % bsres)
@@ -239,8 +240,8 @@ http://openastexviewer.net/web/interface.html """ % (goodfilename, badfilename ,
                         archivefile = tarfile.open(localarchive)
                         archivefile.extract(relmap, datadir)
                         archivefile.close()
-                    moleculeViewer.moleculeRenderer.execute('map load %s %s;' % (pdbid, localmap))
-                    moleculeViewer.moleculeRenderer.execute('map %s contour 0 yellow;' % (pdbid))
+                    moleculeViewer.moleculeRenderer.execute('map load "%s" "%s";' % (pdbid, localmap))
+                    moleculeViewer.moleculeRenderer.execute('map "%s" contour 0 yellow;' % (pdbid))
                     #moleculeViewer.moleculeRenderer.execute('select %s or %s or %s;' % exam_residues_selection, ligands_selection, binding_site_selection)
                     selectedAtoms = moleculeRenderer.getSelectedOrLabelledAtoms()
                     moleculeRenderer.clipMaps(None, selectedAtoms, True)
