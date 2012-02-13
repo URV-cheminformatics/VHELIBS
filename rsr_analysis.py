@@ -64,6 +64,8 @@ def parse_binding_site(argtuple):
     """
     argtuple = (pdbid, rsr_upper, rsr_lower)
     """
+#    print inner_distance
+#    print outer_distance
     #print argtuple
     pdbid, rsr_upper, rsr_lower = argtuple
     try:
@@ -100,11 +102,11 @@ def parse_binding_site(argtuple):
                 atom = PdbAtom(line)
                 if atom.residue in rsrdict:
                     atom.rsr = float(rsrdict[atom.residue])
-                if line[:6] == "ATOM  ":
+                if line[:6] == "ATOM  " and inner_distance: #Don't care about protein when distance = 0
                     protein_atoms.add(atom)
                     if atom.name[1:3] == 'CA':  #Is alpha-carbon
                         protein_ca_atoms.add(atom)
-                elif atom.hetid in hetids_list or (not hetids_list and atom.hetid not in ligand_blacklist):
+                elif atom.hetid in hetids_list or (not hetids_list and (atom.hetid not in ligand_blacklist)):
                     ligand_residues.add(atom.residue)
                     if not hetids_list and atom.hetid not in ligand_all_atoms_dict:
                         future_hetids_list.add(atom.hetid)
@@ -143,11 +145,12 @@ def parse_binding_site(argtuple):
                     inner_binding_site.add(atom.residue)
                     classificate_residue(atom, good_rsr, dubious_rsr, bad_rsr, rsr_upper=rsr_upper, rsr_lower = rsr_lower)
                     break
-        if not (inner_binding_site <= good_rsr and set(ligand_all_atoms_dict.keys()) <= good_rsr):
+        if not (inner_binding_site <= good_rsr and ligand_residues <= good_rsr):
             #Not all  the residues from here have good rsr
             residues_to_exam.update(dubious_rsr | bad_rsr)
         binding_sites.update(inner_binding_site)
-    #print ligand_residues
+#    print ligand_residues
+#    print (pdbid, ligand_residues, residues_to_exam, binding_sites)
     return (pdbid, ligand_residues, residues_to_exam, binding_sites)
 
 def classificate_residue(atom, good_rsr, dubious_rsr, bad_rsr, rsr_upper=RSR_upper, rsr_lower = RSR_lower):
@@ -197,8 +200,7 @@ def main(filepath = None, pdbidslist=[], swissprotlist = [], rsr_upper=RSR_upper
         global inner_distance
         distfactor = outer_distance/inner_distance
         inner_distance = distance**2
-        if not outer_distance > inner_distance:
-           outer_distance =  inner_distance*distfactor
+        outer_distance =  inner_distance*distfactor
     #print sys.argv[-1]
     PDBfiles.setglobaldicts()
     pdblist = pdbidslist
@@ -241,8 +243,10 @@ def main(filepath = None, pdbidslist=[], swissprotlist = [], rsr_upper=RSR_upper
                     goodwriter = csv.writer(goodfile)
                     goodwriter.writerow(['PDB ID', "Residues to exam", "Ligand Residues", "Binding Site Residues"])
                 goodwriter.writerow([pdbid, '', ';'.join(ligandresidues),';'.join(binding_site)])
+                goodfile.flush()
         else:
             csvfile.writerow([pdbid, ';'.join(residues_to_exam), ';'.join(ligandresidues),';'.join(binding_site)])
+            outfile.flush()
     outfile.close()
     pool.terminate()
     pool.join()
