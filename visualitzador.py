@@ -67,17 +67,18 @@ def main():
     if not os.path.isfile(csvfilename):
         print 'File %s does not exist' % csvfilename
         return(1)
+    outdir = os.path.dirname(csvfilename)
     basename = os.path.splitext(os.path.basename(csvfilename))[0]
     if csvfilename.endswith('_wip.csv'):
         basename = basename.replace('_wip', '')
-    elif os.path.isfile(basename + '_wip.csv'):
+    elif os.path.isfile(os.path.join(outdir, basename + '_wip.csv')):
         print "S'ha trobat un fitxer amb les estructures ja mirades desades."
         print "Vols carregar-lo per no haver de començar de nou? (Sí/No)"
         ans = raw_input()
         answered = False
         while not answered:
             if ans.lower().strip() in ('sí', 'si', 'yes', 'ja', 'da', 'bai', 'oui', 'oc', 'òc','jes', 'yeah', 'sim', 'ok', 'Oook', 'y', 's'):
-                csvfilename = basename + '_wip.csv'
+                csvfilename = os.path.join(outdir, basename + '_wip.csv')
                 answered = True
             elif ans.lower().strip() in ('no', 'non', 'nein', 'nope', 'ez', 'ne', 'pas', 'não', 'nao', 'Eeek', 'n', 'niet'):
                 answered = True
@@ -105,13 +106,13 @@ def main():
         print 'Fitxer sense dades!'
         return
     csvfile.close()
-    goodfilename = basename + '_good.csv'
+    goodfilename = os.path.join(outdir, basename + '_good.csv')
     goodfile = open(goodfilename,'ab')
     goodwriter = csv.writer(goodfile, dialect)
-    badfilename = basename + '_bad.csv'
+    badfilename = os.path.join(outdir, basename + '_bad.csv')
     badfile = open(badfilename,'ab')
     badwriter = csv.writer(badfile, dialect)
-    dubiousfilename = basename + '_dubious.csv'
+    dubiousfilename = os.path.join(outdir, basename + '_dubious.csv')
     dubiousfile = open(dubiousfilename,'ab')
     dubiouswriter = csv.writer(dubiousfile, dialect)
     writerdict = {'good':goodwriter, 'bad':badwriter, 'dubious':dubiouswriter}
@@ -274,7 +275,7 @@ http://openastexviewer.net/web/interface.html """ % (goodfilename, badfilename ,
             writerdict[inp.lower()].writerow([pdbid, ';'.join(residues_to_exam), ';'.join(ligandresidues),';'.join(binding_site)])
             filesdict[inp.lower()].flush()
             ###
-            outfile = open(basename + '_wip.csv', 'wb')
+            outfile = open(os.path.join(outdir, basename + '_wip.csv', 'wb'))
             csvfile = csv.writer(outfile)
             csvfile.writerow(['PDB ID', "Residues to exam", "Ligand Residues", "Binding Site Residues"])
             for pdbid in resultdict:
