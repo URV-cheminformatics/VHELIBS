@@ -31,13 +31,14 @@ def get_EDS(pdbid):
         os.makedirs(downloaddir)
     statfilepath = os.path.join(downloaddir,  '%s_stat.lis' % pdbid.lower())
     try:
-        try:
+        if os.path.isfile(statfilepath):
             statfile = open(statfilepath, 'rb')
             statfilelines = statfile.readlines()
-        except:
+        else:
             tries = 0
             url = edsurl.replace('PDB1', pdbid.lower()).replace('PDB2', pdbid[1:3].lower())
             print 'Downloading %s' % url
+            statfilelines = ''
             while tries <=3:
                 tries += 1
                 try:
@@ -48,8 +49,13 @@ def get_EDS(pdbid):
                     tries =999
                 except Exception, e:
                     if tries >3:
+                        print e
                         raise e
                     time.sleep(1)
+        if not statfilelines:
+            print 'could not read stat file'
+            pdbdict['IN_EDS'] = 'FALSE'
+            return pdbdict, rsrdict
         for line in statfilelines:
             if not line.startswith('!'):
                 rsr = line.split(']')[1].strip().split()[1]
