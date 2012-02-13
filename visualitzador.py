@@ -167,6 +167,7 @@ http://openastexviewer.net/web/interface.html """ % (goodfilename, badfilename ,
         os.mkdir('PDB')
     pdbid = None
     needreload = False
+    wipfilename = os.path.join(outdir, basename + '_wip.csv', 'wb')
     while resultdict:
         inp = ';'
         if not pdbid:
@@ -275,7 +276,7 @@ http://openastexviewer.net/web/interface.html """ % (goodfilename, badfilename ,
             writerdict[inp.lower()].writerow([pdbid, ';'.join(residues_to_exam), ';'.join(ligandresidues),';'.join(binding_site)])
             filesdict[inp.lower()].flush()
             ###
-            outfile = open(os.path.join(outdir, basename + '_wip.csv', 'wb'))
+            outfile = open(wipfilename)
             csvfile = csv.writer(outfile)
             csvfile.writerow(['PDB ID', "Residues to exam", "Ligand Residues", "Binding Site Residues"])
             for pdbid in resultdict:
@@ -308,4 +309,9 @@ http://openastexviewer.net/web/interface.html """ % (goodfilename, badfilename ,
        #Netejar-ho tot
     for file in filesdict.values():
         file.close()
+    try:
+        os.remove(wipfilename)
+    except:
+        pass
     print "Enhorabona! S'han acabat les estructures!"
+
