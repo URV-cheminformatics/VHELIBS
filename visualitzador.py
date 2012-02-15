@@ -9,6 +9,7 @@ import urllib2
 import tarfile
 from java.awt import Frame, Panel, BorderLayout, FlowLayout, Label, TextField
 from java.lang import System
+from java.lang.System import exit
 import astex.MoleculeViewer as MoleculeViewer
 #print 'astex importat'
 
@@ -30,6 +31,9 @@ parser.add_argument('--no-view', required=False, action='store_true', help="Do n
 
 if not os.path.isdir(datadir):
     os.mkdir(datadir)
+
+yes = ('sí', 'si', 'yes', 'ja', 'da', 'bai', 'oui', 'oc', 'òc','jes', 'yeah', 'sim', 'ok', 'oook', 'y', 's')
+no = ('no', 'non', 'nein', 'nope', 'ez', 'ne', 'pas', 'não', 'nao', 'eeek', 'n', 'niet')
 
 def reslist_to_sel(reslist):
     sellist = []
@@ -57,16 +61,19 @@ def main():
         return
     csvfilename = values.csvfile
     if not csvfilename:
-        rsr_analysis.main(values.pdbidfile, pdbidslist = values.pdbids, swissprotlist =values.swissprot , rsr_upper=values.rsr_upper, rsr_lower = values.rsr_lower, distance=values.distance, outputfile = values.outputfile)
+        datawritten = rsr_analysis.main(values.pdbidfile, pdbidslist = values.pdbids, swissprotlist =values.swissprot , rsr_upper=values.rsr_upper, rsr_lower = values.rsr_lower, distance=values.distance, outputfile = values.outputfile)
         if values.no_view:
-            return 0
-        else:
+            exit(0)
+        if datawritten:
             csvfilename = values.outputfile
+        else:
+            print 'No structures to be viewed.'
+            exit(0)
     print 'Loading data from %s...' % csvfilename,
     resultdict = {}
     if not os.path.isfile(csvfilename):
         print 'File %s does not exist' % csvfilename
-        return(1)
+        exit(1)
     outdir = os.path.dirname(csvfilename)
     basename = os.path.splitext(os.path.basename(csvfilename))[0]
     if csvfilename.endswith('_wip.csv'):
@@ -77,10 +84,10 @@ def main():
         ans = raw_input()
         answered = False
         while not answered:
-            if ans.lower().strip() in ('sí', 'si', 'yes', 'ja', 'da', 'bai', 'oui', 'oc', 'òc','jes', 'yeah', 'sim', 'ok', 'Oook', 'y', 's'):
+            if ans.lower().strip() in yes:
                 csvfilename = os.path.join(outdir, basename + '_wip.csv')
                 answered = True
-            elif ans.lower().strip() in ('no', 'non', 'nein', 'nope', 'ez', 'ne', 'pas', 'não', 'nao', 'Eeek', 'n', 'niet'):
+            elif ans.lower().strip() in no:
                 answered = True
             else:
                 ans = raw_input()
@@ -104,7 +111,7 @@ def main():
         print 'Dades carregades'
     if not resultdict:
         print 'Fitxer sense dades!'
-        return
+        exit(1)
     csvfile.close()
     goodfilename = os.path.join(outdir, basename + '_good.csv')
     goodfile = open(goodfilename,'ab')
@@ -160,14 +167,13 @@ selectbs : select binding site residues
 selectligands : select ligand residues
 selectresex : select residues to exam from the binding site
 reclipmap : re-clips the map to the ligands and residues to exam
+exit: Exits the program
 Com fer servir l'OpenAstexViewer:
 http://openastexviewer.net/web/interface.html """ % (goodfilename, badfilename , dubiousfilename, )
     print helpmsg
-    if not os.path.isdir('PDB'):
-        os.mkdir('PDB')
     pdbid = None
     needreload = False
-    wipfilename = os.path.join(outdir, basename + '_wip.csv', 'wb')
+    wipfilename = os.path.join(outdir, basename + '_wip.csv')
     while resultdict:
         inp = ';'
         if not pdbid:
@@ -276,7 +282,7 @@ http://openastexviewer.net/web/interface.html """ % (goodfilename, badfilename ,
             writerdict[inp.lower()].writerow([pdbid, ';'.join(residues_to_exam), ';'.join(ligandresidues),';'.join(binding_site)])
             filesdict[inp.lower()].flush()
             ###
-            outfile = open(wipfilename)
+            outfile = open(wipfilename, 'wb')
             csvfile = csv.writer(outfile)
             csvfile.writerow(['PDB ID', "Residues to exam", "Ligand Residues", "Binding Site Residues"])
             for pdbid in resultdict:
@@ -297,6 +303,8 @@ http://openastexviewer.net/web/interface.html """ % (goodfilename, badfilename ,
             moleculeRenderer.clipMaps(None, selectedAtoms, True)
             moleculeViewer.moleculeRenderer.execute('select none;')
             moleculeViewer.moleculeRenderer.repaint()
+        elif inp.lower().strip() == 'exit':
+            exit(0)
         else:
             try:
                 if inp[-1] != ';':
@@ -313,5 +321,14 @@ http://openastexviewer.net/web/interface.html """ % (goodfilename, badfilename ,
         os.remove(wipfilename)
     except:
         pass
-    print "Enhorabona! S'han acabat les estructures!"
+    moleculeViewer.moleculeRenderer.execute('molecule remove *;')
+    moleculeViewer.moleculeRenderer.execute('map remove *;')
+    moleculeViewer.moleculeRenderer.repaint()
+    print "No more structures to view!"
+    print 'Do you want to exit now?'
+    ans = raw_input().lower().strip()
+    if ans in yes:
+        exit(0)
+    else:
+        print 'you can still manually load more structures and do other operations through OpenAstexViewer scripting'
 

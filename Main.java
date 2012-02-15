@@ -31,7 +31,7 @@ public class Main {
 
     public static void main(String[] args) throws PyException {
         PySystemState.initialize(
-            PySystemState.getBaseProperties(), 
+            PySystemState.getBaseProperties(),
             new Properties(), args);
 
         PySystemState systemState = Py.getSystemState();
@@ -45,5 +45,6 @@ public class Main {
         InteractiveConsole interp = newInterpreter(interactive);
         systemState.__setattr__("_jy_interpreter", Py.java2py(interp));
         interp.exec("try:\n import visualitzador\n visualitzador.main() \nexcept SystemExit: pass");
+        System.exit(0);
     }
 }
