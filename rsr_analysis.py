@@ -230,6 +230,7 @@ def main(filepath = None, pdbidslist=[], swissprotlist = [], rsr_upper=RSR_upper
     pool = multiprocessing.Pool(multiprocessing.cpu_count())
     results = pool.imap_unordered(parse_binding_site, argsarray)
     print 'Calculating...'
+    datawritten = False
     for pdbid, ligandresidues, residues_to_exam, binding_site in results:
         if pdbid == None:
             continue
@@ -247,9 +248,15 @@ def main(filepath = None, pdbidslist=[], swissprotlist = [], rsr_upper=RSR_upper
         else:
             csvfile.writerow([pdbid, ';'.join(residues_to_exam), ';'.join(ligandresidues),';'.join(binding_site)])
             outfile.flush()
+            datawritten = True
     outfile.close()
+    if not datawritten:
+        os.remove(outputfile)
+    if goodfile:
+        print'Results for structures with a RSR value below the specified minimum were saved to %s' % goodfilename
     pool.terminate()
     pool.join()
+    return datawritten
 
 if __name__ == '__main__':
     values = parser.parse_args()
