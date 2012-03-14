@@ -3,7 +3,7 @@
 #
 #   Copyright 2011 - 2012 Adrià Cereto Massagué <adrian.cereto@.urv.cat>
 #
-import os, gzip, sys, urllib2
+import os, gzip, sys, urllib2, csv, itertools
 if sys.platform.startswith('java'):
     import multithreading as multiprocessing
 else:
@@ -189,46 +189,15 @@ class PdbAtom(object):
         else:
             return (self.xyz[0] - other.xyz[0])**2 + (self.xyz[1] - other.xyz[1])**2 + (self.xyz[2] - other.xyz[2])**2
 
-
-def main(filepath = None, pdbidslist=[], swissprotlist = [], rsr_upper=RSR_upper, rsr_lower = RSR_lower, distance=None, outputfile='rsr_analysis.csv'):
-    import csv, itertools
-    if not rsr_upper > rsr_lower:
-        print '%s is higher than %s!' % (rsr_lower, rsr_upper)
-        raise ValueError
-    if distance != None:
-        global outer_distance
-        global inner_distance
-        distfactor = outer_distance/inner_distance
-        inner_distance = distance**2
-        outer_distance =  inner_distance*distfactor
-    #print sys.argv[-1]
-    PDBfiles.setglobaldicts()
-    pdblist = pdbidslist
-    if swissprotlist:
-        sptopdb_dict = get_sptopdb_dict()
-        for swissprot_id in swissprotlist:
-            for key in sptopdb_dict:
-                if swissprot_id in key:
-                    pdblist = itertools.chain(pdblist, sptopdb_dict[key])
-    if filepath:
-        pdblistfile = open(filepath, 'rb')
-        pdblist = itertools.chain(pdblist, (line.strip() for line in pdblistfile if line.strip()))
-    if not rsr_upper > rsr_lower:
-        print '%s is higher than %s!' % (rsr_lower, rsr_upper)
-        raise ValueError
-    resultdict = {}
+def results_to_csv(results, outputfile):
+    """
+    Writes the output of parse_binding_site's to a csv file
+    """
     outfile = open(outputfile, 'wb')
     csvfile = csv.writer(outfile)
     csvfile.writerow(['PDB ID', "Residues to exam", "Ligand Residues", "Binding Site Residues"])
     basename = os.path.splitext(os.path.basename(outputfile))[0]
     goodfile = None
-    argsarray = ((pdbid.upper(), rsr_upper, rsr_lower) for pdbid in pdblist if pdbid)
-    if filepath:
-        pdblistfile.close()
-    #results = (parse_binding_site(argstuple) for argstuple in argsarray)
-    #chunksize = int(math.sqrt(len(argsarray)))
-    pool = multiprocessing.Pool(multiprocessing.cpu_count())
-    results = pool.imap_unordered(parse_binding_site, argsarray)
     print 'Calculating...'
     datawritten = False
     for pdbid, ligandresidues, residues_to_exam, binding_site in results:
@@ -254,6 +223,41 @@ def main(filepath = None, pdbidslist=[], swissprotlist = [], rsr_upper=RSR_upper
         os.remove(outputfile)
     if goodfile:
         print'Results for structures with a RSR value below the specified minimum were saved to %s' % goodfilename
+    return datawritten
+
+def main(filepath = None, pdbidslist=[], swissprotlist = [], rsr_upper=RSR_upper, rsr_lower = RSR_lower, distance=None, outputfile='rsr_analysis.csv'):
+    if not rsr_upper > rsr_lower:
+        print '%s is higher than %s!' % (rsr_lower, rsr_upper)
+        raise ValueError
+    if distance != None:
+        global outer_distance
+        global inner_distance
+        distfactor = outer_distance/inner_distance
+        inner_distance = distance**2
+        outer_distance =  inner_distance*distfactor
+    #print sys.argv[-1]
+    PDBfiles.setglobaldicts()
+    pdblist = pdbidslist
+    if swissprotlist:
+        sptopdb_dict = get_sptopdb_dict()
+        for swissprot_id in swissprotlist:
+            for key in sptopdb_dict:
+                if swissprot_id in key:
+                    pdblist = itertools.chain(pdblist, sptopdb_dict[key])
+    if filepath:
+        pdblistfile = open(filepath, 'rb')
+        pdblist = itertools.chain(pdblist, (line.strip() for line in pdblistfile if line.strip()))
+    if not rsr_upper > rsr_lower:
+        print '%s is higher than %s!' % (rsr_lower, rsr_upper)
+        raise ValueError
+    argsarray = ((pdbid.upper(), rsr_upper, rsr_lower) for pdbid in pdblist if pdbid)
+    if filepath:
+        pdblistfile.close()
+    #results = (parse_binding_site(argstuple) for argstuple in argsarray)
+    #chunksize = int(math.sqrt(len(argsarray)))
+    pool = multiprocessing.Pool(multiprocessing.cpu_count())
+    results = pool.imap_unordered(parse_binding_site, argsarray)
+    datawritten = results_to_csv(results, outputfile)
     pool.terminate()
     pool.join()
     return datawritten
