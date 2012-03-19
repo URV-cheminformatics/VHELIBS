@@ -2,34 +2,57 @@
 #
 #   Copyright 2012 Adrià Cereto Massagué <adrian.cereto@.urv.cat>
 #
+
+#Python stuff
 import sys
 import os
 import csv
 import urllib2
 import tarfile
-from java.awt import Frame, Panel, BorderLayout, FlowLayout, Label, TextField
-from java.lang import System
-from java.lang.System import exit
-import astex.MoleculeViewer as MoleculeViewer
-#print 'astex importat'
 
+#Java stuff
+from java.lang.System import exit
+
+from java.awt import BorderLayout, Container, Dimension, Graphics
+from java.awt.event import WindowAdapter, WindowEvent
+
+from javax.swing import JFrame, JPanel
+
+#Jmol stuff
+from org.jmol.adapter.smarter import SmarterJmolAdapter
+from org.jmol.api import JmolViewer
+from org.jmol.util import Logger
+from org.openscience.jmol.app.jmolpanel import AppConsole
+
+#Own stuff
 import EDS_parser
-edsurl = EDS_parser.edsurl
+edsurl = EDS_parser.edsurl #Deprecate
 
 import PDBfiles
 PDBfiles.PREFIX = EDS_parser.EDSdir
 datadir = PDBfiles.PREFIX
 
-PDBbase = "http://www.rcsb.org/pdb/files/%s.pdb.gz"
+PDBbase = "http://www.rcsb.org/pdb/files/%s.pdb.gz" #Deprecate
 
 if not len(sys.argv):
     sys.argv.append('-h')
 import rsr_analysis
-parser = rsr_analysis.parser
-parser.add_argument('-c','--csvfile', metavar='CSVFILE', type=unicode, default=None, required=False, help='CSV file containing results from a previous RSR analysis')
-parser.add_argument('--no-view', required=False, action='store_true', help="Do not visualize the generated csv file")
 
-if not os.path.isdir(datadir):
+###Define useful classes###
+class ApplicationCloser(WindowAdapter):
+    def windowClosing(self, e):
+        exit(0)
+
+class JmolPanel(JPanel):
+    def __init__(self):
+        self.currentSize = Dimension()
+        self.viewer = JmolViewer.allocateViewer(self, SmarterJmolAdapter(), None, None, None, None, None)
+
+    def paint(self, g):
+        self.getSize(self.currentSize)
+        self.viewer.renderScreenImage(g, self.currentSize.width, self.currentSize.height)
+
+if not os.path.isdir(datadir): #Deprecate
     os.mkdir(datadir)
 
 yes = ('sí', 'si', 'yes', 'ja', 'da', 'bai', 'oui', 'oc', 'òc','jes', 'yeah', 'sim', 'ok', 'oook', 'y', 's')
@@ -48,13 +71,23 @@ def reslist_to_sel(reslist):
                         if not char.isdigit():
                             resnum = resnum.replace(char, '')
                 #print 'Transformant %s en %s' % (res, "(chain '%s' and residue %s)" % (chain, resnum))
-                sellist.append("(chain '%s' and residue %s)" % (chain, resnum))
+                sellist.append("[%s]%s:%s" % (resname, resnum, chain))
             except IndexError:
                 print "Malformed residue string:"
                 print res
-    return sellist
+    if sellist:
+        return ' or '.join(sellist)
+    else:
+        return 'none'
 
 def main():
+    """
+    """
+    ### build the parser###
+    print sys.argv
+    parser = rsr_analysis.parser
+    parser.add_argument('-c','--csvfile', metavar='CSVFILE', type=unicode, default=None, required=False, help='CSV file containing results from a previous RSR analysis')
+    parser.add_argument('--no-view', required=False, action='store_true', help="Do not visualize the generated csv file")
     values = parser.parse_args(sys.argv)
     if not (values.csvfile or values.pdbidfile or values.pdbids or values.swissprot) :
         print "Use the -h or --help options to see how to use this program"
@@ -124,32 +157,35 @@ def main():
     dubiouswriter = csv.writer(dubiousfile, dialect)
     writerdict = {'good':goodwriter, 'bad':badwriter, 'dubious':dubiouswriter}
     filesdict = {'good':goodfile, 'bad':badfile, 'dubious':dubiousfile}
-    ###
-    #Carrega l'astex
-    ###
-    frame = Frame()
-    frame.setLayout(BorderLayout())
-    moleculeViewer = MoleculeViewer()
-    moleculeViewer.setApplication(False)
-    frame.addWindowListener(moleculeViewer)
-    frame.setMenuBar(moleculeViewer.createMenuBar())
-
-    # // if the system property arraycopy is set to true
-    # // then the renderer should use arraycopy to clear
-    # // its buffers rather than brute force
-    arraycopy = System.getProperty("arraycopy")
-    if arraycopy:
-        moleculeViewer.setArrayCopy(True)
-
-    moleculeRenderer =  moleculeViewer.getMoleculeRenderer()
-
-    mvp = Panel()
-    mvp.setLayout(BorderLayout())
-    mvp.add(moleculeViewer, BorderLayout.CENTER)
-    frame.add(mvp, BorderLayout.CENTER)
-    frame.pack()
-    frame.show()
-    moleculeViewer.moleculeRenderer.execute('set selectcount off; set symmetry on;')
+    ###                    ###
+    ###Load the GUI###
+    ###                    ###
+    frame = JFrame("Structure Validation Helper")
+    frame.addWindowListener(ApplicationCloser())
+    frame.setSize(410, 700);
+    contentPane = frame.getContentPane()
+    jmolPanel = JmolPanel()
+    jmolPanel.setPreferredSize(Dimension(400, 400))
+    # main panel -- Jmol panel on top
+    panel = JPanel()
+    panel.setLayout(BorderLayout())
+    panel.add(jmolPanel)
+    # main panel -- console panel on bottom
+    panel2 = JPanel()
+    panel2.setLayout(BorderLayout())
+    panel2.setPreferredSize(Dimension(400, 300))
+    console = AppConsole(jmolPanel.viewer, panel2,"History State Clear")
+    jmolPanel.viewer.setJmolCallbackListener(console)
+    panel.add("South", panel2)
+    contentPane.add(panel)
+    jmolPanel.viewer.evalString('wireframe off')
+    jmolPanel.viewer.evalString('ribbon off')
+    jmolPanel.viewer.evalString('meshribbon off')
+    jmolPanel.viewer.evalString('meshribbon off')
+    jmolPanel.viewer.evalString('cartoon off')
+    jmolPanel.viewer.evalString('set bondMode OR')
+    frame.setVisible(True)
+#        Logger.error(strError)
 
     #moleculeViewer.moleculeRenderer.execute('molecule load pdb_files/P00491/2A0W.pdb.gz pdb_files/P00491/2A0W.pdb.gz;')
 
@@ -181,83 +217,49 @@ http://openastexviewer.net/web/interface.html """ % (goodfilename, badfilename ,
             needreload = True
         if needreload:
             #Netejar
-            moleculeViewer.moleculeRenderer.execute('molecule remove *;')
-            moleculeViewer.moleculeRenderer.execute('map remove *;')
+            jmolPanel.viewer.evalString('delete')
             ligandresidues, residues_to_exam, binding_site = resultdict[pdbid]
             if ligandresidues == ['']:
                 print 'Structure without ligands!'
                 print 'Skipping it'
                 inp = 'dubious'
             else:
-                #Descarregar pdb
-                localpdb = os.path.join(datadir, pdbid.lower(), pdbid + '.pdb.gz')
-                if not os.path.isfile(localpdb):
-                    if not os.path.isdir(os.path.join(datadir, pdbid.lower())):
-                        os.mkdir(os.path.join(datadir, pdbid.lower()))
-                    PDBfiles.get_pdb_file(pdbid.lower(), localpdb)
-                relmap = os.path.join(pdbid.lower(), pdbid.lower() + '.omap')
-                localmap = os.path.join(datadir, relmap)
-                #Visualitzar a l'astex
-                moleculeViewer.moleculeRenderer.execute('molecule load "%s" "%s";' % (pdbid, localpdb))
-                moleculeViewer.moleculeRenderer.repaint()
-                exam_residues_selection = []
-                binding_site_selection = []
+                #load in Jmol
+                jmolPanel.viewer.evalString('load "=%s"' % pdbid)
                 ligands_selection = reslist_to_sel(ligandresidues)
                 binding_site_selection = reslist_to_sel(binding_site)
                 exam_residues_selection = reslist_to_sel(residues_to_exam)
-                moleculeViewer.moleculeRenderer.execute('select all;')
-                moleculeViewer.moleculeRenderer.execute('display lines off all;')
-                moleculeViewer.moleculeRenderer.execute('select none;')
-                moleculeViewer.moleculeRenderer.execute('display lines off all;')
-                for bsres in binding_site_selection:
-                    moleculeViewer.moleculeRenderer.execute('append %s;' % bsres)
-                    moleculeViewer.moleculeRenderer.execute('display lines on %s;' % bsres)
-                    moleculeViewer.moleculeRenderer.execute('color white %s;' % bsres)
-                    moleculeViewer.moleculeRenderer.repaint()
-                for ligandres in ligands_selection:
-                    moleculeViewer.moleculeRenderer.execute('append %s;' % ligandres)
-                    moleculeViewer.moleculeRenderer.execute('display sticks on %s;' % ligandres)
-                    moleculeViewer.moleculeRenderer.execute('color magenta %s;' % ligandres)
-                    moleculeViewer.moleculeRenderer.repaint()
-                selectedAtoms = moleculeRenderer.getSelectedOrLabelledAtoms()
-                moleculeRenderer.setCenter(selectedAtoms)
-                moleculeViewer.moleculeRenderer.execute('select none;')
-                for examres in exam_residues_selection:
-                    moleculeViewer.moleculeRenderer.execute('append %s;' % examres)
-                    moleculeViewer.moleculeRenderer.execute('display sticks on %s;' % examres)
-                    moleculeViewer.moleculeRenderer.execute('color_by_atom;')
-                    moleculeViewer.moleculeRenderer.repaint()
-                for ligandres in ligands_selection:
-                    moleculeViewer.moleculeRenderer.execute('append %s;' % ligandres)
+                jmolPanel.viewer.evalString('select all')
+                jmolPanel.viewer.evalString('wireframe off')
+                jmolPanel.viewer.evalString('select none')
+
+                jmolPanel.viewer.evalString('select(%s)' % binding_site_selection)
+                jmolPanel.viewer.evalString('wireframe 0.01')
+                jmolPanel.viewer.evalString('spacefill off')
+                jmolPanel.viewer.evalString('color white')
+                jmolPanel.viewer.evalString('select none')
+
+                jmolPanel.viewer.evalString('select(%s)' % ligands_selection)
+                jmolPanel.viewer.evalString('wireframe 0.1')
+                jmolPanel.viewer.evalString('spacefill 0.2')
+                jmolPanel.viewer.evalString('color magenta')
+                jmolPanel.viewer.evalString('select none')
+
+                jmolPanel.viewer.evalString('center {%s}' % ligands_selection)
+
+                jmolPanel.viewer.evalString('select(%s)' % exam_residues_selection)
+                jmolPanel.viewer.evalString('wireframe 0.1')
+                jmolPanel.viewer.evalString('spacefill 0.2')
+                jmolPanel.viewer.evalString('color cpk')
+                jmolPanel.viewer.evalString('select none')
+
                 selectiondict = {'bs':binding_site_selection, 'ligands':ligands_selection, 'resex':exam_residues_selection}
 
                 try:
-                    if not os.path.isfile(localmap):
-                        genurl = 'http://eds.bmc.uu.se/cgi-bin/eds/gen_zip.pl?pdbCode=' + pdbid.lower()
-                        generate = urllib2.urlopen(genurl)
-                        generate.read()
-                        generate.close()
-                        url = edsurl.replace('PDB1', pdbid.lower()).replace('PDB2', pdbid[1:3].lower()).replace('_stat.lis', '.tar.gz')
-                        print 'Descarregant %s' % url
-                        remotearchive = urllib2.urlopen(url)
-                        localarchive = os.path.join(datadir, pdbid.lower(), os.path.basename(url))
-                        archivefile = open(localarchive, 'wb')
-                        archivefile.write(remotearchive.read())
-                        remotearchive.close()
-                        archivefile.close()
-                        archivefile = tarfile.open(localarchive)
-                        archivefile.extract(relmap, datadir)
-                        archivefile.close()
-                    moleculeViewer.moleculeRenderer.execute('map load "%s" "%s";' % (pdbid, localmap))
-                    moleculeViewer.moleculeRenderer.execute('map "%s" contour 0 yellow;' % (pdbid))
-                    #moleculeViewer.moleculeRenderer.execute('select %s or %s or %s;' % exam_residues_selection, ligands_selection, binding_site_selection)
-                    selectedAtoms = moleculeRenderer.getSelectedOrLabelledAtoms()
-                    moleculeRenderer.clipMaps(None, selectedAtoms, True)
-                    moleculeViewer.moleculeRenderer.execute('select none;')
-                    moleculeViewer.moleculeRenderer.repaint()
+                    jmolPanel.viewer.evalString('isosurface s2 color yellow cutoff 0.33 within 2.0 {%s} "=%s" mesh nofill' %  (' or '.join([ligands_selection, exam_residues_selection]), pdbid ))
                 except Exception,  e:
                     print e
-                    print 'Impossible carregar el mapa de densitat electronica per %s' % pdbid
+                    print 'Impossible carregar el mapa de densitat electronica per a %s' % pdbid
                 needreload = False
             print "\n####################################"
             print "Viewing structure %s" % pdbid
@@ -293,24 +295,21 @@ http://openastexviewer.net/web/interface.html """ % (goodfilename, badfilename ,
         elif inp.lower() in ('selectbs', 'selectligands', 'selectresex'):
             target = inp.lower().strip().replace('select', '')
             for res in selectiondict[target]:
-                moleculeViewer.moleculeRenderer.execute('append %s;' % res)
-            moleculeViewer.moleculeRenderer.repaint()
+                jmolPanel.viewer.evalString('append %s;' % res)
         elif inp.lower().strip() == 'reclipmap':
-            moleculeViewer.moleculeRenderer.execute('select none;')
+            jmolPanel.viewer.evalString('select none;')
             for res in (selectiondict['ligands'] + selectiondict['resex']):
-                moleculeViewer.moleculeRenderer.execute('append %s;' % res)
-            selectedAtoms = moleculeRenderer.getSelectedOrLabelledAtoms()
-            moleculeRenderer.clipMaps(None, selectedAtoms, True)
-            moleculeViewer.moleculeRenderer.execute('select none;')
-            moleculeViewer.moleculeRenderer.repaint()
+                jmolPanel.viewer.evalString('append %s;' % res)
+#            selectedAtoms = moleculeRenderer.getSelectedOrLabelledAtoms()
+#            moleculeRenderer.clipMaps(None, selectedAtoms, True)
+            jmolPanel.viewer.evalString('select none;')
         elif inp.lower().strip() == 'exit':
             exit(0)
         else:
             try:
                 if inp[-1] != ';':
                     inp += ';'
-                moleculeViewer.moleculeRenderer.execute(inp)
-                moleculeViewer.moleculeRenderer.repaint()
+                jmolPanel.viewer.evalString(inp)
             except Exception, e:
                 print e
                 print "### Ordre o codi PDB no reconeguts: '%s'. Torna-ho a provar ###" % inp
@@ -321,9 +320,7 @@ http://openastexviewer.net/web/interface.html """ % (goodfilename, badfilename ,
         os.remove(wipfilename)
     except:
         pass
-    moleculeViewer.moleculeRenderer.execute('molecule remove *;')
-    moleculeViewer.moleculeRenderer.execute('map remove *;')
-    moleculeViewer.moleculeRenderer.repaint()
+    jmolPanel.viewer.evalString('delete;')
     print "No more structures to view!"
     print 'Do you want to exit now?'
     ans = raw_input().lower().strip()
@@ -332,3 +329,6 @@ http://openastexviewer.net/web/interface.html """ % (goodfilename, badfilename ,
     else:
         print 'you can still manually load more structures and do other operations through OpenAstexViewer scripting'
 
+if __name__ == '__main__':
+    sys.argv = [arg for arg in sys.argv if __file__ not in arg]
+    main()
