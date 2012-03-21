@@ -7,20 +7,17 @@
 import sys
 import os
 import csv
-import urllib2
-import tarfile
 
 #Java stuff
 from java.lang.System import exit
 
-from java.awt import BorderLayout, Container, Dimension, Graphics
-from java.awt.event import WindowAdapter, WindowEvent
+from java.awt import BorderLayout, Dimension, GridLayout
 
-from javax.swing import JFrame, JPanel
+from javax.swing import JFrame, JPanel, JButton
 
 #Jmol stuff
 from org.jmol.adapter.smarter import SmarterJmolAdapter
-from org.jmol.api import JmolViewer, JmolCallbackListener
+from org.jmol.api import JmolViewer
 from org.jmol.util import Logger
 from org.openscience.jmol.app.jmolpanel import AppConsole
 
@@ -33,13 +30,11 @@ yes = ('sí', 'si', 'yes', 'ja', 'da', 'bai', 'oui', 'oc', 'òc','jes', 'yeah', 
 no = ('no', 'non', 'nein', 'nope', 'ez', 'ne', 'pas', 'não', 'nao', 'eeek', 'n', 'niet')
 
 ###Define useful classes###
-class ApplicationCloser(WindowAdapter):
-    def windowClosing(self, e):
-        exit(0)
 
 class JmolPanel(JPanel):
-    def __init__(self):
+    def __init__(self, preferredSize):
         self.currentSize = Dimension()
+        self.preferredSize = preferredSize
         self.viewer = JmolViewer.allocateViewer(self, SmarterJmolAdapter(), None, None, None, None, None)
 
     def paint(self, g):
@@ -56,30 +51,118 @@ class StruVa():
             self.start()
 
     def setupUi(self):
-        frame = JFrame("Structure Validation Helper")
-        frame.addWindowListener(ApplicationCloser())
-        frame.setSize(700, 410);
-        contentPane = frame.getContentPane()
-        jmolPanel = JmolPanel()
-        jmolPanel.setPreferredSize(Dimension(400, 400))
+        frame = JFrame("Structure Validation Helper", defaultCloseOperation = JFrame.EXIT_ON_CLOSE, size = (700, 410))
+        contentPane = frame.contentPane
+        jmolPanel = JmolPanel(preferredSize = Dimension(400, 400))
         self.viewer = jmolPanel.viewer
         self.execute = self.viewer.evalStringQuiet
         # main panel -- Jmol panel on left
-        panel = JPanel()
-        panel.setLayout(BorderLayout())
+        panel = JPanel(layout = BorderLayout())
         panel.add(jmolPanel)
         # main panel -- console panel on right
-        panel2 = JPanel()
-        panel2.setLayout(BorderLayout())
-        panel2.setPreferredSize(Dimension(300, 400))
+        panel2 = JPanel(layout = BorderLayout(), preferredSize = Dimension(300, 400))
         self.console = AppConsole(jmolPanel.viewer, panel2,"History Variables State Clear Help")
-        jmolPanel.viewer.setJmolCallbackListener(self.console)
+        jmolPanel.viewer.jmolCallbackListener = self.console
         panel.add("East", panel2)
         contentPane.add(panel)
         self.execute('wireframe only')
         self.execute('wireframe off')
         self.execute('set bondMode OR')
+        buttonPanel = JPanel(GridLayout(2, 2))
+        self.good_button = JButton('Good', actionPerformed=self.nextStruct)
+        self.bad_button = JButton('Bad', actionPerformed=self.nextStruct)
+        self.dubious_button = JButton('Dubious', actionPerformed=self.nextStruct)
+        self.skip_button = JButton('Skip', actionPerformed=self.nextStruct)
+        buttonPanel.add(self.good_button)
+        buttonPanel.add(self.bad_button)
+        buttonPanel.add(self.dubious_button)
+        buttonPanel.add(self.skip_button)
+        panel.add(buttonPanel, BorderLayout.NORTH)
         self.setVisible = frame.setVisible
+
+    def nextStruct(self, event = None, text = None):
+        if event:
+            print event
+            print event.source == self.skip_button
+            print event.source.text
+            text = event.source.text
+        if not text:
+            return
+
+
+    def reloadStruct(self, pdbid):
+        #Netejar
+        self.execute('delete')
+        ligandresidues, residues_to_exam, binding_site = self.resultdict[pdbid]
+        if ligandresidues == ['']:
+            self.console.sendConsoleMessage( 'Structure without ligands!')
+            self.console.sendConsoleMessage( 'Skipping it')
+            self.nextStruct(text='Skip')
+        else:
+            #load in Jmol
+            try:
+                self.execute('load "=%s"' % pdbid)
+                self.execute('select all')
+                self.execute('wireframe only')
+                self.execute('wireframe off')
+                self.execute('select none')
+                self.displayBindingSite(binding_site)
+                self.displayResToExam(residues_to_exam)
+                self.displayLigands(ligandresidues)
+                self.loadEDM(pdbid)
+            except Exception,  e:
+                self.console.sendConsoleMessage("ERROR: " + e)
+        self.console.sendConsoleEcho( "\n####################################")
+        self.console.sendConsoleEcho( "Viewing structure %s" % pdbid)
+        self.console.sendConsoleEcho( "####################################\n")
+
+    def displayBindingSite(self, binding_site):
+        binding_site_selection = reslist_to_sel(binding_site)
+        self.execute('define binding_site (%s)' % binding_site_selection)
+        self.execute('select(binding_site)')
+        self.execute('wireframe 0.01')
+        self.execute('spacefill off')
+        self.execute('color white')
+        self.execute('select none')
+
+    def displayResToExam(self, residues_to_exam):
+        exam_residues_selection = reslist_to_sel(residues_to_exam)
+        self.execute('define res_to_exam (%s)' % exam_residues_selection)
+        self.execute('select(res_to_exam)' )
+        self.execute('wireframe 0.1')
+        self.execute('spacefill 0.2')
+        self.execute('color cpk')
+        self.execute('select none')
+
+    def displayLigands(self, ligandresidues):
+        ligands_selection = reslist_to_sel(ligandresidues)
+        self.execute('define ligands (%s)' % ligands_selection)
+        self.execute('select(ligands)')
+        self.execute('wireframe 0.1')
+        self.execute('spacefill 0.2')
+        self.execute('color magenta')
+        self.execute('select none')
+        self.execute('center ligands')
+
+    def loadEDM(self, pdbid):
+        self.execute('isosurface EDM color yellow sigma 1.0 within 2.0 {ligands or res_to_exam} "=%s" mesh nofill' %  pdbid)
+
+    def saveWIP(self):
+        outfile = open(self.wipfilename, 'wb')
+        csvfile = csv.writer(outfile)
+        csvfile.writerow(['PDB ID', "Residues to exam", "Ligand Residues", "Binding Site Residues"])
+        for pdbid in self.resultdict:
+            ligandresidues, residues_to_exam, binding_site = self.resultdict[pdbid]
+            csvfile.writerow([pdbid, ';'.join(residues_to_exam), ';'.join(ligandresidues),';'.join(binding_site)])
+        outfile.close()
+
+    def updateOutFile(self, filetype, pdbid):
+        filetype = filetype.lower()
+        if filetype not in self.writerdict.keys():
+            raise TypeError('Unknown destination file')
+        ligandresidues, residues_to_exam, binding_site = self.resultdict.pop(pdbid)
+        self.writerdict[filetype].writerow([pdbid, ';'.join(residues_to_exam), ';'.join(ligandresidues),';'.join(binding_site)])
+        self.filesdict[filetype].flush()
 
     def start(self):
         pdbid = None
@@ -90,58 +173,8 @@ class StruVa():
                 pdbid = self.resultdict.keys()[0]
                 needreload = True
             if needreload:
-                #Netejar
-                self.execute('delete')
-                ligandresidues, residues_to_exam, binding_site = self.resultdict[pdbid]
-                if ligandresidues == ['']:
-                    self.console.sendConsoleMessage( 'Structure without ligands!')
-                    self.console.sendConsoleMessage( 'Skipping it')
-                    inp = 'dubious'
-                else:
-                    #load in Jmol
-                    self.execute('load "=%s"' % pdbid)
-                    ligands_selection = reslist_to_sel(ligandresidues)
-                    binding_site_selection = reslist_to_sel(binding_site)
-                    exam_residues_selection = reslist_to_sel(residues_to_exam)
-                    self.execute('select all')
-                    self.execute('wireframe off')
-                    self.execute('select none')
-
-                    self.execute('define binding_site (%s)' % binding_site_selection)
-                    self.execute('select(binding_site)')
-                    self.execute('wireframe 0.01')
-                    self.execute('spacefill off')
-                    self.execute('color white')
-                    self.execute('select none')
-
-                    self.execute('center {%s}' % ligands_selection)
-
-                    self.execute('define res_to_exam (%s)' % exam_residues_selection)
-                    self.execute('select(res_to_exam)' )
-                    self.execute('wireframe 0.1')
-                    self.execute('spacefill 0.2')
-                    self.execute('color cpk')
-                    self.execute('select none')
-
-                    self.execute('define ligands (%s)' % ligands_selection)
-                    self.execute('select(ligands)')
-                    self.execute('wireframe 0.1')
-                    self.execute('spacefill 0.2')
-                    self.execute('color magenta')
-                    self.execute('select none')
-
-                    try:
-                        self.execute('isosurface s2 color yellow sigma 1.0 within 2.0 {ligands or res_to_exam} "=%s" mesh nofill' %  pdbid)
-                    except Exception,  e:
-                        self.console.sendConsoleMessage("ERROR: " + e)
-                        self.console.sendConsoleMessage( 'Impossible carregar el mapa de densitat electronica per a %s' % pdbid)
-                    needreload = False
-                self.console.sendConsoleEcho( "\n####################################")
-                self.console.sendConsoleEcho( "Viewing structure %s" % pdbid)
-                self.console.sendConsoleEcho( "####################################\n")
-                #Descarregar estructura
-                #Carregar estructura
-                #Fer visible només els lligands i els residus d'interès
+                self.reloadStruct(pdbid)
+                needreload = False
             while not inp or inp == ';':
                 self.console.sendConsoleEcho( ">>>")
                 inp = raw_input().strip()
@@ -154,17 +187,9 @@ class StruVa():
             elif inp.lower() == 'help':
                 self.console.sendConsoleMessage( self.helpmsg)
             elif inp.lower() in ('good', 'bad', 'dubious'):
-                ligandresidues, residues_to_exam, binding_site = self.resultdict.pop(pdbid)
-                self.writerdict[inp.lower()].writerow([pdbid, ';'.join(residues_to_exam), ';'.join(ligandresidues),';'.join(binding_site)])
-                self.filesdict[inp.lower()].flush()
+                self.updateOutFile(inp, pdbid)
                 ###
-                outfile = open(self.wipfilename, 'wb')
-                csvfile = csv.writer(outfile)
-                csvfile.writerow(['PDB ID', "Residues to exam", "Ligand Residues", "Binding Site Residues"])
-                for pdbid in self.resultdict:
-                    ligandresidues, residues_to_exam, binding_site = self.resultdict[pdbid]
-                    csvfile.writerow([pdbid, ';'.join(residues_to_exam), ';'.join(ligandresidues),';'.join(binding_site)])
-                outfile.close()
+                self.saveWIP()
                 pdbid = None
             elif inp.lower().strip() == 'exit':
                 exit(0)
