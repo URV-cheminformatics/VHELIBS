@@ -1,8 +1,5 @@
-cp *.py one-jar/src/
-cp Main.java one-jar/java-src/
+OLDDIR=`pwd`
 cd one-jar
 ant clean
 ant
-rm src/*
-rm java-src/*
-cd ..
+cd $OLDDIR
