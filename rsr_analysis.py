@@ -68,11 +68,11 @@ def parse_binding_site(argtuple):
 #    print outer_distance
     #print argtuple
     pdbid, rsr_upper, rsr_lower = argtuple
+    future_hetids_list = set()
     try:
         hetids_list = PDBfiles.hetdict[pdbid.lower()]
     except KeyError:
         hetids_list =[]
-        future_hetids_list = set()
     residues_to_exam = set()
     ligand_residues = set()
     binding_sites = set()
@@ -95,14 +95,17 @@ def parse_binding_site(argtuple):
     pdbfile = gzip.GzipFile(pdbfilepath)
     #print pdbfilepath
     try:
+        seqres = set()
+        links = []
         error = False
         for line in pdbfile:
             line = line.strip()
-            if line[:6] in ("ATOM  ", "HETATM"):
+            label = line[:6].strip()
+            if label in ("ATOM", "HETATM"):
                 atom = PdbAtom(line)
                 if atom.residue in rsrdict:
                     atom.rsr = float(rsrdict[atom.residue])
-                if line[:6] == "ATOM  " and inner_distance: #Don't care about protein when distance = 0
+                if label == "ATOM" and inner_distance: #Don't care about protein when distance = 0
                     protein_atoms.add(atom)
                     if atom.name[1:3] == 'CA':  #Is alpha-carbon
                         protein_ca_atoms.add(atom)
@@ -112,8 +115,10 @@ def parse_binding_site(argtuple):
                         future_hetids_list.add(atom.hetid)
                         ligand_all_atoms_dict[atom.hetid] = set()
                     ligand_all_atoms_dict[atom.hetid].add(atom)
-                    #print atom.rsr
-                    classificate_residue(atom, good_rsr, dubious_rsr, bad_rsr, rsr_upper=rsr_upper, rsr_lower = rsr_lower)
+            elif label == 'LINK':
+                links.append((line[17:27],  line[47:57], float(line[73:78]))) #distancia
+            elif label == 'SEQRES':
+                seqres.update(set(line[19:].split()))
     except IOError, error:
         print pdbfilepath
         print error
@@ -121,6 +126,51 @@ def parse_binding_site(argtuple):
         pdbfile.close()
         if error:
             return  (None, None, None, None)
+    #Now let's prune covalently bound ligands
+    notligands = set()
+    print links
+    print seqres
+    alllinksparsed = True
+    while alllinksparsed:
+        alllinksparsed = False
+        for res1,  res2,  blen in links:
+            print res1, res2, blen
+            if not blen or blen >= 1.9:
+                print 'Bond distance big enough (%s) between %s and %s' % (blen, res1,  res2)
+                continue
+            inseqres = 0
+            ligres = sres = None
+            if res1[:3] in seqres or res1 in seqres:
+                inseqres +=1
+                sres,  ligres = res1, res2
+            if res2[:3] in seqres or res2 in seqres:
+                inseqres +=1
+                sres,  ligres = res2, res1
+            if res1[:3] in ligand_blacklist or res2[:3] in ligand_blacklist:
+                print 'Binding to a blacklisted ligand: %s - %s' % res1, res2
+                notligands.add(res1)
+                seqres.add(res1)
+                ligres = res2
+                inseqres = 1
+            if inseqres == 1:
+                notligands.add(ligres)
+                seqres.add(ligres)
+                alllinksparsed = True
+                print ligres + ' added to seqres'
+                break
+    for nonligand in notligands:
+        print nonligand + 'is not a ligand!'
+        for hetlist in (future_hetids_list, hetids_list):
+            if nonligand[:3] in hetlist:
+                hetlist.remove(nonligand[:3])
+        ligand_residues.remove(nonligand)
+        if nonligand[:3] in ligand_all_atoms_dict:
+            ligand_all_atoms_dict.pop(nonligand[:3])
+    for hetid in ligand_all_atoms_dict:
+        for atom in ligand_all_atoms_dict[hetid]:
+            classificate_residue(atom,  good_rsr, dubious_rsr, bad_rsr, rsr_upper=rsr_upper, rsr_lower = rsr_lower)
+            break
+
     #Now let's find binding site distance
     if not hetids_list:
         hetids_list = future_hetids_list

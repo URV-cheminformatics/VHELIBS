@@ -193,7 +193,6 @@ ligand_blacklist = {
 , 'RBF': 'Riboflavin'
 , 'SRM': 'Siroheme'
 , 'UQ8': 'UBIQUINONE-8'
-, 'NAG': 'NAG'
 , 'HOH': 'Water'
 }
 
