@@ -134,10 +134,6 @@ def parse_binding_site(argtuple):
     while alllinksparsed:
         alllinksparsed = False
         for res1,  res2,  blen in links:
-            print res1, res2, blen
-            if not blen or blen >= 1.9:
-                print 'Bond distance big enough (%s) between %s and %s' % (blen, res1,  res2)
-                continue
             inseqres = 0
             ligres = sres = None
             if res1[:3] in seqres or res1 in seqres:
@@ -147,16 +143,18 @@ def parse_binding_site(argtuple):
                 inseqres +=1
                 sres,  ligres = res2, res1
             if res1[:3] in ligand_blacklist or res2[:3] in ligand_blacklist:
-                print 'Binding to a blacklisted ligand: %s - %s' % res1, res2
+                print 'Binding to a blacklisted ligand: %s - %s' % (res1, res2)
                 notligands.add(res1)
                 seqres.add(res1)
                 ligres = res2
                 inseqres = 1
             if inseqres == 1:
+                if not blen or blen >= 1.9:
+                    print 'Bond distance big enough (%s) between %s and %s' % (blen, res1,  res2)
+                    continue
                 notligands.add(ligres)
                 seqres.add(ligres)
                 alllinksparsed = True
-                print ligres + ' added to seqres'
                 break
     for nonligand in notligands:
         print nonligand + 'is not a ligand!'

@@ -55,8 +55,8 @@ class JmolPanel(JPanel):
         self.getSize(self.currentSize)
         self.viewer.renderScreenImage(g, self.currentSize.width, self.currentSize.height)
 
-class StruVa():
-    actions = (u'Good', u'Bad', u'Dubious', u'Skip')
+class StruVa(object):
+    actions = (u'Good', u'Bad', u'Dubious', u'Skip', u'List', u'Help', u'Exit')
     def __init__(self, csvfilename=None):
         self.actionsDict = {}
         if csvfilename:
@@ -100,7 +100,7 @@ class StruVa():
         print 'Script is:'
         print data[1]
         command = unicode(data[1].split('##')[0])[:-1].lower()
-        if command in self.actionsDict.keys():
+        if command in self.actions:
             self.nextStruct(text=command)
 
     def nextStruct(self, event = None, text = None):
@@ -110,7 +110,39 @@ class StruVa():
             return
         self.console.sendConsoleEcho("%s has been executed" % text)
         print 'Current structure is %s' % text
+        needreload = False
+        if self.resultdict:
+            if text.upper() in self.resultdict:
+                self.pdbid = text.upper()
+                self.reloadStruct(self.pdbid)
+            elif text.lower() == 'list':
+                self.console.sendConsoleEcho( ' '.join(self.resultdict.keys()))
+            elif text.lower() == 'help':
+                self.console.sendConsoleMessage(self.helpmsg)
+            elif text.lower() in ('good', 'bad', 'dubious'):
+                self.updateOutFile(text, self.pdbid)
+                self.saveWIP()
+                if self.resultdict:
+                    self.pdbid = self.resultdict.iterkeys().next()
+                    self.reloadStruct(self.pdbid)
+                else:
+                    self.pdbid = None
+                    self.clean()
+            elif text.lower().strip() == 'exit':
+                exit(0)
+        else:
+            self.clean()
 
+    def clean(self):
+        #Netejar-ho tot
+        try:
+            os.remove(self.wipfilename)
+        except:
+            pass
+        self.execute('delete;')
+        self.console.sendConsoleMessage( "No more structures to view!")
+        self.console.sendConsoleMessage( 'Do you want to exit now?')
+        self.console.sendConsoleMessage( 'you can still manually load more structures and do other operations using the Jmol console')
 
     def reloadStruct(self, pdbid):
         #Netejar
@@ -180,64 +212,19 @@ class StruVa():
 
     def updateOutFile(self, filetype, pdbid):
         filetype = filetype.lower()
-        if filetype not in self.writerdict.keys():
+        if filetype not in self.filesdict:
             raise TypeError('Unknown destination file')
         ligandresidues, residues_to_exam, binding_site = self.resultdict.pop(pdbid)
-        self.writerdict[filetype].writerow([pdbid, ';'.join(residues_to_exam), ';'.join(ligandresidues),';'.join(binding_site)])
-        self.filesdict[filetype].flush()
+        row = [pdbid, ';'.join(residues_to_exam), ';'.join(ligandresidues),';'.join(binding_site)]
+        file = open(self.filesdict[filetype], 'ab')
+        writer = csv.writer(file, self.dialect)
+        writer.writerow(row)
+        file.flush()
+        file.close()
 
     def start(self):
-        pdbid = None
-        needreload = False
-        while self.resultdict:
-            inp = ';'
-            if not pdbid:
-                pdbid = self.resultdict.keys()[0]
-                needreload = True
-            if needreload:
-                self.reloadStruct(pdbid)
-                needreload = False
-            while not inp or inp == ';':
-                self.console.sendConsoleEcho( ">>>")
-                inp = raw_input().strip()
-            print
-            if inp.upper() in self.resultdict:
-                pdbid = inp.upper()
-                needreload = True
-            elif inp.lower() == 'list':
-                self.console.sendConsoleEcho( self.resultdict.keys())
-            elif inp.lower() == 'help':
-                self.console.sendConsoleMessage( self.helpmsg)
-            elif inp.lower() in ('good', 'bad', 'dubious'):
-                self.updateOutFile(inp, pdbid)
-                ###
-                self.saveWIP()
-                pdbid = None
-            elif inp.lower().strip() == 'exit':
-                exit(0)
-            else:
-                try:
-                    if inp[-1] != ';':
-                        inp += ';'
-                    self.viewer.evalString(inp)
-                except Exception, e:
-                    self.console.sendConsoleMessage("ERROR: " + e)
-                    self.console.sendConsoleMessage( "### Ordre o codi PDB no reconeguts: '%s'. Torna-ho a provar ###" % inp)
-           #Netejar-ho tot
-        for file in self.filesdict.values():
-            file.close()
-        try:
-            os.remove(self.wipfilename)
-        except:
-            pass
-        self.execute('delete;')
-        self.console.sendConsoleMessage( "No more structures to view!")
-        self.console.sendConsoleMessage( 'Do you want to exit now?')
-        ans = raw_input().lower().strip()
-        if ans in yes:
-            exit(0)
-        else:
-            self.console.sendConsoleMessage( 'you can still manually load more structures and do other operations through OpenAstexViewer scripting')
+        self.pdbid = self.resultdict.iterkeys().next()
+        self.reloadStruct(self.pdbid)
 
     def loadCSV(self, csvfilename):
         self.resultdict = {}
@@ -269,6 +256,7 @@ class StruVa():
             dialect = 'excel'
             print 'using default dialect: %s' % dialect
         csvfile.seek(0)
+        self.dialect = dialect
         reader = csv.reader(csvfile, dialect)
         for pdbid, residues_to_exam_string, ligandresidues_string, binding_site_string in reader:
             if len(pdbid) != 4:
@@ -284,16 +272,9 @@ class StruVa():
             exit(1)
         csvfile.close()
         goodfilename = os.path.join(outdir, basename + '_good.csv')
-        goodfile = open(goodfilename,'ab')
-        goodwriter = csv.writer(goodfile, dialect)
         badfilename = os.path.join(outdir, basename + '_bad.csv')
-        badfile = open(badfilename,'ab')
-        badwriter = csv.writer(badfile, dialect)
         dubiousfilename = os.path.join(outdir, basename + '_dubious.csv')
-        dubiousfile = open(dubiousfilename,'ab')
-        dubiouswriter = csv.writer(dubiousfile, dialect)
-        self.writerdict = {'good':goodwriter, 'bad':badwriter, 'dubious':dubiouswriter}
-        self.filesdict = {'good':goodfile, 'bad':badfile, 'dubious':dubiousfile}
+        self.filesdict = {'good':goodfilename, 'bad':badfilename, 'dubious':dubiousfilename}
         self.wipfilename = os.path.join(outdir, basename + '_wip.csv')
         self.helpmsg = """> Special commands:
 help : print this message
