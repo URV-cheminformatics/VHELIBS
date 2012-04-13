@@ -30,6 +30,20 @@ yes = ('sí', 'si', 'yes', 'ja', 'da', 'bai', 'oui', 'oc', 'òc','jes', 'yeah', 
 no = ('no', 'non', 'nein', 'nope', 'ez', 'ne', 'pas', 'não', 'nao', 'eeek', 'n', 'niet')
 
 ###Define useful classes###
+class Console(AppConsole):
+    def notifyEnabled(self, callbacktype):
+        if str(callbacktype) == 'SYNC':
+            return True
+        return AppConsole.notifyEnabled(self, callbacktype)
+
+    def notifyCallback(self, callbacktype, data):
+        if str(callbacktype) == 'SYNC':
+            self.parseCommand(data)
+        else:
+            return AppConsole.notifyCallback(self, callbacktype, data)
+
+    def parseCommand(self, data):
+        pass #It will be replaced by something more useful
 
 class JmolPanel(JPanel):
     def __init__(self, preferredSize):
@@ -42,7 +56,9 @@ class JmolPanel(JPanel):
         self.viewer.renderScreenImage(g, self.currentSize.width, self.currentSize.height)
 
 class StruVa():
+    actions = (u'Good', u'Bad', u'Dubious', u'Skip')
     def __init__(self, csvfilename=None):
+        self.actionsDict = {}
         if csvfilename:
             self.loadCSV(csvfilename)
             self.setupUi()
@@ -61,33 +77,39 @@ class StruVa():
         panel.add(jmolPanel)
         # main panel -- console panel on right
         panel2 = JPanel(layout = BorderLayout(), preferredSize = Dimension(300, 400))
-        self.console = AppConsole(jmolPanel.viewer, panel2,"History Variables State Clear Help")
+        self.console = Console(jmolPanel.viewer, panel2,"History Variables State Clear Help")
+        self.console.parseCommand = self.parseCommand
         jmolPanel.viewer.jmolCallbackListener = self.console
         panel.add("East", panel2)
         contentPane.add(panel)
         self.execute('wireframe only')
         self.execute('wireframe off')
         self.execute('set bondMode OR')
+        self.execute('set syncScript ON')
+        self.execute('set antialiasDisplay ON')
+        self.execute('set antialiasTranslucent ON')
         buttonPanel = JPanel(GridLayout(2, 2))
-        self.good_button = JButton('Good', actionPerformed=self.nextStruct)
-        self.bad_button = JButton('Bad', actionPerformed=self.nextStruct)
-        self.dubious_button = JButton('Dubious', actionPerformed=self.nextStruct)
-        self.skip_button = JButton('Skip', actionPerformed=self.nextStruct)
-        buttonPanel.add(self.good_button)
-        buttonPanel.add(self.bad_button)
-        buttonPanel.add(self.dubious_button)
-        buttonPanel.add(self.skip_button)
-        panel.add(buttonPanel, BorderLayout.NORTH)
+        for action in self.actions:
+            self.actionsDict[action.lower()] = JButton(action, actionPerformed=self.nextStruct)
+            buttonPanel.add(self.actionsDict[action.lower()])
+            self.execute('function %s () {}' % action)
+        panel2.add(buttonPanel, BorderLayout.NORTH)
         self.setVisible = frame.setVisible
+
+    def parseCommand(self, data):
+        print 'Script is:'
+        print data[1]
+        command = unicode(data[1].split('##')[0])[:-1].lower()
+        if command in self.actionsDict.keys():
+            self.nextStruct(text=command)
 
     def nextStruct(self, event = None, text = None):
         if event:
-            print event
-            print event.source == self.skip_button
-            print event.source.text
-            text = event.source.text
+            text = event.source.text.lower()
         if not text:
             return
+        self.console.sendConsoleEcho("%s has been executed" % text)
+        print 'Current structure is %s' % text
 
 
     def reloadStruct(self, pdbid):
