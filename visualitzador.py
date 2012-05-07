@@ -14,6 +14,10 @@ from java.lang.System import exit
 from java.awt import BorderLayout, Dimension, GridLayout
 
 from javax.swing import JFrame, JPanel, JButton
+#Jython-specific stuff
+from swingutils.preferences import getUserPrefs
+from swingutils.dialogs.filechooser import showOpenDialog, showSaveDialog, SimpleFileFilter
+prefs = getUserPrefs('struva')
 
 #Jmol stuff
 from org.jmol.adapter.smarter import SmarterJmolAdapter
@@ -56,7 +60,7 @@ class JmolPanel(JPanel):
         self.viewer.renderScreenImage(g, self.currentSize.width, self.currentSize.height)
 
 class StruVa(object):
-    actions = (u'Good', u'Bad', u'Dubious', u'Skip', u'List', u'Help', u'Exit')
+    actions = (u'Good', u'Bad', u'Dubious', u'List', u'Help', u'Exit')
     def __init__(self, csvfilename=None):
         self.actionsDict = {}
         if csvfilename:
@@ -69,14 +73,14 @@ class StruVa(object):
     def setupUi(self):
         frame = JFrame("Structure Validation Helper", defaultCloseOperation = JFrame.EXIT_ON_CLOSE, size = (700, 410))
         contentPane = frame.contentPane
-        jmolPanel = JmolPanel(preferredSize = Dimension(400, 400))
+        jmolPanel = JmolPanel(preferredSize = (400, 400))
         self.viewer = jmolPanel.viewer
         self.execute = self.viewer.evalStringQuiet
         # main panel -- Jmol panel on left
         panel = JPanel(layout = BorderLayout())
         panel.add(jmolPanel)
         # main panel -- console panel on right
-        panel2 = JPanel(layout = BorderLayout(), preferredSize = Dimension(300, 400))
+        panel2 = JPanel(layout = BorderLayout(), preferredSize = (300, 400))
         self.console = Console(jmolPanel.viewer, panel2,"History Variables State Clear Help")
         self.console.parseCommand = self.parseCommand
         jmolPanel.viewer.jmolCallbackListener = self.console
@@ -174,32 +178,40 @@ class StruVa(object):
         binding_site_selection = reslist_to_sel(binding_site)
         self.execute('define binding_site (%s)' % binding_site_selection)
         self.execute('select(binding_site)')
-        self.execute('wireframe 0.01')
-        self.execute('spacefill off')
-        self.execute('color white')
+        self.execute('wireframe %s' % prefs.get('bswfv','0.01'))
+        self.execute('spacefill %s' % prefs.get('bssfv', 'off'))
+        self.execute('color %s' % prefs.get('bscolor', 'white'))
         self.execute('select none')
 
     def displayResToExam(self, residues_to_exam):
         exam_residues_selection = reslist_to_sel(residues_to_exam)
         self.execute('define res_to_exam (%s)' % exam_residues_selection)
         self.execute('select(res_to_exam)' )
-        self.execute('wireframe 0.1')
-        self.execute('spacefill 0.2')
-        self.execute('color cpk')
+        self.execute('wireframe %s' % prefs.get('rewfv', '0.1'))
+        self.execute('spacefill %s' % prefs.get('resfv', '0.2'))
+        self.execute('color %s' % prefs.get('recolor', 'cpk'))
         self.execute('select none')
 
     def displayLigands(self, ligandresidues):
         ligands_selection = reslist_to_sel(ligandresidues)
         self.execute('define ligands (%s)' % ligands_selection)
         self.execute('select(ligands)')
-        self.execute('wireframe 0.1')
-        self.execute('spacefill 0.2')
-        self.execute('color magenta')
+        self.execute('wireframe %s' % prefs.get('ligwfv', '0.1'))
+        self.execute('spacefill %s' % prefs.get('ligsfv', '0.2'))
+        self.execute('color %s' % prefs.get('ligcolor', 'magenta'))
         self.execute('select none')
         self.execute('center ligands')
 
     def loadEDM(self, pdbid):
-        self.execute('isosurface EDM color yellow sigma 1.0 within 2.0 {ligands or res_to_exam} "=%s" mesh nofill' %  pdbid)
+        if prefs['ligand_edm']:
+            self.execute('isosurface LIGAND color %s sigma %s within %s {ligands} "=%s" mesh nofill' %\
+                       (prefs.get('edmcolor', 'red'), prefs.get('sigma', '1.0'), prefs.get('edmdistance', '2.0'),  pdbid))
+        if prefs.get('restoexam_edm', True):
+            self.execute('isosurface RES_TO_EXAM color %s sigma %s within %s {res_to_exam} "=%s" mesh nofill' %\
+                       (prefs.get('edmcolor', 'yellow'), prefs.get('sigma', '1.0'), prefs.get('edmdistance', '2.0'),  pdbid))
+        if prefs['bindingsite_edm']:
+            self.execute('isosurface BINDINGSITE color %s sigma %s within %s {binding_site} "=%s" mesh nofill' %\
+                       (prefs.get('edmcolor', 'cyan'), prefs.get('sigma', '1.0'), prefs.get('edmdistance', '2.0'),  pdbid))
 
     def saveWIP(self):
         outfile = open(self.wipfilename, 'wb')

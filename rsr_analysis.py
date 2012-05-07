@@ -128,8 +128,6 @@ def parse_binding_site(argtuple):
             return  (None, None, None, None)
     #Now let's prune covalently bound ligands
     notligands = set()
-    print links
-    print seqres
     alllinksparsed = True
     while alllinksparsed:
         alllinksparsed = False
@@ -161,7 +159,8 @@ def parse_binding_site(argtuple):
         for hetlist in (future_hetids_list, hetids_list):
             if nonligand[:3] in hetlist:
                 hetlist.remove(nonligand[:3])
-        ligand_residues.remove(nonligand)
+        if nonligand in ligand_residues:
+            ligand_residues.remove(nonligand)
         if nonligand[:3] in ligand_all_atoms_dict:
             ligand_all_atoms_dict.pop(nonligand[:3])
     for hetid in ligand_all_atoms_dict:
