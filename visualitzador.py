@@ -13,25 +13,22 @@ from java.lang.System import exit
 
 from java.awt import BorderLayout, Dimension, GridLayout
 
-from javax.swing import JFrame, JPanel, JButton
+from javax.swing import JFrame, JPanel, JButton, JOptionPane
 #Jython-specific stuff
 from swingutils.preferences import getUserPrefs
-from swingutils.dialogs.filechooser import showOpenDialog, showSaveDialog, SimpleFileFilter
+from swingutils.dialogs.filechooser import showOpenDialog, SimpleFileFilter
+from swingutils.dialogs.basic import showErrorDialog, showWarningDialog, showMessageDialog
 prefs = getUserPrefs('struva')
 
 #Jmol stuff
 from org.jmol.adapter.smarter import SmarterJmolAdapter
 from org.jmol.api import JmolViewer
-from org.jmol.util import Logger
 from org.openscience.jmol.app.jmolpanel import AppConsole
 
 #Own stuff
 if not len(sys.argv):
-    sys.argv.append('-h')
+    sys.argv.append('')
 import rsr_analysis
-
-yes = ('sí', 'si', 'yes', 'ja', 'da', 'bai', 'oui', 'oc', 'òc','jes', 'yeah', 'sim', 'ok', 'oook', 'y', 's')
-no = ('no', 'non', 'nein', 'nope', 'ez', 'ne', 'pas', 'não', 'nao', 'eeek', 'n', 'niet')
 
 ###Define useful classes###
 class Console(AppConsole):
@@ -60,7 +57,7 @@ class JmolPanel(JPanel):
         self.viewer.renderScreenImage(g, self.currentSize.width, self.currentSize.height)
 
 class StruVa(object):
-    actions = (u'Good', u'Bad', u'Dubious', u'List', u'Help', u'Exit')
+    actions = (u'good', u'bad', u'dubious', u'list', u'help', u'exit')
     def __init__(self, csvfilename=None):
         self.actionsDict = {}
         if csvfilename:
@@ -92,17 +89,16 @@ class StruVa(object):
         self.execute('set syncScript ON')
         self.execute('set antialiasDisplay ON')
         self.execute('set antialiasTranslucent ON')
-        buttonPanel = JPanel(GridLayout(2, 2))
+        buttonPanel = JPanel(GridLayout(3, 2))
         for action in self.actions:
-            self.actionsDict[action.lower()] = JButton(action, actionPerformed=self.nextStruct)
-            buttonPanel.add(self.actionsDict[action.lower()])
+            caction = action[0].upper() + action[1:]
+            self.actionsDict[action] = JButton(caction, actionPerformed=self.nextStruct)
+            buttonPanel.add(self.actionsDict[action])
             self.execute('function %s () {}' % action)
         panel2.add(buttonPanel, BorderLayout.NORTH)
         self.setVisible = frame.setVisible
 
     def parseCommand(self, data):
-        print 'Script is:'
-        print data[1]
         command = unicode(data[1].split('##')[0])[:-1].lower()
         if command in self.actions:
             self.nextStruct(text=command)
@@ -113,7 +109,6 @@ class StruVa(object):
         if not text:
             return
         self.console.sendConsoleEcho("%s has been executed" % text)
-        print 'Current structure is %s' % text
         needreload = False
         if self.resultdict:
             if text.upper() in self.resultdict:
@@ -138,7 +133,7 @@ class StruVa(object):
             self.clean()
 
     def clean(self):
-        #Netejar-ho tot
+        #Neteja-ho tot
         try:
             os.remove(self.wipfilename)
         except:
@@ -149,7 +144,7 @@ class StruVa(object):
         self.console.sendConsoleMessage( 'you can still manually load more structures and do other operations using the Jmol console')
 
     def reloadStruct(self, pdbid):
-        #Netejar
+        #Neteja
         self.execute('delete')
         ligandresidues, residues_to_exam, binding_site = self.resultdict[pdbid]
         if ligandresidues == ['']:
@@ -170,6 +165,7 @@ class StruVa(object):
                 self.loadEDM(pdbid)
             except Exception,  e:
                 self.console.sendConsoleMessage("ERROR: " + e)
+                showErrorDialog(e)
         self.console.sendConsoleEcho( "\n####################################")
         self.console.sendConsoleEcho( "Viewing structure %s" % pdbid)
         self.console.sendConsoleEcho( "####################################\n")
@@ -245,21 +241,16 @@ class StruVa(object):
             exit(1)
         outdir = os.path.dirname(csvfilename)
         basename = os.path.splitext(os.path.basename(csvfilename))[0]
-        if csvfilename.endswith('_wip.csv'):
+        _wipfile = os.path.join(outdir, basename + '_wip.csv~')
+        if csvfilename.endswith('_wip.csv~'):
             basename = basename.replace('_wip', '')
-        elif os.path.isfile(os.path.join(outdir, basename + '_wip.csv')):
-            print "S'ha trobat un fitxer amb les estructures ja mirades desades."
-            print "Vols carregar-lo per no haver de començar de nou? (Sí/No)"
-            ans = raw_input()
-            answered = False
-            while not answered:
-                if ans.lower().strip() in yes:
-                    csvfilename = os.path.join(outdir, basename + '_wip.csv')
-                    answered = True
-                elif ans.lower().strip() in no:
-                    answered = True
-                else:
-                    ans = raw_input()
+        elif os.path.isfile(_wipfile):
+            ans=JOptionPane.showConfirmDialog(None, "Would you like to continue with the validation \nof the structures from the file %s?" % _wipfile)
+            if ans == 2:
+                exit(0)
+            elif ans ==0:
+                csvfilename = _wipfile
+
         csvfile = open(csvfilename, 'rb')
         try:
             dialect = csv.Sniffer().sniff(csvfile.read(1024))
@@ -287,7 +278,7 @@ class StruVa(object):
         badfilename = os.path.join(outdir, basename + '_bad.csv')
         dubiousfilename = os.path.join(outdir, basename + '_dubious.csv')
         self.filesdict = {'good':goodfilename, 'bad':badfilename, 'dubious':dubiousfilename}
-        self.wipfilename = os.path.join(outdir, basename + '_wip.csv')
+        self.wipfilename = os.path.join(outdir, basename + '_wip.csv~')
         self.helpmsg = """> Special commands:
 help : print this message
 good : Considera l'estructura com a bona, la desa a %s
@@ -313,7 +304,6 @@ def reslist_to_sel(reslist):
                     for char in resnum:
                         if not char.isdigit():
                             resnum = resnum.replace(char, '')
-                #print 'Transformant %s en %s' % (res, "(chain '%s' and residue %s)" % (chain, resnum))
                 sellist.append("[%s]%s:%s" % (resname, resnum, chain))
             except IndexError:
                 print "Malformed residue string:"
@@ -327,16 +317,46 @@ def main():
     """
     """
     ### build the parser###
+    print sys.argv
     parser = rsr_analysis.parser
     parser.add_argument('-c','--csvfile', metavar='CSVFILE', type=unicode, default=None, required=False, help='CSV file containing results from a previous RSR analysis')
     parser.add_argument('--no-view', required=False, action='store_true', help="Do not visualize the generated csv file")
     values = parser.parse_args(sys.argv)
-    if not (values.csvfile or values.pdbidfile or values.pdbids or values.swissprot) :
-        print "Use the -h or --help options to see how to use this program"
-        return
+    while not (values.csvfile or values.pdbidfile or values.pdbids or values.swissprot) :
+        options = ['Load CSV file', 'Enter PDB IDs', 'Enter Swissport IDs', 'Tweak options', 'Cancel']
+        choice = JOptionPane.showOptionDialog(None, 'Select what to do',u'avís', JOptionPane.DEFAULT_OPTION, JOptionPane.INFORMATION_MESSAGE, None, options, options[0])
+        option = options[choice]
+        if option == options[0]:
+            csvfilter = SimpleFileFilter('.csv', None, 'CSV files')
+            file = showOpenDialog(csvfilter, prefs=prefs, prefkey='loadedFiles', multiselect=False)
+            if file:
+                values.csvfile = str(file)
+        elif option in options[1:3]:
+            idstring = JOptionPane.showInputDialog(option)
+            if idstring:
+                ids = idstring.replace(',', ' ').split()
+            else:
+                ids = []
+            if option == options[1]:
+                values.pdbids = ids
+            elif option == options[2]:
+                values.swissprot = ids
+        elif option == options[3]:
+            pass
+        elif option == options[4]:
+            exit(0)
+
     csvfilename = values.csvfile
     if not csvfilename:
-        datawritten = rsr_analysis.main(values.pdbidfile, pdbidslist = values.pdbids, swissprotlist =values.swissprot , rsr_upper=values.rsr_upper, rsr_lower = values.rsr_lower, distance=values.distance, outputfile = values.outputfile)
+        datawritten = rsr_analysis.main(
+                                        values.pdbidfile
+                                        , pdbidslist = values.pdbids
+                                        , swissprotlist =values.swissprot
+                                        , rsr_upper=values.rsr_upper
+                                        , rsr_lower = values.rsr_lower
+                                        , distance=values.distance
+                                        , outputfile = values.outputfile
+                                        )
         if values.no_view:
             exit(0)
         if datawritten:
