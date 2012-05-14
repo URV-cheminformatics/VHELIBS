@@ -7,13 +7,13 @@
 import sys
 import os
 import csv
-
+import math
 #Java stuff
 from java.lang.System import exit
 
 from java.awt import BorderLayout, Dimension, GridLayout
 
-from javax.swing import JFrame, JPanel, JButton, JOptionPane
+from javax.swing import JFrame, JPanel, JButton, JOptionPane, JTextField
 #Jython-specific stuff
 from swingutils.preferences import getUserPrefs
 from swingutils.dialogs.filechooser import showOpenDialog, SimpleFileFilter
@@ -26,8 +26,9 @@ from org.jmol.api import JmolViewer
 from org.openscience.jmol.app.jmolpanel import AppConsole
 
 #Own stuff
+from WrapJOptionPane import JOptionPane2
 if not len(sys.argv):
-    sys.argv.append('')
+    sys.argv.append('--no-args')
 import rsr_analysis
 
 ###Define useful classes###
@@ -292,6 +293,42 @@ res_to_exam : select residues to exam from the binding site
 Jmol scripting manual:
 http://chemapps.stolaf.edu/jmol/docs/?&fullmanual=1&ver=12.4 """ % (goodfilename, badfilename , dubiousfilename, )
 
+
+class SettingsDialog(object):
+    def __init__(self, values, parent=None):
+        self.values = values
+
+        distance = JTextField()
+        if not self.values.distance:
+            self.values.distance = math.sqrt(rsr_analysis.inner_distance)
+        distance.setText(str(self.values.distance))
+
+        outputfile = JTextField()
+        if not self.values.outputfile:
+            self.values.outputfile = 'rsr_analysis.csv'
+        outputfile.setText(str(self.values.outputfile))
+
+        rsr_lower = JTextField()
+        if not self.values.rsr_lower:
+            self.values.rsr_lower = rsr_analysis.RSR_lower
+        rsr_lower.setText(str(self.values.rsr_lower))
+
+        rsr_upper = JTextField()
+        if not self.values.rsr_upper:
+            self.values.rsr_upper = rsr_analysis.RSR_upper
+        rsr_upper.setText(str(self.values.rsr_upper))
+
+        message = ['Distance', distance,  'Output file name', outputfile,  'Lowest RSR', rsr_lower,  'Highest RSR', rsr_upper]
+
+        self.pane = JOptionPane2(message, JOptionPane.PLAIN_MESSAGE, JOptionPane.OK_CANCEL_OPTION)
+        self.dialog = self.pane.createDialog(parent, "Options")
+        self.dialog.visible = True
+        self.values.distance = float(distance.getText())
+        self.values.rsr_lower = float(rsr_lower.getText())
+        self.values.rsr_upper = float(rsr_upper.getText())
+        self.values.outputfile = outputfile.getText()
+        #print name.getText()
+
 def reslist_to_sel(reslist):
     sellist = []
     for res in reslist:
@@ -318,10 +355,11 @@ def main():
     """
     ### build the parser###
     print sys.argv
-    parser = rsr_analysis.parser
-    parser.add_argument('-c','--csvfile', metavar='CSVFILE', type=unicode, default=None, required=False, help='CSV file containing results from a previous RSR analysis')
-    parser.add_argument('--no-view', required=False, action='store_true', help="Do not visualize the generated csv file")
-    values = parser.parse_args(sys.argv)
+    argparser = rsr_analysis.parser
+    argparser.add_argument('-c','--csvfile', metavar='CSVFILE', type=unicode, default=None, required=False, help='CSV file containing results from a previous RSR analysis')
+    argparser.add_argument('--no-view', required=False, action='store_true', help="Do not visualize the generated csv file")
+    argparser.add_argument('--no-args', required=False, action='store_true')
+    values = argparser.parse_args(sys.argv)
     while not (values.csvfile or values.pdbidfile or values.pdbids or values.swissprot) :
         options = ['Load CSV file', 'Enter PDB IDs', 'Enter Swissport IDs', 'Tweak options', 'Cancel']
         choice = JOptionPane.showOptionDialog(None, 'Select what to do',u'avís', JOptionPane.DEFAULT_OPTION, JOptionPane.INFORMATION_MESSAGE, None, options, options[0])
@@ -342,7 +380,8 @@ def main():
             elif option == options[2]:
                 values.swissprot = ids
         elif option == options[3]:
-            pass
+            s = SettingsDialog(values)
+            values = s.values
         elif option == options[4]:
             exit(0)
 
