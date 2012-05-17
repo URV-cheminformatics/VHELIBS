@@ -1,14 +1,11 @@
 import java.lang.System;
-import java.util.Properties;
 
-import org.python.core.PySystemState;
-import org.python.core.PyException;
 import org.python.util.PythonInterpreter;
 
 public class Main {
-    public static void main(String[] args) throws PyException {
+    public static void main(String[] args) {
         //Put the command line arguments ( args ) into sys.argv
-        PySystemState.initialize(PySystemState.getBaseProperties(), new Properties(), args);
+        PythonInterpreter.initialize(System.getProperties(), System.getProperties(), args);
         // Now create an interpreter
         PythonInterpreter interp = new PythonInterpreter();
         interp.exec("try:\n import visualitzador\n visualitzador.main() \nexcept SystemExit: pass");
