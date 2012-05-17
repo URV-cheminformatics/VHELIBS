@@ -8,9 +8,8 @@ import sys
 import os
 import csv
 import math
+from sys import exit
 #Java stuff
-from java.lang.System import exit
-
 from java.awt import BorderLayout, Dimension, GridLayout
 
 from javax.swing import JFrame, JPanel, JButton, JOptionPane, JTextField

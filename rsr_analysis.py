@@ -283,7 +283,6 @@ def main(filepath = None, pdbidslist=[], swissprotlist = [], rsr_upper=RSR_upper
         inner_distance = distance**2
         outer_distance =  inner_distance*distfactor
     #print sys.argv[-1]
-    PDBfiles.setglobaldicts()
     pdblist = pdbidslist
     if swissprotlist:
         sptopdb_dict = get_sptopdb_dict()
@@ -302,6 +301,7 @@ def main(filepath = None, pdbidslist=[], swissprotlist = [], rsr_upper=RSR_upper
         pdblistfile.close()
     #results = (parse_binding_site(argstuple) for argstuple in argsarray)
     #chunksize = int(math.sqrt(len(argsarray)))
+    PDBfiles.setglobaldicts()
     pool = multiprocessing.Pool(multiprocessing.cpu_count())
     results = pool.imap_unordered(parse_binding_site, argsarray)
     datawritten = results_to_csv(results, outputfile)
