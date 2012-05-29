@@ -110,19 +110,21 @@ def parse_binding_site(argtuple):
                     protein_atoms.add(atom)
                     if atom.name[1:3] == 'CA':  #Is alpha-carbon
                         protein_ca_atoms.add(atom)
-                elif atom.hetid in hetids_list or (not hetids_list and (atom.hetid not in ligand_blacklist)):
-                    ligand_residues.add(atom.residue)
-                    if not hetids_list and atom.hetid not in ligand_all_atoms_dict:
-                        future_hetids_list.add(atom.hetid)
-                        ligand_all_atoms_dict[atom.hetid] = set()
-                    ligand_all_atoms_dict[atom.hetid].add(atom)
-                    if not atom.residue in ligand_res_atom_dict:
-                        ligand_res_atom_dict[atom.residue] = set()
-                    ligand_res_atom_dict[atom.residue].add(atom)
+                    seqres.add(atom.residue)
+                elif label == 'HETATM':
+                    if atom.hetid in hetids_list or (not hetids_list and (atom.hetid not in ligand_blacklist)):
+                        ligand_residues.add(atom.residue)
+                        if not hetids_list and atom.hetid not in ligand_all_atoms_dict:
+                            future_hetids_list.add(atom.hetid)
+                            ligand_all_atoms_dict[atom.hetid] = set()
+                        ligand_all_atoms_dict[atom.hetid].add(atom)
+                        if not atom.residue in ligand_res_atom_dict:
+                            ligand_res_atom_dict[atom.residue] = set()
+                        ligand_res_atom_dict[atom.residue].add(atom)
             elif label == 'LINK':
-                links.append((line[17:27],  line[47:57], float(line[73:78]))) #distancia
-            elif label == 'SEQRES':
-                seqres.update(set(line[19:].split()))
+                links.append((line[17:27].strip(),  line[47:57].strip(), float(line[73:78]))) #distancia
+#            elif label == 'SEQRES':
+#                seqres.update(set(line[19:].split()))
     except IOError, error:
         print pdbfilepath
         print error
@@ -151,7 +153,7 @@ def parse_binding_site(argtuple):
                 ligres = res2
                 inseqres = 1
             if inseqres == 1:
-                if not blen or blen >= 1.9:
+                if not blen or blen >= 2.1: #Disulfide bonds are about 2.05;
                     print 'Bond distance big enough (%s) between %s and %s' % (blen, res1,  res2)
                     continue
                 notligands.add(ligres)
@@ -199,7 +201,6 @@ def parse_binding_site(argtuple):
             ligand.add(lres)
             for res1,  res2,  blen in links:
                 added = False
-                print lres, res1, res2
                 if res1 == lres:
                     otherres = res2
                 elif res2 == lres:
@@ -207,13 +208,15 @@ def parse_binding_site(argtuple):
                 else:
                     otherres = None
                 if otherres:
+                    print lres, res1, res2
                     links.remove((res1,  res2,  blen))
-                    ligand.add(otherres)
-                    for kligand in ligands:
-                        if otherres in kligand:
-                            kligand.update(ligand)
-                            added = True
-                            break
+                    if otherres in ligand_residues:
+                        ligand.add(otherres)
+                        for kligand in ligands:
+                            if otherres in kligand:
+                                kligand.update(ligand)
+                                added = True
+                                break
             else:
                 if not added:
                     ligands.append(ligand)
@@ -221,8 +224,6 @@ def parse_binding_site(argtuple):
         return ligands
 
     ligands = group_ligands(ligand_residues)
-    print ligands
-    print len(ligands)
 
     def get_binding_site(ligand):
         """
@@ -274,7 +275,7 @@ class PdbAtom(object):
         Needs an ATOM or HETATM record
         """
         self.name = record[12:16]
-        self.residue = record[17:27]
+        self.residue = record[17:27].strip()
         self.hetid = self.residue[:3].strip()
         self.xyz = (float(record[30:38]), float(record[38:46]), float(record[46:54]))
         self.rsr = None

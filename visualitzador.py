@@ -402,9 +402,9 @@ def main():
         if datawritten:
             csvfilename = values.outputfile
         else:
-            showMessageDialog('No structures to be viewed.')
+            showWarningDialog('No structures to be viewed.')
             exit(0)
-    print 'Loading data from %s...' % csvfilename
+    print('Loading data from %s...' % csvfilename)
     struva = StruVa(csvfilename)
 
 if __name__ == '__main__':
