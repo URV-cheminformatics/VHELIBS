@@ -11,7 +11,6 @@ import math
 from sys import exit
 #Java stuff
 from java.awt import BorderLayout, Dimension, GridLayout
-
 from javax.swing import JFrame, JPanel, JButton, JOptionPane, JTextField
 #Jython-specific stuff
 from swingutils.preferences import getUserPrefs
@@ -108,23 +107,26 @@ class StruVa(object):
             text = event.source.text.lower()
         if not text:
             return
-        self.console.sendConsoleEcho("%s has been executed" % text)
+        #self.console.sendConsoleEcho("%s has been executed" % text)
         needreload = False
         if self.resultdict:
             if text.upper() in self.resultdict:
-                self.pdbid = text.upper()
-                self.reloadStruct(self.pdbid)
+                self.key = text.upper()
+                self.pdbid = self.key.split('|')[0]
+                self.reloadStruct()
             elif text.lower() == 'list':
                 self.console.sendConsoleEcho( ' '.join(self.resultdict.keys()))
             elif text.lower() == 'help':
                 self.console.sendConsoleMessage(self.helpmsg)
             elif text.lower() in ('good', 'bad', 'dubious'):
-                self.updateOutFile(text, self.pdbid)
+                self.updateOutFile(text)
                 self.saveWIP()
                 if self.resultdict:
-                    self.pdbid = self.resultdict.iterkeys().next()
-                    self.reloadStruct(self.pdbid)
+                    self.key = self.resultdict.iterkeys().next()
+                    self.pdbid = self.key.split('|')[0]
+                    self.reloadStruct()
                 else:
+                    self.key = None
                     self.pdbid = None
                     self.clean()
             elif text.lower().strip() == 'exit':
@@ -143,10 +145,10 @@ class StruVa(object):
         self.console.sendConsoleMessage( 'Do you want to exit now?')
         self.console.sendConsoleMessage( 'you can still manually load more structures and do other operations using the Jmol console')
 
-    def reloadStruct(self, pdbid):
+    def reloadStruct(self):
         #Neteja
         self.execute('delete')
-        ligandresidues, residues_to_exam, binding_site = self.resultdict[pdbid]
+        ligandresidues, residues_to_exam, binding_site = self.resultdict[self.key]
         if ligandresidues == ['']:
             self.console.sendConsoleMessage( 'Structure without ligands!')
             self.console.sendConsoleMessage( 'Skipping it')
@@ -154,7 +156,7 @@ class StruVa(object):
         else:
             #load in Jmol
             try:
-                self.execute('load "=%s"' % pdbid)
+                self.execute('load "=%s"' % self.pdbid)
                 self.execute('select all')
                 self.execute('wireframe only')
                 self.execute('wireframe off')
@@ -162,12 +164,12 @@ class StruVa(object):
                 self.displayBindingSite(binding_site)
                 self.displayResToExam(residues_to_exam)
                 self.displayLigands(ligandresidues)
-                self.loadEDM(pdbid)
+                self.loadEDM()
             except Exception,  e:
                 self.console.sendConsoleMessage("ERROR: " + e)
                 showErrorDialog(e)
         self.console.sendConsoleEcho( "\n####################################")
-        self.console.sendConsoleEcho( "Viewing structure %s" % pdbid)
+        self.console.sendConsoleEcho( "Viewing structure %s" % self.key)
         self.console.sendConsoleEcho( "####################################\n")
 
     def displayBindingSite(self, binding_site):
@@ -198,32 +200,32 @@ class StruVa(object):
         self.execute('select none')
         self.execute('center ligands')
 
-    def loadEDM(self, pdbid):
+    def loadEDM(self):
         if prefs['ligand_edm']:
             self.execute('isosurface LIGAND color %s sigma %s within %s {ligands} "=%s" mesh nofill' %\
-                       (prefs.get('edmcolor', 'red'), prefs.get('sigma', '1.0'), prefs.get('edmdistance', '2.0'),  pdbid))
+                       (prefs.get('edmcolor', 'red'), prefs.get('sigma', '1.0'), prefs.get('edmdistance', '2.0'),  self.pdbid))
         if prefs.get('restoexam_edm', True):
             self.execute('isosurface RES_TO_EXAM color %s sigma %s within %s {res_to_exam} "=%s" mesh nofill' %\
-                       (prefs.get('edmcolor', 'yellow'), prefs.get('sigma', '1.0'), prefs.get('edmdistance', '2.0'),  pdbid))
+                       (prefs.get('edmcolor', 'yellow'), prefs.get('sigma', '1.0'), prefs.get('edmdistance', '2.0'),  self.pdbid))
         if prefs['bindingsite_edm']:
             self.execute('isosurface BINDINGSITE color %s sigma %s within %s {binding_site} "=%s" mesh nofill' %\
-                       (prefs.get('edmcolor', 'cyan'), prefs.get('sigma', '1.0'), prefs.get('edmdistance', '2.0'),  pdbid))
+                       (prefs.get('edmcolor', 'cyan'), prefs.get('sigma', '1.0'), prefs.get('edmdistance', '2.0'),  self.pdbid))
 
     def saveWIP(self):
         outfile = open(self.wipfilename, 'wb')
         csvfile = csv.writer(outfile)
         csvfile.writerow(['PDB ID', "Residues to exam", "Ligand Residues", "Binding Site Residues"])
-        for pdbid in self.resultdict:
-            ligandresidues, residues_to_exam, binding_site = self.resultdict[pdbid]
-            csvfile.writerow([pdbid, ';'.join(residues_to_exam), ';'.join(ligandresidues),';'.join(binding_site)])
+        for key in self.resultdict:
+            ligandresidues, residues_to_exam, binding_site = self.resultdict[key]
+            csvfile.writerow([key.split('|')[0], ';'.join(residues_to_exam), ';'.join(ligandresidues),';'.join(binding_site)])
         outfile.close()
 
-    def updateOutFile(self, filetype, pdbid):
+    def updateOutFile(self, filetype):
         filetype = filetype.lower()
         if filetype not in self.filesdict:
             raise TypeError('Unknown destination file')
-        ligandresidues, residues_to_exam, binding_site = self.resultdict.pop(pdbid)
-        row = [pdbid, ';'.join(residues_to_exam), ';'.join(ligandresidues),';'.join(binding_site)]
+        ligandresidues, residues_to_exam, binding_site = self.resultdict.pop(self.key)
+        row = [self.key.split('|')[0], ';'.join(residues_to_exam), ';'.join(ligandresidues),';'.join(binding_site)]
         file = open(self.filesdict[filetype], 'ab')
         writer = csv.writer(file, self.dialect)
         writer.writerow(row)
@@ -231,8 +233,9 @@ class StruVa(object):
         file.close()
 
     def start(self):
-        self.pdbid = self.resultdict.iterkeys().next()
-        self.reloadStruct(self.pdbid)
+        self.key = self.resultdict.iterkeys().next()
+        self.pdbid= self.key.split('|')[0]
+        self.reloadStruct()
 
     def loadCSV(self, csvfilename):
         self.resultdict = {}
@@ -261,13 +264,12 @@ class StruVa(object):
         csvfile.seek(0)
         self.dialect = dialect
         reader = csv.reader(csvfile, dialect)
-        for pdbid, residues_to_exam_string, ligandresidues_string, binding_site_string in reader:
-            if len(pdbid) != 4:
-                continue
-            residues_to_exam = residues_to_exam_string.split(';')
-            ligandresidues = ligandresidues_string.split(';')
-            binding_site = binding_site_string.split(';')
-            self.resultdict[pdbid] = ligandresidues, residues_to_exam, binding_site
+        for id, residues_to_exam_string, ligandresidues_string, binding_site_string in reader:
+            if id != 'PDB ID':
+                residues_to_exam = residues_to_exam_string.split(';')
+                ligandresidues = ligandresidues_string.split(';')
+                binding_site = binding_site_string.split(';')
+                self.resultdict[id + '|' +ligandresidues[0]] = ligandresidues, residues_to_exam, binding_site
         else:
             print 'Dades carregades'
         if not self.resultdict:
@@ -400,9 +402,9 @@ def main():
         if datawritten:
             csvfilename = values.outputfile
         else:
-            print 'No structures to be viewed.'
+            showMessageDialog('No structures to be viewed.')
             exit(0)
-    print 'Loading data from %s...' % csvfilename,
+    print 'Loading data from %s...' % csvfilename
     struva = StruVa(csvfilename)
 
 if __name__ == '__main__':

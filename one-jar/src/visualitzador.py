@@ -1,1 +1,0 @@
-../../visualitzador.py

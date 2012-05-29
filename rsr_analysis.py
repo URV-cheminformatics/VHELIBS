@@ -81,6 +81,7 @@ def parse_binding_site(argtuple):
     bad_rsr = set()
     protein_atoms = set()
     ligand_all_atoms_dict = {}
+    ligand_res_atom_dict = {}
     for hetid in hetids_list:
         #print hetid
         ligand_all_atoms_dict[hetid] = set()
@@ -115,6 +116,9 @@ def parse_binding_site(argtuple):
                         future_hetids_list.add(atom.hetid)
                         ligand_all_atoms_dict[atom.hetid] = set()
                     ligand_all_atoms_dict[atom.hetid].add(atom)
+                    if not atom.residue in ligand_res_atom_dict:
+                        ligand_res_atom_dict[atom.residue] = set()
+                    ligand_res_atom_dict[atom.residue].add(atom)
             elif label == 'LINK':
                 links.append((line[17:27],  line[47:57], float(line[73:78]))) #distancia
             elif label == 'SEQRES':
@@ -152,6 +156,7 @@ def parse_binding_site(argtuple):
                     continue
                 notligands.add(ligres)
                 seqres.add(ligres)
+                links.remove((res1,  res2,  blen))
                 alllinksparsed = True
                 break
     for nonligand in notligands:
@@ -163,56 +168,102 @@ def parse_binding_site(argtuple):
             ligand_residues.remove(nonligand)
         if nonligand[:3] in ligand_all_atoms_dict:
             ligand_all_atoms_dict.pop(nonligand[:3])
-    for hetid in ligand_all_atoms_dict:
-        for atom in ligand_all_atoms_dict[hetid]:
-            classificate_residue(atom,  good_rsr, dubious_rsr, bad_rsr, rsr_upper=rsr_upper, rsr_lower = rsr_lower)
+
+    def classificate_residue(atom):
+        #print 'comparing %s with upper %s' % ( atom.rsr ,  rsr_upper)
+        if atom.rsr != None and atom.rsr <= rsr_upper:
+            #print 'comparing %s with lower %s' % ( atom.rsr ,  rsr_lower)
+            if atom.rsr <= rsr_lower:
+                good_rsr.add(atom.residue)
+                #print '%s is lower!' % atom.rsr
+            else:
+                #print 'added to dubious'
+                dubious_rsr.add(atom.residue)
+        else:
+            #print 'added to bad'
+            bad_rsr.add(atom.residue)
+
+    for res in ligand_all_atoms_dict.itervalues():
+        for atom in res:
+            classificate_residue(atom)
             break
 
-    #Now let's find binding site distance
-    if not hetids_list:
-        hetids_list = future_hetids_list
-    for hetid in hetids_list:
-        #print hetid
+    def group_ligands(ligand_residues):
+        """
+        Split all the ligand residues into different molecules
+        """
+        print links
+        ligands = []
+        for lres in ligand_residues:
+            ligand = set()
+            ligand.add(lres)
+            for res1,  res2,  blen in links:
+                added = False
+                print lres, res1, res2
+                if res1 == lres:
+                    otherres = res2
+                elif res2 == lres:
+                    otherres = res1
+                else:
+                    otherres = None
+                if otherres:
+                    links.remove((res1,  res2,  blen))
+                    ligand.add(otherres)
+                    for kligand in ligands:
+                        if otherres in kligand:
+                            kligand.update(ligand)
+                            added = True
+                            break
+            else:
+                if not added:
+                    ligands.append(ligand)
+                    added = True
+        return ligands
+
+    ligands = group_ligands(ligand_residues)
+    print ligands
+    print len(ligands)
+
+    def get_binding_site(ligand):
+        """
+        Get the binding site residues for the provided ligand and return them in a tuple
+        """
         #Generate outer distance set
         outer_binding_site = set()
-        for atom in protein_ca_atoms:
-            for ligandatom in ligand_all_atoms_dict[hetid]:
-                distance = atom | ligandatom
-                if distance <= outer_distance:
-                    outer_binding_site.add(atom.residue)
-                    break
+        for ligandres in ligand:
+            for atom in protein_ca_atoms:
+                for ligandatom in ligand_res_atom_dict[ligandres]:
+                    distance = atom | ligandatom
+                    if distance <= outer_distance:
+                        outer_binding_site.add(atom.residue)
+                        break
         #Generate inner distance set
         inner_binding_site = set()
         for atom in protein_atoms:
             if atom.residue not in outer_binding_site:
                 continue
-            for ligandatom in ligand_all_atoms_dict[hetid]:
+            for ligandatom in ligand_res_atom_dict[ligandres]:
                 distance = atom | ligandatom
                 if distance <= inner_distance:
                     inner_binding_site.add(atom.residue)
-                    classificate_residue(atom, good_rsr, dubious_rsr, bad_rsr, rsr_upper=rsr_upper, rsr_lower = rsr_lower)
+                    classificate_residue(atom)
                     break
         if not (inner_binding_site <= good_rsr and ligand_residues <= good_rsr):
             #Not all  the residues from here have good rsr
             residues_to_exam.update(dubious_rsr | bad_rsr)
-        binding_sites.update(inner_binding_site)
-#    print ligand_residues
-#    print (pdbid, ligand_residues, residues_to_exam, binding_sites)
-    return (pdbid, ligand_residues, residues_to_exam, binding_sites)
+        return inner_binding_site
 
-def classificate_residue(atom, good_rsr, dubious_rsr, bad_rsr, rsr_upper=RSR_upper, rsr_lower = RSR_lower):
-    #print 'comparing %s with upper %s' % ( atom.rsr ,  rsr_upper)
-    if atom.rsr != None and atom.rsr <= rsr_upper:
-        #print 'comparing %s with lower %s' % ( atom.rsr ,  rsr_lower)
-        if atom.rsr <= rsr_lower:
-            good_rsr.add(atom.residue)
-            #print '%s is lower!' % atom.rsr
-        else:
-            #print 'added to dubious'
-            dubious_rsr.add(atom.residue)
-    else:
-        #print 'added to bad'
-        bad_rsr.add(atom.residue)
+    ligand_bs_list = []
+    for ligand in ligands:
+        bs = get_binding_site(ligand)
+        rte = set()
+        for resex in residues_to_exam:
+            if resex in ligand or resex in bs:
+                rte.add(resex)
+        ligand_bs_list.append((ligand, bs, rte))
+    print ligand_bs_list
+
+    return (pdbid, ligand_bs_list)
 
 class PdbAtom(object):
     """
@@ -247,24 +298,26 @@ def results_to_csv(results, outputfile):
     goodfile = None
     print 'Calculating...'
     datawritten = False
-    for pdbid, ligandresidues, residues_to_exam, binding_site in results:
+    for pdbid, ligand_bs_list in results:
         if pdbid == None:
             continue
-        if not residues_to_exam:
-            if not ligandresidues:
-                print '%s has no actual ligands, it will be discarded' % pdbid
+        for ligandresidues, binding_site, residues_to_exam in ligand_bs_list:
+            id = pdbid
+            if not residues_to_exam:
+                if not ligandresidues:
+                    print '%s has no actual ligands, it will be discarded' % pdbid
+                else:
+                    if not goodfile:
+                        goodfilename = basename + '_good.csv'
+                        goodfile = open(goodfilename,'ab')
+                        goodwriter = csv.writer(goodfile)
+                        goodwriter.writerow(['PDB ID', "Residues to exam", "Ligand Residues", "Binding Site Residues"])
+                    goodwriter.writerow([id, '', ';'.join(ligandresidues),';'.join(binding_site)])
+                    goodfile.flush()
             else:
-                if not goodfile:
-                    goodfilename = basename + '_good.csv'
-                    goodfile = open(goodfilename,'ab')
-                    goodwriter = csv.writer(goodfile)
-                    goodwriter.writerow(['PDB ID', "Residues to exam", "Ligand Residues", "Binding Site Residues"])
-                goodwriter.writerow([pdbid, '', ';'.join(ligandresidues),';'.join(binding_site)])
-                goodfile.flush()
-        else:
-            csvfile.writerow([pdbid, ';'.join(residues_to_exam), ';'.join(ligandresidues),';'.join(binding_site)])
-            outfile.flush()
-            datawritten = True
+                csvfile.writerow([id, ';'.join(residues_to_exam), ';'.join(ligandresidues),';'.join(binding_site)])
+                outfile.flush()
+                datawritten = True
     outfile.close()
     if not datawritten:
         os.remove(outputfile)
@@ -303,7 +356,7 @@ def main(filepath = None, pdbidslist=[], swissprotlist = [], rsr_upper=RSR_upper
     #chunksize = int(math.sqrt(len(argsarray)))
     PDBfiles.setglobaldicts()
     pool = multiprocessing.Pool(multiprocessing.cpu_count())
-    results = pool.imap_unordered(parse_binding_site, argsarray)
+    results = pool.imap(parse_binding_site, argsarray)
     datawritten = results_to_csv(results, outputfile)
     pool.terminate()
     pool.join()
