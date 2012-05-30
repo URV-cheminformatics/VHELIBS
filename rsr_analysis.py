@@ -14,7 +14,7 @@ from cofactors import ligand_blacklist
 
 RSR_upper = 0.4
 RSR_lower = 0.24
-outer_distance = 10**2
+outer_distance = 10.**2
 inner_distance = 4.5**2
 
 ###Create the argument parser###
@@ -64,9 +64,6 @@ def parse_binding_site(argtuple):
     """
     argtuple = (pdbid, rsr_upper, rsr_lower)
     """
-#    print inner_distance
-#    print outer_distance
-    #print argtuple
     pdbid, rsr_upper, rsr_lower = argtuple
     future_hetids_list = set()
     try:
