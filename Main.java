@@ -8,6 +8,6 @@ public class Main {
         PythonInterpreter.initialize(System.getProperties(), System.getProperties(), args);
         // Now create an interpreter
         PythonInterpreter interp = new PythonInterpreter();
-        interp.exec("try:\n import visualitzador\n visualitzador.main() \nexcept SystemExit: import sys\n sys.exit(0)");
+        interp.exec("try:\n import visualitzador\n visualitzador.main() \nexcept SystemExit: pass");
     }
 }
