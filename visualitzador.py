@@ -115,7 +115,7 @@ class StruVa(object):
                 self.pdbid = self.key.split('|')[0]
                 self.reloadStruct()
             elif text.lower() == 'list':
-                self.console.sendConsoleEcho( ' '.join(self.resultdict.keys()))
+                self.console.sendConsoleEcho( '\n'.join(self.resultdict.keys()))
             elif text.lower() == 'help':
                 self.console.sendConsoleMessage(self.helpmsg)
             elif text.lower() in ('good', 'bad', 'dubious'):
