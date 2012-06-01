@@ -31,6 +31,10 @@ import rsr_analysis
 
 ###Define useful classes###
 class Console(AppConsole):
+    def __init__(self, viewer, panel, buttons, parseCommand):
+        self.parseCommand = parseCommand
+        AppConsole.__init__(self, viewer, panel, buttons)
+
     def notifyEnabled(self, callbacktype):
         if str(callbacktype) == 'SYNC':
             return True
@@ -41,9 +45,6 @@ class Console(AppConsole):
             self.parseCommand(data)
         else:
             return AppConsole.notifyCallback(self, callbacktype, data)
-
-    def parseCommand(self, data):
-        pass #It will be replaced by something more useful
 
 class JmolPanel(JPanel):
     def __init__(self, preferredSize):
@@ -77,8 +78,7 @@ class StruVa(object):
         panel.add(jmolPanel)
         # main panel -- console panel on right
         panel2 = JPanel(layout = BorderLayout(), preferredSize = (300, 400))
-        self.console = Console(jmolPanel.viewer, panel2,"History Variables State Clear Help")
-        self.console.parseCommand = self.parseCommand
+        self.console = Console(jmolPanel.viewer, panel2,"History Variables State Clear Help", self.parseCommand)
         jmolPanel.viewer.jmolCallbackListener = self.console
         panel.add("East", panel2)
         contentPane.add(panel)
