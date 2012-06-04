@@ -70,7 +70,6 @@ def parse_binding_site(argtuple):
         hetids_list = PDBfiles.hetdict[pdbid.lower()]
     except KeyError:
         hetids_list =[]
-    residues_to_exam = set()
     ligand_residues = set()
     binding_sites = set()
     good_rsr = set()
@@ -101,8 +100,6 @@ def parse_binding_site(argtuple):
             label = line[:6].strip()
             if label in ("ATOM", "HETATM"):
                 atom = PdbAtom(line)
-                if atom.residue in rsrdict:
-                    atom.rsr = float(rsrdict[atom.residue])
                 if label == "ATOM" and inner_distance: #Don't care about protein when distance = 0
                     protein_atoms.add(atom)
                     if atom.name[1:3] == 'CA':  #Is alpha-carbon
@@ -168,24 +165,23 @@ def parse_binding_site(argtuple):
         if nonligand[:3] in ligand_all_atoms_dict:
             ligand_all_atoms_dict.pop(nonligand[:3])
 
-    def classificate_residue(atom):
-        #print 'comparing %s with upper %s' % ( atom.rsr ,  rsr_upper)
-        if atom.rsr != None and atom.rsr <= rsr_upper:
-            #print 'comparing %s with lower %s' % ( atom.rsr ,  rsr_lower)
-            if atom.rsr <= rsr_lower:
-                good_rsr.add(atom.residue)
-                #print '%s is lower!' % atom.rsr
+    def classificate_residue(residue):
+        rsr = float(rsrdict.get(residue, None))
+        #print 'comparing %s with upper %s' % ( rsr ,  rsr_upper)
+        if rsr != None and rsr <= rsr_upper:
+            #print 'comparing %s with lower %s' % ( rsr ,  rsr_lower)
+            if rsr <= rsr_lower:
+                good_rsr.add(residue)
+                #print '%s is lower!' % rsr
             else:
                 #print 'added to dubious'
-                dubious_rsr.add(atom.residue)
+                dubious_rsr.add(residue)
         else:
             #print 'added to bad'
-            bad_rsr.add(atom.residue)
+            bad_rsr.add(residue)
 
-    for res in ligand_all_atoms_dict.itervalues():
-        for atom in res:
-            classificate_residue(atom)
-            break
+    for res in ligand_res_atom_dict:
+        classificate_residue(res)
 
     def group_ligands(ligand_residues):
         """
@@ -244,23 +240,15 @@ def parse_binding_site(argtuple):
                 distance = atom | ligandatom
                 if distance <= inner_distance:
                     inner_binding_site.add(atom.residue)
-                    classificate_residue(atom)
+                    classificate_residue(atom.residue)
                     break
-        if not (inner_binding_site <= good_rsr and ligand_residues <= good_rsr):
-            #Not all  the residues from here have good rsr
-            residues_to_exam.update(dubious_rsr | bad_rsr)
-        return inner_binding_site
+        rte = inner_binding_site.union(ligand).difference(good_rsr)
+#        for res in rte:
+#            print '%s has a RSR of %s' % (res, rsrdict.get(res, str(None))),  res in good_rsr, res in bad_rsr, res in dubious_rsr
+        return ligand, inner_binding_site, rte
 
-    ligand_bs_list = []
-    for ligand in ligands:
-        bs = get_binding_site(ligand)
-        rte = set()
-        for resex in residues_to_exam:
-            if resex in ligand or resex in bs:
-                rte.add(resex)
-        ligand_bs_list.append((ligand, bs, rte))
+    ligand_bs_list = [get_binding_site(ligand) for ligand in ligands]
     print ligand_bs_list
-
     return (pdbid, ligand_bs_list)
 
 class PdbAtom(object):
@@ -272,10 +260,9 @@ class PdbAtom(object):
         Needs an ATOM or HETATM record
         """
         self.name = record[12:16]
-        self.residue = record[17:27].strip()
+        self.residue = record[17:27]
         self.hetid = self.residue[:3].strip()
         self.xyz = (float(record[30:38]), float(record[38:46]), float(record[46:54]))
-        self.rsr = None
     def __or__(self, other):
         """
         Return squared distance
