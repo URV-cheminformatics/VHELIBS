@@ -64,7 +64,7 @@ def get_ligand_pdb_dict(blacklist = True):
         ligand,  pdb_codes = line.strip().split("\t")
         if not blacklist or ligand not in ligand_blacklist:
             for pdb_code in pdb_codes.split():
-                if not outdict.has_key(pdb_code):
+                if pdb_code not in outdict:
                     outdict[pdb_code] = [ligand, ]
                 else:
                     outdict[pdb_code].append(ligand)
