@@ -164,7 +164,6 @@ class StruVa(object):
                 self.displayBindingSite(binding_site)
                 self.displayResToExam(residues_to_exam)
                 self.displayLigands(ligandresidues)
-                self.loadEDM()
             except Exception,  e:
                 self.console.sendConsoleMessage("ERROR: " + e)
                 showErrorDialog(e)
@@ -173,6 +172,8 @@ class StruVa(object):
         self.console.sendConsoleEcho( "####################################\n")
 
     def displayBindingSite(self, binding_site):
+        if not binding_site:
+            return
         binding_site_selection = reslist_to_sel(binding_site)
         self.execute('define binding_site (%s)' % binding_site_selection)
         self.execute('select(binding_site)')
@@ -180,8 +181,13 @@ class StruVa(object):
         self.execute('spacefill %s' % prefs.get('bssfv', 'off'))
         self.execute('color %s' % prefs.get('bscolor', 'white'))
         self.execute('select none')
+        if prefs['bindingsite_edm']:
+            self.execute('isosurface BINDINGSITE color %s sigma %s within %s {binding_site} "=%s" mesh nofill' %\
+                       (prefs.get('edmcolor', 'cyan'), prefs.get('sigma', '1.0'), prefs.get('edmdistance', '2.0'),  self.pdbid))
 
     def displayResToExam(self, residues_to_exam):
+        if not residues_to_exam:
+            return
         exam_residues_selection = reslist_to_sel(residues_to_exam)
         self.execute('define res_to_exam (%s)' % exam_residues_selection)
         self.execute('select(res_to_exam)' )
@@ -189,8 +195,13 @@ class StruVa(object):
         self.execute('spacefill %s' % prefs.get('resfv', '0.2'))
         self.execute('color %s' % prefs.get('recolor', 'cpk'))
         self.execute('select none')
+        if prefs.get('restoexam_edm', True):
+            self.execute('isosurface RES_TO_EXAM color %s sigma %s within %s {res_to_exam} "=%s" mesh nofill' %\
+                       (prefs.get('edmcolor', 'yellow'), prefs.get('sigma', '1.0'), prefs.get('edmdistance', '2.0'),  self.pdbid))
 
     def displayLigands(self, ligandresidues):
+        if not ligandresidues:
+            return
         ligands_selection = reslist_to_sel(ligandresidues)
         self.execute('define ligands (%s)' % ligands_selection)
         self.execute('select(ligands)')
@@ -199,17 +210,9 @@ class StruVa(object):
         self.execute('color %s' % prefs.get('ligcolor', 'magenta'))
         self.execute('select none')
         self.execute('center ligands')
-
-    def loadEDM(self):
         if prefs['ligand_edm']:
             self.execute('isosurface LIGAND color %s sigma %s within %s {ligands} "=%s" mesh nofill' %\
                        (prefs.get('edmcolor', 'red'), prefs.get('sigma', '1.0'), prefs.get('edmdistance', '2.0'),  self.pdbid))
-        if prefs.get('restoexam_edm', True):
-            self.execute('isosurface RES_TO_EXAM color %s sigma %s within %s {res_to_exam} "=%s" mesh nofill' %\
-                       (prefs.get('edmcolor', 'yellow'), prefs.get('sigma', '1.0'), prefs.get('edmdistance', '2.0'),  self.pdbid))
-        if prefs['bindingsite_edm']:
-            self.execute('isosurface BINDINGSITE color %s sigma %s within %s {binding_site} "=%s" mesh nofill' %\
-                       (prefs.get('edmcolor', 'cyan'), prefs.get('sigma', '1.0'), prefs.get('edmdistance', '2.0'),  self.pdbid))
 
     def saveWIP(self):
         outfile = open(self.wipfilename, 'wb')
