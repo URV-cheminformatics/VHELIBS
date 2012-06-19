@@ -148,8 +148,9 @@ class StruVa(object):
     def reloadStruct(self):
         #Neteja
         self.execute('delete')
-        ligandresidues, residues_to_exam, binding_site = self.resultdict[self.key]
-        if ligandresidues == ['']:
+        self.ligandresidues, self.residues_to_exam, self.binding_site = self.resultdict[self.key]
+        self.ligandresidues_IS = self.residues_to_exam_IS = self.binding_site_IS = None
+        if self.ligandresidues == ['']:
             self.console.sendConsoleMessage( 'Structure without ligands!')
             self.console.sendConsoleMessage( 'Skipping it')
             self.nextStruct(text='Skip')
@@ -161,9 +162,9 @@ class StruVa(object):
                 self.execute('wireframe only')
                 self.execute('wireframe off')
                 self.execute('select none')
-                self.displayBindingSite(binding_site)
-                self.displayResToExam(residues_to_exam)
-                self.displayLigands(ligandresidues)
+                self.displayBindingSite()
+                self.displayResToExam()
+                self.displayLigand()
             except Exception,  e:
                 self.console.sendConsoleMessage("ERROR: " + e)
                 showErrorDialog(e)
@@ -171,10 +172,19 @@ class StruVa(object):
         self.console.sendConsoleEcho( "Viewing structure %s" % self.key)
         self.console.sendConsoleEcho( "####################################\n")
 
-    def displayBindingSite(self, binding_site):
-        if not binding_site:
+    def displayBindingSite(self, visible=True):
+        if not self.binding_site:
             return
-        binding_site_selection = reslist_to_sel(binding_site)
+        if not visible:
+            self.execute('select(binding_site)')
+            self.execute('wireframe only')
+            self.execute('wireframe off')
+            self.execute('select none')
+            if self.binding_site_IS:
+                self.execute('isosurface BINDINGSITE off')
+                self.binding_site_IS = 0
+            return
+        binding_site_selection = reslist_to_sel(self.binding_site)
         self.execute('define binding_site (%s)' % binding_site_selection)
         self.execute('select(binding_site)')
         self.execute('wireframe %s' % prefs.get('bswfv','0.01'))
@@ -182,13 +192,27 @@ class StruVa(object):
         self.execute('color %s' % prefs.get('bscolor', 'white'))
         self.execute('select none')
         if prefs['bindingsite_edm']:
-            self.execute('isosurface BINDINGSITE color %s sigma %s within %s {binding_site} "=%s" mesh nofill' %\
-                       (prefs.get('edmcolor', 'cyan'), prefs.get('sigma', '1.0'), prefs.get('edmdistance', '2.0'),  self.pdbid))
+            if self.binding_site_IS == 0:
+                self.execute('isosurface BINDINGSITE on')
+            elif not self.binding_site_IS:
+                self.execute('isosurface BINDINGSITE color %s sigma %s within %s {binding_site} "=%s" mesh nofill' %\
+                            (prefs.get('edmcolor', 'cyan'), prefs.get('sigma', '1.0'), prefs.get('edmdistance', '2.0'),  self.pdbid))
+            self.binding_site_IS = 1
 
-    def displayResToExam(self, residues_to_exam):
-        if not residues_to_exam:
+    def displayResToExam(self, visible=True):
+        if not self.residues_to_exam:
             return
-        exam_residues_selection = reslist_to_sel(residues_to_exam)
+        if not visible:
+            self.execute('select(res_to_exam)')
+            self.execute('wireframe only')
+            self.execute('wireframe off')
+            self.execute('select none')
+            self.execute('isosurface RES_TO_EXAM off')
+            if self.residues_to_exam_IS:
+                self.execute('isosurface RES_TO_EXAM off')
+                self.residues_to_exam_IS = 0
+            return
+        exam_residues_selection = reslist_to_sel(self.residues_to_exam)
         self.execute('define res_to_exam (%s)' % exam_residues_selection)
         self.execute('select(res_to_exam)' )
         self.execute('wireframe %s' % prefs.get('rewfv', '0.1'))
@@ -196,23 +220,41 @@ class StruVa(object):
         self.execute('color %s' % prefs.get('recolor', 'cpk'))
         self.execute('select none')
         if prefs.get('restoexam_edm', True):
-            self.execute('isosurface RES_TO_EXAM color %s sigma %s within %s {res_to_exam} "=%s" mesh nofill' %\
-                       (prefs.get('edmcolor', 'yellow'), prefs.get('sigma', '1.0'), prefs.get('edmdistance', '2.0'),  self.pdbid))
+            if self.residues_to_exam_IS == 0:
+                self.execute('isosurface RES_TO_EXAM on')
+            elif not self.residues_to_exam_IS:
+                self.execute('isosurface RES_TO_EXAM color %s sigma %s within %s {res_to_exam} "=%s" mesh nofill' %\
+                        (prefs.get('edmcolor', 'yellow'), prefs.get('sigma', '1.0'), prefs.get('edmdistance', '2.0'),  self.pdbid))
+            self.residues_to_exam_IS = 1
 
-    def displayLigands(self, ligandresidues):
-        if not ligandresidues:
+    def displayLigand(self, visible=True):
+        if not self.ligandresidues:
             return
-        ligands_selection = reslist_to_sel(ligandresidues)
-        self.execute('define ligands (%s)' % ligands_selection)
-        self.execute('select(ligands)')
+        if not visible:
+            self.execute('select(svligand)')
+            self.execute('wireframe only')
+            self.execute('wireframe off')
+            self.execute('select none')
+            self.execute('isosurface LIGAND off')
+            if self.ligandresidues_IS:
+                self.execute('isosurface LIGAND off')
+                self.ligandresidues_IS = 0
+            return
+        ligands_selection = reslist_to_sel(self.ligandresidues)
+        self.execute('define svligand (%s)' % ligands_selection)
+        self.execute('select(svligand)')
         self.execute('wireframe %s' % prefs.get('ligwfv', '0.1'))
         self.execute('spacefill %s' % prefs.get('ligsfv', '0.2'))
         self.execute('color %s' % prefs.get('ligcolor', 'magenta'))
         self.execute('select none')
-        self.execute('center ligands')
+        self.execute('center svligand')
         if prefs['ligand_edm']:
-            self.execute('isosurface LIGAND color %s sigma %s within %s {ligands} "=%s" mesh nofill' %\
-                       (prefs.get('edmcolor', 'red'), prefs.get('sigma', '1.0'), prefs.get('edmdistance', '2.0'),  self.pdbid))
+            if self.ligandresidues_IS == 0:
+                self.execute('isosurface LIGAND on')
+            elif not self.ligandresidues_IS:
+                self.execute('isosurface LIGAND color %s sigma %s within %s {svligand} "=%s" mesh nofill' %\
+                        (prefs.get('edmcolor', 'red'), prefs.get('sigma', '1.0'), prefs.get('edmdistance', '2.0'),  self.pdbid))
+            self.ligandresidues_IS = 1
 
     def saveWIP(self):
         outfile = open(self.wipfilename, 'wb')
@@ -408,7 +450,8 @@ def main():
             exit(0)
     print('Loading data from %s...' % csvfilename)
     struva = StruVa(csvfilename)
+    return struva
 
 if __name__ == '__main__':
     sys.argv = [arg for arg in sys.argv if __file__ not in arg]
-    main()
+    sv = main()
