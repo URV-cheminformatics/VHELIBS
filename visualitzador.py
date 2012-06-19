@@ -271,9 +271,9 @@ class StruVa(object):
                 binding_site = binding_site_string.split(';')
                 self.resultdict[id + '|' +ligandresidues[0]] = ligandresidues, residues_to_exam, binding_site
         else:
-            print 'Dades carregades'
+            print 'Data loaded'
         if not self.resultdict:
-            print 'Fitxer sense dades!'
+            print 'File without data!'
             exit(1)
         csvfile.close()
         goodfilename = os.path.join(outdir, basename + '_good.csv')
@@ -355,7 +355,6 @@ def main():
     """
     """
     ### build the parser###
-    print sys.argv
     argparser = rsr_analysis.parser
     argparser.add_argument('-c','--csvfile', metavar='CSVFILE', type=unicode, default=None, required=False, help='CSV file containing results from a previous RSR analysis')
     argparser.add_argument('--no-view', required=False, action='store_true', help="Do not visualize the generated csv file")
@@ -363,7 +362,7 @@ def main():
     values = argparser.parse_args(sys.argv)
     while not (values.csvfile or values.pdbidfile or values.pdbids or values.swissprot) :
         options = ['Load CSV file', 'Enter PDB IDs', 'Enter Swissport IDs', 'Tweak options', 'Cancel']
-        choice = JOptionPane.showOptionDialog(None, 'Select what to do',u'avís', JOptionPane.DEFAULT_OPTION, JOptionPane.INFORMATION_MESSAGE, None, options, options[0])
+        choice = JOptionPane.showOptionDialog(None, 'Select what to do','Select what to do', JOptionPane.DEFAULT_OPTION, JOptionPane.INFORMATION_MESSAGE, None, options, options[0])
         option = options[choice]
         if option == options[0]:
             csvfilter = SimpleFileFilter('.csv', None, 'CSV files')
