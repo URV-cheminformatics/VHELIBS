@@ -54,9 +54,12 @@ def get_pdb_file(pdbcode, filename = None):
 def get_ligand_pdb_dict(blacklist = True):
     """Returns a pdb code - ligands dictionary"""
     outdict={}
-    print(u'Downloading PDBID-HETID dictionary...'),
-    dicturl = "http://ligand-expo.rcsb.org/dictionaries/cc-to-pdb.tdd"
-    handler = urllib2.urlopen(dicturl)
+    if os.path.isfile('cc-to-pdb.tdd'):
+        handler = open('cc-to-pdb.tdd', 'rb')
+    else:
+        print(u'Downloading PDBID-HETID dictionary...'),
+        dicturl = "http://ligand-expo.rcsb.org/dictionaries/cc-to-pdb.tdd"
+        handler = urllib2.urlopen(dicturl)
     for line in handler:
         ligand,  pdb_codes = line.strip().split("\t")
         if not blacklist or ligand not in ligand_blacklist:
@@ -65,7 +68,6 @@ def get_ligand_pdb_dict(blacklist = True):
                     outdict[pdb_code] = [ligand, ]
                 else:
                     outdict[pdb_code].append(ligand)
-    print('done')
     handler.close()
     return outdict
 
