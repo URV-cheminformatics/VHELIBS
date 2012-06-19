@@ -58,10 +58,10 @@ class JmolPanel(JPanel):
 
 class StruVa(object):
     actions = (u'good', u'bad', u'dubious', u'list', u'help', u'exit')
-    def __init__(self, csvfilename=None):
+    def __init__(self, values):
         self.actionsDict = {}
-        if csvfilename:
-            self.loadCSV(csvfilename)
+        if values:
+            self.loadCSV(values)
             self.setupUi()
             self.setVisible(True)
             self.console.sendConsoleMessage(self.helpmsg)
@@ -282,23 +282,45 @@ class StruVa(object):
         self.pdbid= self.key.split('|')[0]
         self.reloadStruct()
 
-    def loadCSV(self, csvfilename):
+    def loadCSV(self, values):
         self.resultdict = {}
-        if not os.path.isfile(csvfilename):
-            print 'File %s does not exist' % csvfilename
-            exit(1)
-        outdir = os.path.dirname(csvfilename)
-        basename = os.path.splitext(os.path.basename(csvfilename))[0]
-        _wipfile = os.path.join(outdir, basename + '_wip.csv~')
-        if csvfilename.endswith('_wip.csv~'):
-            basename = basename.replace('_wip', '')
-        elif os.path.isfile(_wipfile):
-            ans=JOptionPane.showConfirmDialog(None, "Would you like to continue with the validation \nof the structures from the file %s?" % _wipfile)
-            if ans == 2:
+        csvfilename = values.csvfile
+        if csvfilename:
+            if not os.path.isfile(csvfilename):
+                print 'File %s does not exist' % csvfilename
+                exit(1)
+            outdir = os.path.dirname(csvfilename)
+            basename = os.path.splitext(os.path.basename(csvfilename))[0]
+            _wipfile = os.path.join(outdir, basename + '_wip.csv~')
+            if csvfilename.endswith('_wip.csv~'):
+                basename = basename.replace('_wip', '')
+            elif os.path.isfile(_wipfile):
+                ans=JOptionPane.showConfirmDialog(None, "Would you like to continue with the validation \nof the structures from the file %s?" % _wipfile)
+                if ans == 2:
+                    exit(0)
+                elif ans ==0:
+                    csvfilename = _wipfile
+        else:
+            datawritten = rsr_analysis.main(
+                                            values.pdbidfile
+                                            , pdbidslist = values.pdbids
+                                            , swissprotlist =values.swissprot
+                                            , rsr_upper=values.rsr_upper
+                                            , rsr_lower = values.rsr_lower
+                                            , distance=values.distance
+                                            , outputfile = values.outputfile
+                                            )
+            if values.no_view:
                 exit(0)
-            elif ans ==0:
-                csvfilename = _wipfile
-
+            if datawritten:
+                csvfilename = values.outputfile
+                outdir = os.path.dirname(csvfilename)
+                basename = os.path.splitext(os.path.basename(csvfilename))[0]
+                _wipfile = os.path.join(outdir, basename + '_wip.csv~')
+            else:
+                showWarningDialog('No structures to be viewed.')
+                exit(0)
+        print('Loading data from %s...' % csvfilename)
         csvfile = open(csvfilename, 'rb')
         try:
             dialect = csv.Sniffer().sniff(csvfile.read(1024))
@@ -429,27 +451,7 @@ def main():
             values = s.values
         elif option == options[4]:
             exit(0)
-
-    csvfilename = values.csvfile
-    if not csvfilename:
-        datawritten = rsr_analysis.main(
-                                        values.pdbidfile
-                                        , pdbidslist = values.pdbids
-                                        , swissprotlist =values.swissprot
-                                        , rsr_upper=values.rsr_upper
-                                        , rsr_lower = values.rsr_lower
-                                        , distance=values.distance
-                                        , outputfile = values.outputfile
-                                        )
-        if values.no_view:
-            exit(0)
-        if datawritten:
-            csvfilename = values.outputfile
-        else:
-            showWarningDialog('No structures to be viewed.')
-            exit(0)
-    print('Loading data from %s...' % csvfilename)
-    struva = StruVa(csvfilename)
+    struva = StruVa(values)
     return struva
 
 if __name__ == '__main__':
