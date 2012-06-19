@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-#   Copyright 2011-2012 Adrián Cereto Massagué <adrian.cereto@.urv.cat>
+#   Copyright 2011-2012 Adrià Cereto Massagué <adrian.cereto@.urv.cat>
 #
 #   Llista negra de lligands
 #

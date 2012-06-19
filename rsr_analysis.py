@@ -82,7 +82,9 @@ def parse_binding_site(argtuple):
         #print hetid
         ligand_all_atoms_dict[hetid] = set()
     protein_ca_atoms = set()
-    pdbfilepath = os.path.join(PDBfiles.PREFIX, pdbid.lower(), pdbid.upper() + ".pdb.gz")
+    pdbfilepath = os.path.join(PDBfiles.PREFIX, pdbid.upper() + ".pdb.gz")
+    if not os.path.isdir(PDBfiles.PREFIX):
+        os.makedirs(PDBfiles.PREFIX)
     pdbdict, rsrdict = EDS_parser.get_EDS(pdbid)
     if pdbdict['IN_EDS'] != 'TRUE':
         print "No EDS data available for %s, it will be discarded" % pdbid
@@ -117,8 +119,6 @@ def parse_binding_site(argtuple):
                         ligand_res_atom_dict[atom.residue].add(atom)
             elif label == 'LINK':
                 links.append((line[17:27].strip(),  line[47:57].strip(), float(line[73:78]))) #distancia
-#            elif label == 'SEQRES':
-#                seqres.update(set(line[19:].split()))
     except IOError, error:
         print pdbfilepath
         print error
@@ -167,17 +167,12 @@ def parse_binding_site(argtuple):
 
     def classificate_residue(residue):
         rsr = float(rsrdict.get(residue, None))
-        #print 'comparing %s with upper %s' % ( rsr ,  rsr_upper)
         if rsr != None and rsr <= rsr_upper:
-            #print 'comparing %s with lower %s' % ( rsr ,  rsr_lower)
             if rsr <= rsr_lower:
                 good_rsr.add(residue)
-                #print '%s is lower!' % rsr
             else:
-                #print 'added to dubious'
                 dubious_rsr.add(residue)
         else:
-            #print 'added to bad'
             bad_rsr.add(residue)
 
     for res in ligand_res_atom_dict:
@@ -215,7 +210,6 @@ def parse_binding_site(argtuple):
                     ligands.append(ligand)
                     added = True
         return ligands
-
     ligands = group_ligands(ligand_residues)
 
     def get_binding_site(ligand):
@@ -243,12 +237,8 @@ def parse_binding_site(argtuple):
                     classificate_residue(atom.residue)
                     break
         rte = inner_binding_site.union(ligand).difference(good_rsr)
-#        for res in rte:
-#            print '%s has a RSR of %s' % (res, rsrdict.get(res, str(None))),  res in good_rsr, res in bad_rsr, res in dubious_rsr
         return ligand, inner_binding_site, rte
-
     ligand_bs_list = [get_binding_site(ligand) for ligand in ligands]
-    print ligand_bs_list
     return (pdbid, ligand_bs_list)
 
 class PdbAtom(object):
@@ -320,7 +310,6 @@ def main(filepath = None, pdbidslist=[], swissprotlist = [], rsr_upper=RSR_upper
         distfactor = outer_distance/inner_distance
         inner_distance = distance**2
         outer_distance =  inner_distance*distfactor
-    #print sys.argv[-1]
     pdblist = pdbidslist
     if swissprotlist:
         sptopdb_dict = get_sptopdb_dict()
@@ -331,14 +320,10 @@ def main(filepath = None, pdbidslist=[], swissprotlist = [], rsr_upper=RSR_upper
     if filepath:
         pdblistfile = open(filepath, 'rb')
         pdblist = itertools.chain(pdblist, (line.strip() for line in pdblistfile if line.strip()))
-    if not rsr_upper > rsr_lower:
-        print '%s is higher than %s!' % (rsr_lower, rsr_upper)
-        raise ValueError
     argsarray = ((pdbid.upper(), rsr_upper, rsr_lower) for pdbid in pdblist if pdbid)
     if filepath:
         pdblistfile.close()
     #results = (parse_binding_site(argstuple) for argstuple in argsarray)
-    #chunksize = int(math.sqrt(len(argsarray)))
     PDBfiles.setglobaldicts()
     pool = multiprocessing.Pool(multiprocessing.cpu_count())
     results = pool.imap(parse_binding_site, argsarray)
@@ -349,5 +334,4 @@ def main(filepath = None, pdbidslist=[], swissprotlist = [], rsr_upper=RSR_upper
 
 if __name__ == '__main__':
     values = parser.parse_args()
-    #print values
     main(values.pdbidfile, pdbidslist = values.pdbids, swissprotlist =values.swissprot , rsr_upper=values.rsr_upper, rsr_lower = values.rsr_lower, distance=values.distance, outputfile = values.outputfile)
