@@ -118,7 +118,7 @@ def parse_binding_site(argtuple):
                             ligand_res_atom_dict[atom.residue] = set()
                         ligand_res_atom_dict[atom.residue].add(atom)
             elif label == 'LINK':
-                links.append((line[17:27].strip(),  line[47:57].strip(), float(line[73:78]))) #distancia
+                links.append((line[17:27],  line[47:57], float(line[73:78]))) #distancia
     except IOError, error:
         print pdbfilepath
         print error
@@ -209,6 +209,8 @@ def parse_binding_site(argtuple):
                 if not added:
                     ligands.append(ligand)
                     added = True
+        print
+        print links
         return ligands
     ligands = group_ligands(ligand_residues)
 

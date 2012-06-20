@@ -90,8 +90,9 @@ class StruVa(object):
         self.console = Console(jmolPanel.viewer, panel2,"History Variables State Clear Help", self.parseCommand)
         jmolPanel.viewer.jmolCallbackListener = self.console
         panelc.gridwidth = 1
+        panelc.gridheight = 2
         panelc.gridx = 2
-        panelc.gridy = 1
+        panelc.gridy = 0
         panelc.weightx = 0
         panelc.weighty = 0.5
         panelc.fill = GridBagConstraints.VERTICAL
@@ -113,19 +114,28 @@ class StruVa(object):
         constraints.weighty =0.5
         constraints.fill = GridBagConstraints.HORIZONTAL
         constraints.insets = Insets(3,3,3,3)
-        cbpanel = JPanel()
+        cbpanel = JPanel(GridLayout(2, 3, 3, 3))
         buttonPanel = JPanel(GridBagLayout())
-        second = False
+        later = []
         for action in self.actions:
             caction = action[0].upper() + action[1:]
             if 'toggle' in action:
                 cbpanel.add(JCheckBox(caction, itemStateChanged=self.nextStruct))
+                if 'ligand' in action:
+                    checked = prefs.get('ligand_edm', False)
+                elif 'binding' in action:
+                    checked = prefs.get('bindingsite_edm', False)
+                elif 'exam' in action:
+                    checked = prefs.get('restoexam_edm', True)
+                later.append(JCheckBox(caction.replace('Toggle', 'EDM for'), checked, itemStateChanged=self.nextStruct))
             self.actionsDict[action] = JButton(caction, actionPerformed=self.nextStruct)
             #buttonPanel.add(self.actionsDict[action], constraints)
             self.execute('function %s () {}' % action.replace(' ', '_'))
+        for cb in later:
+            cbpanel.add(cb)
         for comp in cbpanel.components:
             self.actionsDict[comp.text.lower()] = comp
-        panelc.gridwidth = 3
+        panelc.gridwidth = 2
         panelc.gridheight = 1
         panelc.gridx = 0
         panelc.gridy = 0
@@ -188,6 +198,17 @@ class StruVa(object):
                     self.displayBindingSite(checked)
                 elif 'exam' in ltext:
                     self.displayResToExam(checked)
+            elif 'edm for' in ltext:
+                checked = event.getStateChange() == ItemEvent.SELECTED
+                if 'ligand' in ltext:
+                    prefs['ligand_edm'] = checked
+                    self.displayLigand(self.actionsDict[u'toggle ligand'].selected)
+                elif 'binding' in ltext or 'site' in ltext:
+                    prefs['bindingsite_edm'] = checked
+                    self.displayBindingSite(self.actionsDict[u'toggle binding site'].selected)
+                elif 'exam' in ltext:
+                    prefs['restoexam_edm'] = checked
+                    self.displayResToExam(self.actionsDict[u'toggle residues to exam'].selected)
             elif ltext == 'list':
                 self.console.sendConsoleEcho( '\n'.join(self.resultdict.keys()))
             elif ltext == 'help':
@@ -239,9 +260,6 @@ class StruVa(object):
                 self.execute('wireframe only')
                 self.execute('wireframe off')
                 self.execute('select none')
-#                self.displayBindingSite()
-#                self.displayResToExam()
-#                self.displayLigand()
                 self.actionsDict[u'toggle binding site'].selected = True
                 self.actionsDict[u'toggle residues to exam'].selected = True
                 self.actionsDict[u'toggle ligand'].selected = True
@@ -271,13 +289,16 @@ class StruVa(object):
         self.execute('spacefill %s' % prefs.get('bssfv', 'off'))
         self.execute('color %s' % prefs.get('bscolor', 'white'))
         self.execute('select none')
-        if prefs['bindingsite_edm']:
+        if prefs.get('bindingsite_edm', False):
             if self.binding_site_IS == 0:
                 self.execute('isosurface BINDINGSITE on')
             elif not self.binding_site_IS:
                 self.execute('isosurface BINDINGSITE color %s sigma %s within %s {binding_site} "=%s" mesh nofill' %\
                             (prefs.get('edmcolor', 'cyan'), prefs.get('sigma', '1.0'), prefs.get('edmdistance', '2.0'),  self.pdbid))
             self.binding_site_IS = 1
+        elif self.binding_site_IS:
+            self.execute('isosurface BINDINGSITE off')
+            self.binding_site_IS = 0
 
     def displayResToExam(self, visible=True):
         if not self.residues_to_exam:
@@ -287,7 +308,6 @@ class StruVa(object):
             self.execute('wireframe only')
             self.execute('wireframe off')
             self.execute('select none')
-            self.execute('isosurface RES_TO_EXAM off')
             if self.residues_to_exam_IS:
                 self.execute('isosurface RES_TO_EXAM off')
                 self.residues_to_exam_IS = 0
@@ -306,6 +326,9 @@ class StruVa(object):
                 self.execute('isosurface RES_TO_EXAM color %s sigma %s within %s {res_to_exam} "=%s" mesh nofill' %\
                         (prefs.get('edmcolor', 'yellow'), prefs.get('sigma', '1.0'), prefs.get('edmdistance', '2.0'),  self.pdbid))
             self.residues_to_exam_IS = 1
+        elif self.residues_to_exam_IS:
+            self.execute('isosurface RES_TO_EXAM off')
+            self.residues_to_exam_IS = 0
 
     def displayLigand(self, visible=True):
         if not self.ligandresidues:
@@ -315,7 +338,6 @@ class StruVa(object):
             self.execute('wireframe only')
             self.execute('wireframe off')
             self.execute('select none')
-            self.execute('isosurface LIGAND off')
             if self.ligandresidues_IS:
                 self.execute('isosurface LIGAND off')
                 self.ligandresidues_IS = 0
@@ -328,13 +350,16 @@ class StruVa(object):
         self.execute('color %s' % prefs.get('ligcolor', 'magenta'))
         self.execute('select none')
         self.execute('center svligand')
-        if prefs['ligand_edm']:
+        if prefs.get('ligand_edm', False):
             if self.ligandresidues_IS == 0:
                 self.execute('isosurface LIGAND on')
             elif not self.ligandresidues_IS:
                 self.execute('isosurface LIGAND color %s sigma %s within %s {svligand} "=%s" mesh nofill' %\
                         (prefs.get('edmcolor', 'red'), prefs.get('sigma', '1.0'), prefs.get('edmdistance', '2.0'),  self.pdbid))
             self.ligandresidues_IS = 1
+        elif self.ligandresidues_IS:
+            self.execute('isosurface LIGAND off')
+            self.ligandresidues_IS = 0
 
     def saveWIP(self):
         outfile = open(self.wipfilename, 'wb')
