@@ -10,7 +10,7 @@ import csv
 import math
 from sys import exit
 #Java stuff
-from java.awt import BorderLayout, Dimension, GridLayout
+from java.awt import BorderLayout, Dimension, GridLayout, GridBagLayout, GridBagConstraints, Insets
 from javax.swing import JFrame, JPanel, JButton, JOptionPane, JTextField
 #Jython-specific stuff
 from swingutils.preferences import getUserPrefs
@@ -57,7 +57,7 @@ class JmolPanel(JPanel):
         self.viewer.renderScreenImage(g, self.currentSize.width, self.currentSize.height)
 
 class StruVa(object):
-    actions = (u'good', u'bad', u'dubious', u'list', u'help', u'exit')
+    actions = (u'good', u'bad', u'dubious', u'list', u'help', u'exit', u'toggle ligand', u'toggle binding site', u'toggle residues to exam',)
     def __init__(self, values):
         self.actionsDict = {}
         if values:
@@ -70,17 +70,31 @@ class StruVa(object):
     def setupUi(self):
         frame = JFrame("Structure Validation Helper", defaultCloseOperation = JFrame.EXIT_ON_CLOSE, size = (700, 410))
         contentPane = frame.contentPane
-        jmolPanel = JmolPanel(preferredSize = (400, 400))
+        jmolPanel = JmolPanel(preferredSize = (500, 500))
         self.viewer = jmolPanel.viewer
         self.execute = self.viewer.evalStringQuiet
         # main panel -- Jmol panel on left
-        panel = JPanel(layout = BorderLayout())
-        panel.add(jmolPanel)
+        panel = JPanel(layout = GridBagLayout())
+        panelc = GridBagConstraints()
+        panelc.gridwidth = 2
+        panelc.gridx = 0
+        panelc.gridy = 1
+        panelc.weightx = 1
+        panelc.weighty = 1
+        panelc.fill = GridBagConstraints.BOTH
+
+        panel.add(jmolPanel, panelc)
         # main panel -- console panel on right
-        panel2 = JPanel(layout = BorderLayout(), preferredSize = (300, 400))
+        panel2 = JPanel(layout = BorderLayout(), preferredSize = (300, 500))
         self.console = Console(jmolPanel.viewer, panel2,"History Variables State Clear Help", self.parseCommand)
         jmolPanel.viewer.jmolCallbackListener = self.console
-        panel.add("East", panel2)
+        panelc.gridwidth = 1
+        panelc.gridx = 2
+        panelc.gridy = 1
+        panelc.weightx = 0
+        panelc.weighty = 0.5
+        panelc.fill = GridBagConstraints.VERTICAL
+        panel.add(panel2, panelc)
         contentPane.add(panel)
         self.execute('wireframe only')
         self.execute('wireframe off')
@@ -88,12 +102,54 @@ class StruVa(object):
         self.execute('set syncScript ON')
         self.execute('set antialiasDisplay ON')
         self.execute('set antialiasTranslucent ON')
-        buttonPanel = JPanel(GridLayout(3, 2))
+        #buttonPanelLayout = GridLayout(3, 2, 3, 3)
+        buttonPanelLayout = GridBagLayout()
+        constraints = GridBagConstraints()
+        constraints.gridwidth = 1
+        constraints.gridheight =1
+        constraints.ipadx =0
+        constraints.ipady =0
+        constraints.weightx =0.5
+        constraints.weighty =0.5
+        constraints.fill = GridBagConstraints.HORIZONTAL
+        constraints.insets = Insets(3,3,3,3)
+
+
+        buttonPanel = JPanel(buttonPanelLayout)
+        second = False
         for action in self.actions:
+            if 'toggle' in action:
+                continue
             caction = action[0].upper() + action[1:]
             self.actionsDict[action] = JButton(caction, actionPerformed=self.nextStruct)
-            buttonPanel.add(self.actionsDict[action])
+            #buttonPanel.add(self.actionsDict[action], constraints)
             self.execute('function %s () {}' % action)
+        #
+        constraints.gridx = 0
+        constraints.gridy = 0
+        buttonPanel.add(self.actionsDict[u'good'], constraints)
+        #
+        constraints.gridx = 1
+        constraints.gridy = 0
+        buttonPanel.add(self.actionsDict[u'bad'], constraints)
+        #
+        constraints.gridx = 2
+        constraints.gridy = 0
+        buttonPanel.add(self.actionsDict[u'dubious'], constraints)
+        #
+        constraints.gridx = 0
+        constraints.gridy = 1
+        buttonPanel.add(self.actionsDict[u'list'], constraints)
+        #
+        constraints.gridx = 1
+        constraints.gridy = 1
+        buttonPanel.add(self.actionsDict[u'help'], constraints)
+        #
+        constraints.gridx = 2
+        constraints.gridy = 1
+        buttonPanel.add(self.actionsDict[u'exit'], constraints)
+        #
+        buttonPanel.setVisible(True)
         panel2.add(buttonPanel, BorderLayout.NORTH)
         self.setVisible = frame.setVisible
 
@@ -110,15 +166,23 @@ class StruVa(object):
         #self.console.sendConsoleEcho("%s has been executed" % text)
         needreload = False
         if self.resultdict:
-            if text.upper() in self.resultdict:
+            ltext = text.lower()
+            if ltext in self.resultdict:
                 self.key = text.upper()
                 self.pdbid = self.key.split('|')[0]
                 self.reloadStruct()
-            elif text.lower() == 'list':
+            elif 'toggle' in ltext:
+                if 'ligand' in ltext:
+                    pass
+                elif 'binding' in ltext or 'site' in ltext:
+                    pass
+                elif 'exam' in ltext:
+                    pass
+            elif ltext == 'list':
                 self.console.sendConsoleEcho( '\n'.join(self.resultdict.keys()))
-            elif text.lower() == 'help':
+            elif ltext == 'help':
                 self.console.sendConsoleMessage(self.helpmsg)
-            elif text.lower() in ('good', 'bad', 'dubious'):
+            elif ltext in ('good', 'bad', 'dubious'):
                 self.updateOutFile(text)
                 self.saveWIP()
                 if self.resultdict:
@@ -129,7 +193,7 @@ class StruVa(object):
                     self.key = None
                     self.pdbid = None
                     self.clean()
-            elif text.lower().strip() == 'exit':
+            elif ltext.strip() == 'exit':
                 exit(0)
         else:
             self.clean()
