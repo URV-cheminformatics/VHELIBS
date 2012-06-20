@@ -221,9 +221,9 @@ class StruVa(object):
 
     def reloadStruct(self):
         #Neteja
-        self.actionsDict[u'toggle binding site'].setSelected(False)
-        self.actionsDict[u'toggle residues to exam'].setSelected(False)
-        self.actionsDict[u'toggle ligand'].setSelected(False)
+        self.actionsDict[u'toggle binding site'].selected = False
+        self.actionsDict[u'toggle residues to exam'].selected = False
+        self.actionsDict[u'toggle ligand'].selected = False
         self.execute('delete')
         self.ligandresidues, self.residues_to_exam, self.binding_site = self.resultdict[self.key]
         self.ligandresidues_IS = self.residues_to_exam_IS = self.binding_site_IS = None
@@ -242,9 +242,9 @@ class StruVa(object):
 #                self.displayBindingSite()
 #                self.displayResToExam()
 #                self.displayLigand()
-                self.actionsDict[u'toggle binding site'].setSelected(True)
-                self.actionsDict[u'toggle residues to exam'].setSelected(True)
-                self.actionsDict[u'toggle ligand'].setSelected(True)
+                self.actionsDict[u'toggle binding site'].selected = True
+                self.actionsDict[u'toggle residues to exam'].selected = True
+                self.actionsDict[u'toggle ligand'].selected = True
             except Exception,  e:
                 self.console.sendConsoleMessage("ERROR: " + e)
                 showErrorDialog(e)
