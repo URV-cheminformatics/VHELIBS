@@ -11,7 +11,8 @@ import math
 from sys import exit
 #Java stuff
 from java.awt import BorderLayout, Dimension, GridLayout, GridBagLayout, GridBagConstraints, Insets
-from javax.swing import JFrame, JPanel, JButton, JOptionPane, JTextField
+from java.awt.event import ItemEvent
+from javax.swing import JFrame, JPanel, JButton, JOptionPane, JTextField, JCheckBox
 #Jython-specific stuff
 from swingutils.preferences import getUserPrefs
 from swingutils.dialogs.filechooser import showOpenDialog, SimpleFileFilter
@@ -103,7 +104,6 @@ class StruVa(object):
         self.execute('set antialiasDisplay ON')
         self.execute('set antialiasTranslucent ON')
         #buttonPanelLayout = GridLayout(3, 2, 3, 3)
-        buttonPanelLayout = GridBagLayout()
         constraints = GridBagConstraints()
         constraints.gridwidth = 1
         constraints.gridheight =1
@@ -113,17 +113,25 @@ class StruVa(object):
         constraints.weighty =0.5
         constraints.fill = GridBagConstraints.HORIZONTAL
         constraints.insets = Insets(3,3,3,3)
-
-
-        buttonPanel = JPanel(buttonPanelLayout)
+        cbpanel = JPanel()
+        buttonPanel = JPanel(GridBagLayout())
         second = False
         for action in self.actions:
-            if 'toggle' in action:
-                continue
             caction = action[0].upper() + action[1:]
+            if 'toggle' in action:
+                cbpanel.add(JCheckBox(caction, itemStateChanged=self.nextStruct))
             self.actionsDict[action] = JButton(caction, actionPerformed=self.nextStruct)
             #buttonPanel.add(self.actionsDict[action], constraints)
-            self.execute('function %s () {}' % action)
+            self.execute('function %s () {}' % action.replace(' ', '_'))
+        for comp in cbpanel.components:
+            self.actionsDict[comp.text.lower()] = comp
+        panelc.gridwidth = 3
+        panelc.gridheight = 1
+        panelc.gridx = 0
+        panelc.gridy = 0
+        panelc.weightx = 1
+        panelc.weighty = 0
+        panel.add(cbpanel, panelc)
         #
         constraints.gridx = 0
         constraints.gridy = 0
@@ -151,6 +159,7 @@ class StruVa(object):
         #
         buttonPanel.setVisible(True)
         panel2.add(buttonPanel, BorderLayout.NORTH)
+        self.panel = panel
         self.setVisible = frame.setVisible
 
     def parseCommand(self, data):
@@ -172,12 +181,13 @@ class StruVa(object):
                 self.pdbid = self.key.split('|')[0]
                 self.reloadStruct()
             elif 'toggle' in ltext:
+                checked = event.getStateChange() == ItemEvent.SELECTED
                 if 'ligand' in ltext:
-                    pass
+                    self.displayLigand(checked)
                 elif 'binding' in ltext or 'site' in ltext:
-                    pass
+                    self.displayBindingSite(checked)
                 elif 'exam' in ltext:
-                    pass
+                    self.displayResToExam(checked)
             elif ltext == 'list':
                 self.console.sendConsoleEcho( '\n'.join(self.resultdict.keys()))
             elif ltext == 'help':
@@ -211,6 +221,9 @@ class StruVa(object):
 
     def reloadStruct(self):
         #Neteja
+        self.actionsDict[u'toggle binding site'].setSelected(False)
+        self.actionsDict[u'toggle residues to exam'].setSelected(False)
+        self.actionsDict[u'toggle ligand'].setSelected(False)
         self.execute('delete')
         self.ligandresidues, self.residues_to_exam, self.binding_site = self.resultdict[self.key]
         self.ligandresidues_IS = self.residues_to_exam_IS = self.binding_site_IS = None
@@ -226,9 +239,12 @@ class StruVa(object):
                 self.execute('wireframe only')
                 self.execute('wireframe off')
                 self.execute('select none')
-                self.displayBindingSite()
-                self.displayResToExam()
-                self.displayLigand()
+#                self.displayBindingSite()
+#                self.displayResToExam()
+#                self.displayLigand()
+                self.actionsDict[u'toggle binding site'].setSelected(True)
+                self.actionsDict[u'toggle residues to exam'].setSelected(True)
+                self.actionsDict[u'toggle ligand'].setSelected(True)
             except Exception,  e:
                 self.console.sendConsoleMessage("ERROR: " + e)
                 showErrorDialog(e)
