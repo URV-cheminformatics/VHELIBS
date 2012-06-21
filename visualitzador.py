@@ -30,6 +30,16 @@ if not len(sys.argv):
     sys.argv.append('--no-args')
 import rsr_analysis
 
+def prefbool(string):
+    if type(string) == type(True):
+        return string
+    if string.lower() == u'true':
+        return True
+    elif string.lower() == u'false':
+        return False
+    else:
+        raise TypeError(string + ' cannot be booleaned!')
+
 ###Define useful classes###
 class Console(AppConsole):
     def __init__(self, viewer, panel, buttons, parseCommand):
@@ -127,7 +137,7 @@ class StruVa(object):
                     checked = prefs.get('bindingsite_edm', False)
                 elif 'exam' in action:
                     checked = prefs.get('restoexam_edm', True)
-                later.append(JCheckBox(caction.replace('Toggle', 'EDM for'), checked, itemStateChanged=self.nextStruct))
+                later.append(JCheckBox(caction.replace('Toggle', 'EDM for'), prefbool(checked), itemStateChanged=self.nextStruct))
             self.actionsDict[action] = JButton(caction, actionPerformed=self.nextStruct)
             #buttonPanel.add(self.actionsDict[action], constraints)
             self.execute('function %s () {}' % action.replace(' ', '_'))
@@ -193,10 +203,13 @@ class StruVa(object):
             elif 'toggle' in ltext:
                 checked = event.getStateChange() == ItemEvent.SELECTED
                 if 'ligand' in ltext:
+                    prefs['ligand'] = checked
                     self.displayLigand(checked)
                 elif 'binding' in ltext or 'site' in ltext:
+                    prefs['bindingsite'] = checked
                     self.displayBindingSite(checked)
                 elif 'exam' in ltext:
+                    prefs['restoexam'] = checked
                     self.displayResToExam(checked)
             elif 'edm for' in ltext:
                 checked = event.getStateChange() == ItemEvent.SELECTED
@@ -242,9 +255,15 @@ class StruVa(object):
 
     def reloadStruct(self):
         #Neteja
+        showbs = prefs.get('bindingsite', True)
+        showre = prefs.get('restoexam', True)
+        showlig = prefs.get('ligand', True)
         self.actionsDict[u'toggle binding site'].selected = False
         self.actionsDict[u'toggle residues to exam'].selected = False
         self.actionsDict[u'toggle ligand'].selected = False
+        prefs['bindingsite'] = showbs
+        prefs['restoexam'] = showre
+        prefs['ligand'] = showlig
         self.execute('delete')
         self.ligandresidues, self.residues_to_exam, self.binding_site = self.resultdict[self.key]
         self.ligandresidues_IS = self.residues_to_exam_IS = self.binding_site_IS = None
@@ -260,11 +279,11 @@ class StruVa(object):
                 self.execute('wireframe only')
                 self.execute('wireframe off')
                 self.execute('select none')
-                self.actionsDict[u'toggle binding site'].selected = True
-                self.actionsDict[u'toggle residues to exam'].selected = True
-                self.actionsDict[u'toggle ligand'].selected = True
+                self.actionsDict[u'toggle binding site'].selected = prefbool(prefs['bindingsite'])
+                self.actionsDict[u'toggle residues to exam'].selected = prefbool(prefs['restoexam'])
+                self.actionsDict[u'toggle ligand'].selected = prefbool(prefs['ligand'])
             except Exception,  e:
-                self.console.sendConsoleMessage("ERROR: " + e)
+                self.console.sendConsoleMessage("ERROR: " + str(e))
                 showErrorDialog(e)
         self.console.sendConsoleEcho( "\n####################################")
         self.console.sendConsoleEcho( "Viewing structure %s" % self.key)
