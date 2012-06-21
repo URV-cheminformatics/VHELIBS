@@ -12,9 +12,10 @@ from sys import exit
 #Java stuff
 from java.awt import BorderLayout, Dimension, GridLayout, GridBagLayout, GridBagConstraints, Insets
 from java.awt.event import ItemEvent
-from javax.swing import JFrame, JPanel, JButton, JOptionPane, JTextField, JCheckBox
+from javax.swing import JFrame, JPanel, JButton, JOptionPane, JTextField, JCheckBox, JLabel
 #Jython-specific stuff
-from swingutils.preferences import getUserPrefs
+from swingutils.preferences import getUserPrefs, PreferencesAdapter
+from swingutils.binding import BindingGroup, TWOWAY
 from swingutils.dialogs.filechooser import showOpenDialog, SimpleFileFilter
 from swingutils.dialogs.basic import showErrorDialog, showWarningDialog, showMessageDialog
 prefs = getUserPrefs('struva')
@@ -68,7 +69,7 @@ class JmolPanel(JPanel):
         self.viewer.renderScreenImage(g, self.currentSize.width, self.currentSize.height)
 
 class StruVa(object):
-    actions = (u'good', u'bad', u'dubious', u'list', u'help', u'exit', u'toggle ligand', u'toggle binding site', u'toggle residues to exam',)
+    actions = (u'good', u'bad', u'dubious', u'list', u'help', u'options', u'toggle ligand', u'toggle binding site', u'toggle residues to exam',)
     def __init__(self, values):
         self.actionsDict = {}
         if values:
@@ -80,6 +81,7 @@ class StruVa(object):
 
     def setupUi(self):
         frame = JFrame("Structure Validation Helper", defaultCloseOperation = JFrame.EXIT_ON_CLOSE, size = (700, 410))
+        self.optionsdiag = OptionsDialog()
         contentPane = frame.contentPane
         jmolPanel = JmolPanel(preferredSize = (500, 500))
         self.viewer = jmolPanel.viewer
@@ -175,7 +177,7 @@ class StruVa(object):
         #
         constraints.gridx = 2
         constraints.gridy = 1
-        buttonPanel.add(self.actionsDict[u'exit'], constraints)
+        buttonPanel.add(self.actionsDict[u'options'], constraints)
         #
         buttonPanel.setVisible(True)
         panel2.add(buttonPanel, BorderLayout.NORTH)
@@ -237,8 +239,8 @@ class StruVa(object):
                     self.key = None
                     self.pdbid = None
                     self.clean()
-            elif ltext.strip() == 'exit':
-                exit(0)
+            elif ltext.strip() == 'options':
+                self.optionsdiag.show()
         else:
             self.clean()
 
@@ -314,7 +316,7 @@ class StruVa(object):
                 self.execute('isosurface BINDINGSITE on')
             elif not self.binding_site_IS:
                 self.execute('isosurface BINDINGSITE color %s sigma %s within %s {binding_site} "=%s" mesh nofill' %\
-                            (prefs.get('edmcolor', 'cyan'), prefs.get('sigma', '1.0'), prefs.get('edmdistance', '2.0'),  self.pdbid))
+                            (prefs.get('bsedmcolor', 'cyan'), prefs.get('sigma', '1.0'), prefs.get('edmdistance', '2.0'),  self.pdbid))
             self.binding_site_IS = 1
         elif self.binding_site_IS:
             self.execute('isosurface BINDINGSITE off')
@@ -344,7 +346,7 @@ class StruVa(object):
                 self.execute('isosurface RES_TO_EXAM on')
             elif not self.residues_to_exam_IS:
                 self.execute('isosurface RES_TO_EXAM color %s sigma %s within %s {res_to_exam} "=%s" mesh nofill' %\
-                        (prefs.get('edmcolor', 'yellow'), prefs.get('sigma', '1.0'), prefs.get('edmdistance', '2.0'),  self.pdbid))
+                        (prefs.get('reedmcolor', 'yellow'), prefs.get('sigma', '1.0'), prefs.get('edmdistance', '2.0'),  self.pdbid))
             self.residues_to_exam_IS = 1
         elif self.residues_to_exam_IS:
             self.execute('isosurface RES_TO_EXAM off')
@@ -375,7 +377,7 @@ class StruVa(object):
                 self.execute('isosurface LIGAND on')
             elif not self.ligandresidues_IS:
                 self.execute('isosurface LIGAND color %s sigma %s within %s {svligand} "=%s" mesh nofill' %\
-                        (prefs.get('edmcolor', 'red'), prefs.get('sigma', '1.0'), prefs.get('edmdistance', '2.0'),  self.pdbid))
+                        (prefs.get('ligedmcolor', 'red'), prefs.get('sigma', '1.0'), prefs.get('edmdistance', '2.0'),  self.pdbid))
             self.ligandresidues_IS = 1
         elif self.ligandresidues_IS:
             self.execute('isosurface LIGAND off')
@@ -521,6 +523,153 @@ class SettingsDialog(object):
         self.values.rsr_upper = float(rsr_upper.getText())
         self.values.outputfile = outputfile.getText()
         #print name.getText()
+
+class OptionsDialog(object):
+    def __init__(self):
+        self.frame =  JFrame(size = (500, 200), title = 'Options')
+        self.panel = JPanel(GridBagLayout())
+        constraints = GridBagConstraints()
+        constraints.weightx = 0.5
+        constraints.weighty = 0.5
+        constraints.fill = GridBagConstraints.HORIZONTAL
+        constraints.insets = Insets(3,3,3,3)
+        constraints.gridy = 0
+        constraints.gridx = 1
+        self.panel.add(JLabel('Ligand'), constraints)
+
+        constraints.gridy = 1
+        self.ligwfv = JTextField()
+        self.panel.add(self.ligwfv, constraints)
+
+        constraints.gridy = 2
+        self.ligsfv = JTextField()
+        self.panel.add(self.ligsfv, constraints)
+
+        constraints.gridy = 3
+        self.ligcolor = JTextField()
+        self.panel.add(self.ligcolor, constraints)
+
+        constraints.gridy = 4
+        self.ligedmcolor = JTextField()
+        self.panel.add(self.ligedmcolor, constraints)
+
+        constraints.gridy = 0
+        constraints.gridx = 2
+        self.panel.add(JLabel('Binding Site'), constraints)
+
+        constraints.gridy = 1
+        self.bswfv = JTextField()
+        self.panel.add(self.bswfv, constraints)
+
+        constraints.gridy = 2
+        self.bssfv = JTextField()
+        self.panel.add(self.bssfv, constraints)
+
+        constraints.gridy = 3
+        self.bscolor = JTextField()
+        self.panel.add(self.bscolor, constraints)
+
+        constraints.gridy = 4
+        self.bsedmcolor = JTextField()
+        self.panel.add(self.bsedmcolor, constraints)
+
+        constraints.gridy = 0
+        constraints.gridx = 3
+        self.panel.add(JLabel('Residues to exam'), constraints)
+
+        constraints.gridy = 1
+        self.rewfv = JTextField()
+        self.panel.add(self.rewfv, constraints)
+
+        constraints.gridy = 2
+        self.resfv = JTextField()
+        self.panel.add(self.resfv, constraints)
+
+        constraints.gridy = 3
+        self.recolor = JTextField()
+        self.panel.add(self.recolor, constraints)
+
+        constraints.gridy = 4
+        self.reedmcolor = JTextField()
+        self.panel.add(self.reedmcolor, constraints)
+
+        constraints.gridx = 0
+        constraints.gridy = 1
+        self.panel.add(JLabel('Wireframe'), constraints)
+        constraints.gridy = 2
+        self.panel.add(JLabel('Spacefill'), constraints)
+        constraints.gridy = 3
+        self.panel.add(JLabel('Color'), constraints)
+        constraints.gridy = 4
+        self.panel.add(JLabel('EDM Color'), constraints)
+        constraints.gridy = 5
+        constraints.insets = Insets(15,3,3,3)
+        self.panel.add(JLabel('EDM Distance'), constraints)
+        constraints.gridx = 1
+        self.edmdistance = JTextField()
+        self.panel.add(self.edmdistance, constraints)
+        constraints.gridx = 2
+        self.panel.add(JLabel('EDM sigma'), constraints)
+        constraints.gridx = 3
+        self.sigma = JTextField()
+        self.panel.add(self.sigma, constraints)
+        constraints.insets = Insets(3,3,3,3)
+        constraints.gridy = 6
+        constraints.gridx = 1
+        constraints.gridwidth = 2
+        self.panel.add(JButton('Save', actionPerformed=self.saveprefs), constraints)
+        constraints.gridwidth = 1
+        constraints.gridx = 3
+        self.panel.add(JButton('Defaults', actionPerformed=self.loaddefaults), constraints)
+
+        self.frame.add(self.panel)
+
+    def loadprefs(self):
+        self.ligwfv.text = prefs.get('ligwfv', '0.1')
+        self.ligsfv.text = prefs.get('ligsfv', '0.2')
+        self.ligcolor.text = prefs.get('ligcolor', 'magenta')
+        self.ligedmcolor.text = prefs.get('ligedmcolor', 'red')
+
+        self.bswfv.text = prefs.get('bswfv', '0.01')
+        self.bssfv.text = prefs.get('bssfv', 'off')
+        self.bscolor.text = prefs.get('bscolor', 'white')
+        self.bsedmcolor.text = prefs.get('bsedmcolor', 'cyan')
+
+        self.rewfv.text = prefs.get('rewfv', '0.1')
+        self.resfv.text = prefs.get('resfv', '0.2')
+        self.recolor.text = prefs.get('recolor', 'cpk')
+        self.reedmcolor.text = prefs.get('reedmcolor', 'yellow')
+
+        self.edmdistance.text = prefs.get('edmdistance', '2.0')
+        self.sigma.text = prefs.get('sigma', '1.0')
+
+    def saveprefs(self, event=None):
+        prefs['ligwfv'] = self.ligwfv.text
+        prefs['ligsfv'] = self.ligsfv.text
+        prefs['ligcolor'] = self.ligcolor.text
+        prefs['ligedmcolor'] = self.ligedmcolor.text
+
+        prefs['bswfv'] = self.bswfv.text
+        prefs['bssfv'] = self.bssfv.text
+        prefs['bscolor'] = self.bscolor.text
+        prefs['bsedmcolor'] = self.bsedmcolor.text
+
+        prefs['rewfv'] = self.rewfv.text
+        prefs['resfv'] = self.resfv.text
+        prefs['recolor'] = self.recolor.text
+        prefs['reedmcolor'] = self.reedmcolor.text
+
+        prefs['edmdistance'] = self.edmdistance.text
+        prefs['sigma'] = self.sigma.text
+
+    def show(self, doit=True):
+        self.loadprefs()
+        self.frame.visible = doit
+
+    def loaddefaults(self, event=None):
+        for key in prefs.keys():
+            prefs.remove(key)
+        self.loadprefs()
 
 def reslist_to_sel(reslist):
     sellist = []
