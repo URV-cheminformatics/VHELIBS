@@ -282,6 +282,7 @@ class StruVa(object):
                 self.actionsDict[u'toggle binding site'].selected = prefbool(prefs['bindingsite'])
                 self.actionsDict[u'toggle residues to exam'].selected = prefbool(prefs['restoexam'])
                 self.actionsDict[u'toggle ligand'].selected = prefbool(prefs['ligand'])
+                self.execute('zoom 0')
             except Exception,  e:
                 self.console.sendConsoleMessage("ERROR: " + str(e))
                 showErrorDialog(e)
