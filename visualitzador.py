@@ -20,7 +20,6 @@ from java.awt.event import ItemEvent
 from javax.swing import JFrame, JPanel, JButton, JOptionPane, JTextField, JCheckBox, JLabel
 #Jython-specific stuff
 from swingutils.preferences import getUserPrefs, PreferencesAdapter
-from swingutils.binding import BindingGroup, TWOWAY
 from swingutils.dialogs.filechooser import showOpenDialog, SimpleFileFilter
 from swingutils.dialogs.basic import showErrorDialog, showWarningDialog, showMessageDialog
 prefs = getUserPrefs('struva')
