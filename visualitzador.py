@@ -5,6 +5,11 @@
 
 #Python stuff
 import sys
+######One-jar magic#######
+sys.path.append('__pyclasspath__/pylib')
+if not sys.prefix:
+    sys.prefix='.'
+######One-jar magic#######
 import os
 import csv
 import math
