@@ -184,6 +184,7 @@ def parse_binding_site(argtuple):
         """
         print links
         ligands = []
+        added = False
         for lres in ligand_residues:
             ligand = set()
             ligand.add(lres)
@@ -209,8 +210,6 @@ def parse_binding_site(argtuple):
                 if not added:
                     ligands.append(ligand)
                     added = True
-        print
-        print links
         return ligands
     ligands = group_ligands(ligand_residues)
 
