@@ -14,7 +14,7 @@ import PDBfiles
 from decimal import Decimal
 
 edsurl = "http://eds.bmc.uu.se/eds/dfs/PDB2/PDB1/PDB1_stat.lis"
-EDSdir = 'data'
+EDSdir = PDBfiles.PREFIX
 residuelist = None
 
 if not os.path.isdir(EDSdir):
