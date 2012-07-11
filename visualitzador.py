@@ -7,6 +7,8 @@
 import sys
 ######One-jar magic#######
 sys.path.append('__pyclasspath__/pylib')
+print sys.path
+print sys.prefix
 if not sys.prefix:
     sys.prefix='.'
 ######One-jar magic#######
@@ -432,7 +434,7 @@ class StruVa(object):
                 elif ans ==0:
                     csvfilename = _wipfile
         else:
-            datawritten = rsr_analysis.main(
+            datawritten, goodfilename = rsr_analysis.main(
                                             values.pdbidfile
                                             , pdbidslist = values.pdbids
                                             , swissprotlist =values.swissprot
@@ -443,6 +445,8 @@ class StruVa(object):
                                             )
             if values.no_view:
                 exit(0)
+            if goodfilename:
+                showMessageDialog('Structures below the specified RSR values were\nconsidered good enough and saved to %s' % goodfilename, 'Good structures saved')
             if datawritten:
                 csvfilename = values.outputfile
                 outdir = os.path.dirname(csvfilename)

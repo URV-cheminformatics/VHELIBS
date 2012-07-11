@@ -88,7 +88,7 @@ def parse_binding_site(argtuple):
     pdbdict, rsrdict = EDS_parser.get_EDS(pdbid)
     if pdbdict['IN_EDS'] != 'TRUE':
         print "No EDS data available for %s, it will be discarded" % pdbid
-        return  (None, None, None, None)
+        return  (None, None)
     if not os.path.isfile(pdbfilepath):
         PDBfiles.get_pdb_file(pdbid.upper(), pdbfilepath)
     pdbfile = gzip.GzipFile(pdbfilepath)
@@ -125,7 +125,7 @@ def parse_binding_site(argtuple):
     finally:
         pdbfile.close()
         if error:
-            return  (None, None, None, None)
+            return  (None, None)
     #Now let's prune covalently bound ligands
     notligands = set()
     alllinksparsed = True
@@ -271,7 +271,7 @@ def results_to_csv(results, outputfile):
     csvfile = csv.writer(outfile)
     csvfile.writerow(['PDB ID', "Residues to exam", "Ligand Residues", "Binding Site Residues"])
     basename = os.path.splitext(os.path.basename(outputfile))[0]
-    goodfile = None
+    goodfilename = goodfile = None
     print 'Calculating...'
     datawritten = False
     for pdbid, ligand_bs_list in results:
@@ -299,7 +299,7 @@ def results_to_csv(results, outputfile):
         os.remove(outputfile)
     if goodfile:
         print'Results for structures with a RSR value below the specified minimum were saved to %s' % goodfilename
-    return datawritten
+    return datawritten, goodfilename
 
 def main(filepath = None, pdbidslist=[], swissprotlist = [], rsr_upper=RSR_upper, rsr_lower = RSR_lower, distance=None, outputfile='rsr_analysis.csv'):
     if not rsr_upper > rsr_lower:
