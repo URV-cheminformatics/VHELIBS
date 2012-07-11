@@ -33,9 +33,16 @@ from org.openscience.jmol.app.jmolpanel import AppConsole
 
 #Own stuff
 from WrapJOptionPane import JOptionPane2
+sys.argv = [arg for arg in sys.argv if __file__ not in arg]
 if not len(sys.argv):
     sys.argv.append('--no-args')
 import rsr_analysis
+### build the parser###
+argparser = rsr_analysis.parser
+argparser.add_argument('-c','--csvfile', metavar='CSVFILE', type=unicode, default=None, required=False, help='CSV file containing results from a previous RSR analysis')
+argparser.add_argument('--no-view', required=False, action='store_true', help="Do not visualize the generated csv file")
+argparser.add_argument('--no-args', required=False, action='store_true')
+
 
 def prefbool(string):
     if type(string) == type(True):
@@ -434,6 +441,7 @@ class StruVa(object):
                 elif ans ==0:
                     csvfilename = _wipfile
         else:
+            #showMessageDialog('Calculating binding sites and retrieving RSR information', 'Please wait')
             datawritten, goodfilename = rsr_analysis.main(
                                             values.pdbidfile
                                             , pdbidslist = values.pdbids
@@ -454,7 +462,7 @@ class StruVa(object):
                 _wipfile = os.path.join(outdir, basename + '_wip.csv~')
             else:
                 showWarningDialog('No structures to be viewed.')
-                exit(0)
+                main(['--no-args'])
         print('Loading data from %s...' % csvfilename)
         csvfile = open(csvfilename, 'rb')
         try:
@@ -700,15 +708,10 @@ def reslist_to_sel(reslist):
     else:
         return 'none'
 
-def main():
+def main(args=sys.argv):
     """
     """
-    ### build the parser###
-    argparser = rsr_analysis.parser
-    argparser.add_argument('-c','--csvfile', metavar='CSVFILE', type=unicode, default=None, required=False, help='CSV file containing results from a previous RSR analysis')
-    argparser.add_argument('--no-view', required=False, action='store_true', help="Do not visualize the generated csv file")
-    argparser.add_argument('--no-args', required=False, action='store_true')
-    values = argparser.parse_args(sys.argv)
+    values = argparser.parse_args(args)
     while not (values.csvfile or values.pdbidfile or values.pdbids or values.swissprot) :
         options = ['Load CSV file', 'Enter PDB IDs', 'Enter Swissport IDs', 'Tweak options', 'Cancel']
         choice = JOptionPane.showOptionDialog(None, 'Select what to do','Select what to do', JOptionPane.DEFAULT_OPTION, JOptionPane.INFORMATION_MESSAGE, None, options, options[0])
@@ -737,5 +740,4 @@ def main():
     return struva
 
 if __name__ == '__main__':
-    sys.argv = [arg for arg in sys.argv if __file__ not in arg]
     sv = main()
