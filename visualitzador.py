@@ -19,7 +19,18 @@ from sys import exit
 #Java stuff
 from java.awt import BorderLayout, Dimension, GridLayout, GridBagLayout, GridBagConstraints, Insets
 from java.awt.event import ItemEvent
-from javax.swing import JFrame, JPanel, JButton, JOptionPane, JTextField, JCheckBox, JLabel
+from javax.swing import JFrame, JPanel, JButton, JOptionPane, JTextField, JCheckBox, JLabel, UIManager, JDialog
+
+systemla = UIManager.getSystemLookAndFeelClassName()
+_infoicon = UIManager.getIcon("OptionPane.informationIcon")
+if systemla == u'javax.swing.plaf.metal.MetalLookAndFeel':
+    try:
+        UIManager.setLookAndFeel(u'com.sun.java.swing.plaf.gtk.GTKLookAndFeel')
+    except Exception,  e:
+        print e
+else:
+    UIManager.setLookAndFeel(systemla)
+
 #Jython-specific stuff
 from swingutils.preferences import getUserPrefs, PreferencesAdapter
 from swingutils.dialogs.filechooser import showOpenDialog, SimpleFileFilter
@@ -269,6 +280,7 @@ class StruVa(object):
         self.console.sendConsoleMessage( 'you can still manually load more structures and do other operations using the Jmol console')
 
     def reloadStruct(self):
+        self.wd.show()
         #Neteja
         showbs = prefs.get('bindingsite', True)
         showre = prefs.get('restoexam', True)
@@ -304,6 +316,7 @@ class StruVa(object):
         self.console.sendConsoleEcho( "\n####################################")
         self.console.sendConsoleEcho( "Viewing structure %s" % self.key)
         self.console.sendConsoleEcho( "####################################\n")
+        self.wd.show(False)
 
     def displayBindingSite(self, visible=True):
         if not self.binding_site:
@@ -423,6 +436,7 @@ class StruVa(object):
         self.reloadStruct()
 
     def loadCSV(self, values):
+        self.wd = WaitDialog()
         self.resultdict = {}
         csvfilename = values.csvfile
         if csvfilename:
@@ -441,7 +455,7 @@ class StruVa(object):
                 elif ans ==0:
                     csvfilename = _wipfile
         else:
-            #showMessageDialog('Calculating binding sites and retrieving RSR information', 'Please wait')
+            self.wd.show()
             datawritten, goodfilename = rsr_analysis.main(
                                             values.pdbidfile
                                             , pdbidslist = values.pdbids
@@ -451,6 +465,7 @@ class StruVa(object):
                                             , distance=values.distance
                                             , outputfile = values.outputfile
                                             )
+            self.wd.show(False)
             if values.no_view:
                 exit(0)
             if goodfilename:
@@ -539,6 +554,20 @@ class SettingsDialog(object):
         self.values.rsr_upper = float(rsr_upper.getText())
         self.values.outputfile = outputfile.getText()
         #print name.getText()
+
+class WaitDialog(object):
+    def __init__(self):
+        i = UIManager.getIcon("OptionPane.informationIcon")
+        self.icon = JLabel(i) if i is not None else JLabel(_infoicon)
+        self.frame =  JFrame()
+        self.panel = JPanel()
+        self.panel.add(self.icon)
+        self.panel.add(JLabel('<html>Calculating binding sites and retrieving RSR information<br /> Please be patient</html>'))
+        self.dialog = JDialog(self.frame,'Please wait', False)
+        self.dialog.add(self.panel)
+        self.dialog.size = (375, 135)
+    def show(self, boolean=True):
+         self.dialog.visible = boolean
 
 class OptionsDialog(object):
     def __init__(self):
