@@ -15,11 +15,13 @@ if not sys.prefix:
 import os
 import csv
 import math
+import time
 from sys import exit
 #Java stuff
+from java.lang import Runnable
 from java.awt import BorderLayout, Dimension, GridLayout, GridBagLayout, GridBagConstraints, Insets
 from java.awt.event import ItemEvent
-from javax.swing import JFrame, JPanel, JButton, JOptionPane, JTextField, JCheckBox, JLabel, UIManager, JDialog
+from javax.swing import JFrame, JPanel, JButton, JOptionPane, JTextField, JCheckBox, JLabel, UIManager, JDialog, SwingUtilities, SwingWorker
 
 systemla = UIManager.getSystemLookAndFeelClassName()
 _infoicon = UIManager.getIcon("OptionPane.informationIcon")
@@ -92,21 +94,25 @@ class JmolPanel(JPanel):
         self.getSize(self.currentSize)
         self.viewer.renderScreenImage(g, self.currentSize.width, self.currentSize.height)
 
-class StruVa(object):
+class StruVa(Runnable):
     actions = (u'good', u'bad', u'dubious', u'list', u'help', u'options', u'toggle ligand', u'toggle binding site', u'toggle coordinates to exam',)
     def __init__(self, values):
+        self.values = values
         self.actionsDict = {}
         self.wd = WaitDialog()
-        if values:
-            self.loadCSV(values)
+        if self.values:
+            self.loadCSV(self.values)
+            SwingUtilities.invokeAndWait(self)
+            self.start()
+
+    def run(self):
+        if self.values:
             self.setupUi()
             self.setVisible(True)
             self.console.sendConsoleMessage(self.helpmsg)
-            self.start()
 
     def setupUi(self):
         self.frame = JFrame("Structure Validation Helper", defaultCloseOperation = JFrame.EXIT_ON_CLOSE, size = (700, 410))
-        self.wd.dialog.setLocationRelativeTo(self.frame)
         self.optionsdiag = OptionsDialog()
         contentPane = self.frame.contentPane
         jmolPanel = JmolPanel(preferredSize = (500, 500))
@@ -127,6 +133,7 @@ class StruVa(object):
         panel2 = JPanel(layout = BorderLayout(), preferredSize = (300, 500))
         self.console = Console(jmolPanel.viewer, panel2,"History Variables State Clear Help", self.parseCommand)
         jmolPanel.viewer.jmolCallbackListener = self.console
+        self.viewer=jmolPanel.viewer
         panelc.gridwidth = 1
         panelc.gridheight = 2
         panelc.gridx = 2
@@ -282,7 +289,13 @@ class StruVa(object):
         self.console.sendConsoleMessage( 'you can still manually load more structures and do other operations using the Jmol console')
 
     def reloadStruct(self):
-        self.wd.show()
+        self.wd.show(False)
+        self.wd = WaitDialog(parent=self.frame,info='<html>Loading structure %s<br /> Please be patient</html>' % self.key)
+        self.wd.dialog.size = (340, 80)
+        #SwingUtilities.invokeAndWait(self.wd)
+        #self.wd.show(True)
+        self.ds = DialogShower(self.wd, self.viewer)
+        self.ds.execute()
         #Neteja
         showbs = prefs.get('bindingsite', True)
         showre = prefs.get('coordstoexam', True)
@@ -318,7 +331,10 @@ class StruVa(object):
         self.console.sendConsoleEcho( "\n####################################")
         self.console.sendConsoleEcho( "Viewing structure %s" % self.key)
         self.console.sendConsoleEcho( "####################################\n")
-        self.wd.show(False)
+#        time.sleep(1)
+#        while self.viewer.isScriptExecuting():
+#            time.sleep(1)
+#        self.wd.show(False)
 
     def displayBindingSite(self, visible=True):
         if not self.binding_site:
@@ -520,6 +536,22 @@ coords_to_exam : select coordinates to exam from the binding site
 Jmol scripting manual:
 http://chemapps.stolaf.edu/jmol/docs/?&fullmanual=1&ver=12.4 """ % (goodfilename, badfilename , dubiousfilename, )
 
+class DialogShower(SwingWorker):
+    def __init__(self, diag, viewer):
+        SwingWorker.__init__(self)
+        self.diag=diag
+        self.viewer=viewer
+    def doInBackground(self):
+        self.diag.show(True)
+        time.sleep(1)
+        while self.viewer.isScriptExecuting():
+            time.sleep(1)
+    def done(self):
+        try:
+            self.diag.show(False)
+            self.get()  #raise exception if abnormal completion
+        except ExecutionException, e:
+            raise SystemExit, e.getCause()
 
 class SettingsDialog(object):
     def __init__(self, values, parent=None):
@@ -556,20 +588,23 @@ class SettingsDialog(object):
         self.values.outputfile = outputfile.getText()
         #print name.getText()
 
-class WaitDialog(object):
-    def __init__(self):
+class WaitDialog(Runnable):
+    def __init__(self, parent=None, info=None, modal=False):
+        self.info = info if info else '<html>Calculating binding sites and retrieving RSR information<br /> Please be patient</html>'
         i = UIManager.getIcon("OptionPane.informationIcon")
         self.icon = JLabel(i) if i is not None else JLabel(_infoicon)
         self.frame =  JFrame()
         self.panel = JPanel()
         self.panel.add(self.icon)
-        self.panel.add(JLabel('<html>Calculating binding sites and retrieving RSR information<br /> Please be patient</html>'))
-        self.dialog = JDialog(self.frame,'Please wait', False)
+        self.panel.add(JLabel(self.info))
+        self.dialog = JDialog(self.frame,'Please wait', modal)
         self.dialog.add(self.panel)
-        self.dialog.setLocationRelativeTo(None)
+        self.dialog.setLocationRelativeTo(parent)
         self.dialog.size = (375, 135)
     def show(self, boolean=True):
          self.dialog.visible = boolean
+    def run(self):
+        self.show(True)
 
 class OptionsDialog(object):
     def __init__(self):
