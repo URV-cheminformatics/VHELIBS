@@ -113,7 +113,6 @@ class StruVa(Runnable):
 
     def setupUi(self):
         self.frame = JFrame("Structure Validation Helper", defaultCloseOperation = JFrame.EXIT_ON_CLOSE, size = (700, 410))
-        self.optionsdiag = OptionsDialog()
         contentPane = self.frame.contentPane
         jmolPanel = JmolPanel(preferredSize = (500, 500))
         self.viewer = jmolPanel.viewer
@@ -216,6 +215,7 @@ class StruVa(Runnable):
         panel2.add(buttonPanel, BorderLayout.NORTH)
         self.panel = panel
         self.setVisible = self.frame.setVisible
+        self.optionsdiag = OptionsDialog(self)
 
     def parseCommand(self, data):
         command = unicode(data[1].split('##')[0])[:-1].lower()
@@ -273,7 +273,7 @@ class StruVa(Runnable):
                     self.pdbid = None
                     self.clean()
             elif ltext.strip() == 'options':
-                self.optionsdiag.show()
+                self.optionsdiag.show(not self.optionsdiag.diag.visible)
         else:
             self.clean()
 
@@ -607,8 +607,9 @@ class WaitDialog(Runnable):
         self.show(True)
 
 class OptionsDialog(object):
-    def __init__(self):
-        self.frame =  JFrame(size = (500, 200), title = 'Options')
+    def __init__(self, parent = None):
+        self.parent = parent
+        self.frame =  JFrame()
         self.panel = JPanel(GridBagLayout())
         constraints = GridBagConstraints()
         constraints.weightx = 0.5
@@ -703,8 +704,10 @@ class OptionsDialog(object):
         constraints.gridwidth = 1
         constraints.gridx = 3
         self.panel.add(JButton('Defaults', actionPerformed=self.loaddefaults), constraints)
-
-        self.frame.add(self.panel)
+        self.diag = JDialog(self.frame, size = (500, 200), title = 'Options')
+        self.diag.setLocationRelativeTo(self.parent.frame)
+        #self.diag.size =
+        self.diag.add(self.panel)
 
     def loadprefs(self):
         self.ligwfv.text = prefs.get('ligwfv', '0.1')
@@ -746,7 +749,7 @@ class OptionsDialog(object):
 
     def show(self, doit=True):
         self.loadprefs()
-        self.frame.visible = doit
+        self.diag.visible = doit
 
     def loaddefaults(self, event=None):
         for key in prefs.keys():
