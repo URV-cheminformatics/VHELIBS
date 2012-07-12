@@ -742,7 +742,7 @@ def main(args=sys.argv):
     """
     values = argparser.parse_args(args)
     while not (values.csvfile or values.pdbidfile or values.pdbids or values.swissprot) :
-        options = ['Load CSV file', 'Enter PDB IDs', 'Enter Swissport IDs', 'Tweak options', 'Cancel']
+        options = ['Load CSV file', 'Enter PDB IDs', 'Enter Swissport IDs', 'Set Options', 'Cancel']
         choice = JOptionPane.showOptionDialog(None, 'Select what to do','Select what to do', JOptionPane.DEFAULT_OPTION, JOptionPane.INFORMATION_MESSAGE, None, options, options[0])
         option = options[choice]
         if option == options[0]:
