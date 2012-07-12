@@ -93,7 +93,7 @@ class JmolPanel(JPanel):
         self.viewer.renderScreenImage(g, self.currentSize.width, self.currentSize.height)
 
 class StruVa(object):
-    actions = (u'good', u'bad', u'dubious', u'list', u'help', u'options', u'toggle ligand', u'toggle binding site', u'toggle residues to exam',)
+    actions = (u'good', u'bad', u'dubious', u'list', u'help', u'options', u'toggle ligand', u'toggle binding site', u'toggle coordinates to exam',)
     def __init__(self, values):
         self.actionsDict = {}
         if values:
@@ -162,7 +162,7 @@ class StruVa(object):
                 elif 'binding' in action:
                     checked = prefs.get('bindingsite_edm', False)
                 elif 'exam' in action:
-                    checked = prefs.get('restoexam_edm', True)
+                    checked = prefs.get('coordstoexam_edm', True)
                 later.append(JCheckBox(caction.replace('Toggle', 'EDM for'), prefbool(checked), itemStateChanged=self.nextStruct))
             self.actionsDict[action] = JButton(caction, actionPerformed=self.nextStruct)
             #buttonPanel.add(self.actionsDict[action], constraints)
@@ -181,27 +181,27 @@ class StruVa(object):
         #
         constraints.gridx = 0
         constraints.gridy = 0
-        buttonPanel.add(self.actionsDict[u'good'], constraints)
+        buttonPanel.add(self.actionsDict[self.actions[0]], constraints)
         #
         constraints.gridx = 1
         constraints.gridy = 0
-        buttonPanel.add(self.actionsDict[u'bad'], constraints)
+        buttonPanel.add(self.actionsDict[self.actions[1]], constraints)
         #
         constraints.gridx = 2
         constraints.gridy = 0
-        buttonPanel.add(self.actionsDict[u'dubious'], constraints)
+        buttonPanel.add(self.actionsDict[self.actions[2]], constraints)
         #
         constraints.gridx = 0
         constraints.gridy = 1
-        buttonPanel.add(self.actionsDict[u'list'], constraints)
+        buttonPanel.add(self.actionsDict[self.actions[3]], constraints)
         #
         constraints.gridx = 1
         constraints.gridy = 1
-        buttonPanel.add(self.actionsDict[u'help'], constraints)
+        buttonPanel.add(self.actionsDict[self.actions[4]], constraints)
         #
         constraints.gridx = 2
         constraints.gridy = 1
-        buttonPanel.add(self.actionsDict[u'options'], constraints)
+        buttonPanel.add(self.actionsDict[self.actions[5]], constraints)
         #
         buttonPanel.setVisible(True)
         panel2.add(buttonPanel, BorderLayout.NORTH)
@@ -235,8 +235,8 @@ class StruVa(object):
                     prefs['bindingsite'] = checked
                     self.displayBindingSite(checked)
                 elif 'exam' in ltext:
-                    prefs['restoexam'] = checked
-                    self.displayResToExam(checked)
+                    prefs['coordstoexam'] = checked
+                    self.displayCoordsToExam(checked)
             elif 'edm for' in ltext:
                 checked = event.getStateChange() == ItemEvent.SELECTED
                 if 'ligand' in ltext:
@@ -246,8 +246,8 @@ class StruVa(object):
                     prefs['bindingsite_edm'] = checked
                     self.displayBindingSite(self.actionsDict[u'toggle binding site'].selected)
                 elif 'exam' in ltext:
-                    prefs['restoexam_edm'] = checked
-                    self.displayResToExam(self.actionsDict[u'toggle residues to exam'].selected)
+                    prefs['coordstoexam_edm'] = checked
+                    self.displayCoordsToExam(self.actionsDict[u'toggle coordinates to exam'].selected)
             elif ltext == 'list':
                 self.console.sendConsoleEcho( '\n'.join(self.resultdict.keys()))
             elif ltext == 'help':
@@ -283,13 +283,13 @@ class StruVa(object):
         self.wd.show()
         #Neteja
         showbs = prefs.get('bindingsite', True)
-        showre = prefs.get('restoexam', True)
+        showre = prefs.get('coordstoexam', True)
         showlig = prefs.get('ligand', True)
         self.actionsDict[u'toggle binding site'].selected = False
-        self.actionsDict[u'toggle residues to exam'].selected = False
+        self.actionsDict[u'toggle coordinates to exam'].selected = False
         self.actionsDict[u'toggle ligand'].selected = False
         prefs['bindingsite'] = showbs
-        prefs['restoexam'] = showre
+        prefs['coordstoexam'] = showre
         prefs['ligand'] = showlig
         self.execute('delete')
         self.ligandresidues, self.residues_to_exam, self.binding_site = self.resultdict[self.key]
@@ -307,7 +307,7 @@ class StruVa(object):
                 self.execute('wireframe off')
                 self.execute('select none')
                 self.actionsDict[u'toggle binding site'].selected = prefbool(prefs['bindingsite'])
-                self.actionsDict[u'toggle residues to exam'].selected = prefbool(prefs['restoexam'])
+                self.actionsDict[u'toggle coordinates to exam'].selected = prefbool(prefs['coordstoexam'])
                 self.actionsDict[u'toggle ligand'].selected = prefbool(prefs['ligand'])
                 self.execute('zoom 0')
             except Exception,  e:
@@ -348,34 +348,34 @@ class StruVa(object):
             self.execute('isosurface BINDINGSITE off')
             self.binding_site_IS = 0
 
-    def displayResToExam(self, visible=True):
+    def displayCoordsToExam(self, visible=True):
         if not self.residues_to_exam:
             return
         if not visible:
-            self.execute('select(res_to_exam)')
+            self.execute('select(coords_to_exam)')
             self.execute('wireframe only')
             self.execute('wireframe off')
             self.execute('select none')
             if self.residues_to_exam_IS:
-                self.execute('isosurface RES_TO_EXAM off')
+                self.execute('isosurface COORDS_TO_EXAM off')
                 self.residues_to_exam_IS = 0
             return
         exam_residues_selection = reslist_to_sel(self.residues_to_exam)
-        self.execute('define res_to_exam (%s)' % exam_residues_selection)
-        self.execute('select(res_to_exam)' )
+        self.execute('define coords_to_exam (%s)' % exam_residues_selection)
+        self.execute('select(coords_to_exam)' )
         self.execute('wireframe %s' % prefs.get('rewfv', '0.1'))
         self.execute('spacefill %s' % prefs.get('resfv', '0.2'))
         self.execute('color %s' % prefs.get('recolor', 'cpk'))
         self.execute('select none')
-        if prefs.get('restoexam_edm', True):
+        if prefs.get('coordstoexam_edm', True):
             if self.residues_to_exam_IS == 0:
-                self.execute('isosurface RES_TO_EXAM on')
+                self.execute('isosurface COORDS_TO_EXAM on')
             elif not self.residues_to_exam_IS:
-                self.execute('isosurface RES_TO_EXAM color %s sigma %s within %s {res_to_exam} "=%s" mesh nofill' %\
+                self.execute('isosurface COORDS_TO_EXAM color %s sigma %s within %s {coords_to_exam} "=%s" mesh nofill' %\
                         (prefs.get('reedmcolor', 'yellow'), prefs.get('sigma', '1.0'), prefs.get('edmdistance', '2.0'),  self.pdbid))
             self.residues_to_exam_IS = 1
         elif self.residues_to_exam_IS:
-            self.execute('isosurface RES_TO_EXAM off')
+            self.execute('isosurface COORDS_TO_EXAM off')
             self.residues_to_exam_IS = 0
 
     def displayLigand(self, visible=True):
@@ -412,7 +412,7 @@ class StruVa(object):
     def saveWIP(self):
         outfile = open(self.wipfilename, 'wb')
         csvfile = csv.writer(outfile)
-        csvfile.writerow(['PDB ID', "Residues to exam", "Ligand Residues", "Binding Site Residues"])
+        csvfile.writerow(['PDB ID', "Coordinates to exam", "Ligand Residues", "Binding Site Residues"])
         for key in self.resultdict:
             ligandresidues, residues_to_exam, binding_site = self.resultdict[key]
             csvfile.writerow([key.split('|')[0], ';'.join(residues_to_exam), ';'.join(ligandresidues),';'.join(binding_site)])
@@ -515,7 +515,7 @@ see <pdbid> : load this structure from the queue
 list : shows the queue of structures
 binding_site : select binding site residues
 ligands : select ligand residues
-res_to_exam : select residues to exam from the binding site
+coords_to_exam : select coordinates to exam from the binding site
 Jmol scripting manual:
 http://chemapps.stolaf.edu/jmol/docs/?&fullmanual=1&ver=12.4 """ % (goodfilename, badfilename , dubiousfilename, )
 
@@ -620,7 +620,7 @@ class OptionsDialog(object):
 
         constraints.gridy = 0
         constraints.gridx = 3
-        self.panel.add(JLabel('Residues to exam'), constraints)
+        self.panel.add(JLabel('Coordinates to exam'), constraints)
 
         constraints.gridy = 1
         self.rewfv = JTextField()

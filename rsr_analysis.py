@@ -269,7 +269,8 @@ def results_to_csv(results, outputfile):
     """
     outfile = open(outputfile, 'wb')
     csvfile = csv.writer(outfile)
-    csvfile.writerow(['PDB ID', "Residues to exam", "Ligand Residues", "Binding Site Residues"])
+    titles = ['PDB ID', "Coordinates to exam", "Ligand Residues", "Binding Site Residues"]
+    csvfile.writerow(titles)
     basename = os.path.splitext(os.path.basename(outputfile))[0]
     goodfilename = goodfile = None
     print 'Calculating...'
@@ -287,7 +288,7 @@ def results_to_csv(results, outputfile):
                         goodfilename = basename + '_good.csv'
                         goodfile = open(goodfilename,'ab')
                         goodwriter = csv.writer(goodfile)
-                        goodwriter.writerow(['PDB ID', "Residues to exam", "Ligand Residues", "Binding Site Residues"])
+                        goodwriter.writerow(titles)
                     goodwriter.writerow([id, '', ';'.join(ligandresidues),';'.join(binding_site)])
                     goodfile.flush()
             else:
