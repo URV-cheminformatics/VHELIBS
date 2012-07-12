@@ -60,6 +60,8 @@ argparser.add_argument('--no-args', required=False, action='store_true')
 def prefbool(string):
     if type(string) == type(True):
         return string
+    elif type(string) == type(None):
+        return True
     if string.lower() == u'true':
         return True
     elif string.lower() == u'false':
@@ -290,13 +292,12 @@ class StruVa(Runnable):
 
     def reloadStruct(self):
         self.wd.show(False)
-        self.wd = WaitDialog(parent=self.frame,info='<html>Loading structure %s<br /> Please be patient</html>' % self.key)
-        self.wd.dialog.size = (340, 80)
+        self.wd = WaitDialog(parent=self.frame,info='<html>Loading structure %s from PDB and EDS<br /> Please be patient</html>' % self.key)
+        self.wd.dialog.pack()
         #SwingUtilities.invokeAndWait(self.wd)
         #self.wd.show(True)
         self.ds = DialogShower(self.wd, self.viewer)
         self.ds.execute()
-        #Neteja
         showbs = prefs.get('bindingsite', True)
         showre = prefs.get('coordstoexam', True)
         showlig = prefs.get('ligand', True)
@@ -306,7 +307,9 @@ class StruVa(Runnable):
         prefs['bindingsite'] = showbs
         prefs['coordstoexam'] = showre
         prefs['ligand'] = showlig
+        #Clean up
         self.execute('delete')
+        #Load relevant data
         self.ligandresidues, self.residues_to_exam, self.binding_site = self.resultdict[self.key]
         self.ligandresidues_IS = self.residues_to_exam_IS = self.binding_site_IS = None
         if self.ligandresidues == ['']:
@@ -331,10 +334,6 @@ class StruVa(Runnable):
         self.console.sendConsoleEcho( "\n####################################")
         self.console.sendConsoleEcho( "Viewing structure %s" % self.key)
         self.console.sendConsoleEcho( "####################################\n")
-#        time.sleep(1)
-#        while self.viewer.isScriptExecuting():
-#            time.sleep(1)
-#        self.wd.show(False)
 
     def displayBindingSite(self, visible=True):
         if not self.binding_site:
@@ -600,13 +599,14 @@ class WaitDialog(Runnable):
         self.dialog = JDialog(self.frame,'Please wait', modal)
         self.dialog.add(self.panel)
         self.dialog.setLocationRelativeTo(parent)
-        self.dialog.size = (375, 135)
+        self.dialog.pack()
     def show(self, boolean=True):
          self.dialog.visible = boolean
     def run(self):
         self.show(True)
 
 class OptionsDialog(object):
+    keys = ('ligwfv', 'ligsfv', 'ligcolor', 'ligedmcolor', 'bswfv', 'bssfv', 'bscolor', 'bsedmcolor', 'rewfv', 'resfv', 'recolor', 'reedmcolor', 'edmdistance', 'sigma')
     def __init__(self, parent = None):
         self.parent = parent
         self.frame =  JFrame()
@@ -704,9 +704,9 @@ class OptionsDialog(object):
         constraints.gridwidth = 1
         constraints.gridx = 3
         self.panel.add(JButton('Defaults', actionPerformed=self.loaddefaults), constraints)
-        self.diag = JDialog(self.frame, size = (500, 200), title = 'Options')
+        self.diag = JDialog(self.frame,size = (500, 200), title = 'Options')
+        self.diag.pack()
         self.diag.setLocationRelativeTo(self.parent.frame)
-        #self.diag.size =
         self.diag.add(self.panel)
 
     def loadprefs(self):
@@ -728,32 +728,58 @@ class OptionsDialog(object):
         self.edmdistance.text = prefs.get('edmdistance', '2.0')
         self.sigma.text = prefs.get('sigma', '1.0')
 
+        self.saveprefs()
+
     def saveprefs(self, event=None):
-        prefs['ligwfv'] = self.ligwfv.text
-        prefs['ligsfv'] = self.ligsfv.text
-        prefs['ligcolor'] = self.ligcolor.text
-        prefs['ligedmcolor'] = self.ligedmcolor.text
+        displaybs = prefbool(prefs['bindingsite'])
+        displaycoords = prefbool(prefs['coordstoexam'])
+        displaylig = prefbool(prefs['ligand'])
 
-        prefs['bswfv'] = self.bswfv.text
-        prefs['bssfv'] = self.bssfv.text
-        prefs['bscolor'] = self.bscolor.text
-        prefs['bsedmcolor'] = self.bsedmcolor.text
+        if (prefs['edmdistance'], prefs['sigma']) != (self.edmdistance.text, self.sigma.text):
+            prefs['edmdistance'] = self.edmdistance.text
+            prefs['sigma'] = self.sigma.text
+            self.parent.ligandresidues_IS = self.parent.residues_to_exam_IS = self.parent.binding_site_IS = None
 
-        prefs['rewfv'] = self.rewfv.text
-        prefs['resfv'] = self.resfv.text
-        prefs['recolor'] = self.recolor.text
-        prefs['reedmcolor'] = self.reedmcolor.text
+        if (prefs['bswfv'], prefs['bssfv'], prefs['bscolor']) != (self.bswfv.text, self.bssfv.text, self.bscolor.text):
+            prefs['bswfv'] = self.bswfv.text
+            prefs['bssfv'] = self.bssfv.text
+            prefs['bscolor'] = self.bscolor.text
+            self.parent.actionsDict[u'toggle binding site'].selected = False
+        if prefs['bsedmcolor'] != self.bsedmcolor.text:
+            prefs['bsedmcolor'] = self.bsedmcolor.text
+            self.parent.binding_site_IS = None
 
-        prefs['edmdistance'] = self.edmdistance.text
-        prefs['sigma'] = self.sigma.text
+        if (prefs['rewfv'], prefs['resfv'], prefs['recolor']) != (self.rewfv.text, self.resfv.text, self.recolor.text):
+            prefs['rewfv'] = self.rewfv.text
+            prefs['resfv'] = self.resfv.text
+            prefs['recolor'] = self.recolor.text
+            self.parent.actionsDict[u'toggle coordinates to exam'].selected = False
+        if prefs['reedmcolor'] != self.reedmcolor.text:
+            prefs['reedmcolor'] = self.reedmcolor.text
+            self.parent.residues_to_exam_IS = None
+
+        if (prefs['ligwfv'], prefs['ligsfv'], prefs['ligcolor']) != (self.ligwfv.text, self.ligsfv.text, self.ligcolor.text):
+            prefs['ligwfv'] = self.ligwfv.text
+            prefs['ligsfv'] = self.ligsfv.text
+            prefs['ligcolor'] = self.ligcolor.text
+            self.parent.actionsDict[u'toggle ligand'].selected = False
+        if prefs['ligedmcolor'] != self.ligedmcolor.text:
+            prefs['ligedmcolor'] = self.ligedmcolor.text
+            self.parent.ligandresidues_IS = None
+
+        self.parent.actionsDict[u'toggle binding site'].selected = displaybs
+        self.parent.actionsDict[u'toggle coordinates to exam'].selected = displaycoords
+        self.parent.actionsDict[u'toggle ligand'].selected = displaylig
+
 
     def show(self, doit=True):
         self.loadprefs()
         self.diag.visible = doit
 
     def loaddefaults(self, event=None):
-        for key in prefs.keys():
-            prefs.remove(key)
+        for key in self.keys:
+            if key in prefs:
+                prefs.remove(key)
         self.loadprefs()
 
 def reslist_to_sel(reslist):
