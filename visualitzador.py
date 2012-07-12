@@ -96,6 +96,7 @@ class StruVa(object):
     actions = (u'good', u'bad', u'dubious', u'list', u'help', u'options', u'toggle ligand', u'toggle binding site', u'toggle coordinates to exam',)
     def __init__(self, values):
         self.actionsDict = {}
+        self.wd = WaitDialog()
         if values:
             self.loadCSV(values)
             self.setupUi()
@@ -104,9 +105,10 @@ class StruVa(object):
             self.start()
 
     def setupUi(self):
-        frame = JFrame("Structure Validation Helper", defaultCloseOperation = JFrame.EXIT_ON_CLOSE, size = (700, 410))
+        self.frame = JFrame("Structure Validation Helper", defaultCloseOperation = JFrame.EXIT_ON_CLOSE, size = (700, 410))
+        self.wd.dialog.setLocationRelativeTo(self.frame)
         self.optionsdiag = OptionsDialog()
-        contentPane = frame.contentPane
+        contentPane = self.frame.contentPane
         jmolPanel = JmolPanel(preferredSize = (500, 500))
         self.viewer = jmolPanel.viewer
         self.execute = self.viewer.evalStringQuiet
@@ -206,7 +208,7 @@ class StruVa(object):
         buttonPanel.setVisible(True)
         panel2.add(buttonPanel, BorderLayout.NORTH)
         self.panel = panel
-        self.setVisible = frame.setVisible
+        self.setVisible = self.frame.setVisible
 
     def parseCommand(self, data):
         command = unicode(data[1].split('##')[0])[:-1].lower()
@@ -436,7 +438,6 @@ class StruVa(object):
         self.reloadStruct()
 
     def loadCSV(self, values):
-        self.wd = WaitDialog()
         self.resultdict = {}
         csvfilename = values.csvfile
         if csvfilename:
@@ -565,6 +566,7 @@ class WaitDialog(object):
         self.panel.add(JLabel('<html>Calculating binding sites and retrieving RSR information<br /> Please be patient</html>'))
         self.dialog = JDialog(self.frame,'Please wait', False)
         self.dialog.add(self.panel)
+        self.dialog.setLocationRelativeTo(None)
         self.dialog.size = (375, 135)
     def show(self, boolean=True):
          self.dialog.visible = boolean
