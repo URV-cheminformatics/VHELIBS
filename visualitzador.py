@@ -23,18 +23,18 @@ from java.awt import BorderLayout, Dimension, GridLayout, GridBagLayout, GridBag
 from java.awt.event import ItemEvent
 from javax.swing import JFrame, JPanel, JButton, JOptionPane, JTextField, JCheckBox, JLabel, UIManager, JDialog, SwingUtilities, SwingWorker
 
-systemla = UIManager.getSystemLookAndFeelClassName()
+systemlaf = UIManager.getSystemLookAndFeelClassName()
 _infoicon = UIManager.getIcon("OptionPane.informationIcon")
-if systemla == u'javax.swing.plaf.metal.MetalLookAndFeel':
+if systemlaf == u'javax.swing.plaf.metal.MetalLookAndFeel':
     try:
         UIManager.setLookAndFeel(u'com.sun.java.swing.plaf.gtk.GTKLookAndFeel')
     except Exception,  e:
         print e
 else:
-    UIManager.setLookAndFeel(systemla)
+    UIManager.setLookAndFeel(systemlaf)
 
 #Jython-specific stuff
-from swingutils.preferences import getUserPrefs, PreferencesAdapter
+from swingutils.preferences import getUserPrefs
 from swingutils.dialogs.filechooser import showOpenDialog, SimpleFileFilter
 from swingutils.dialogs.basic import showErrorDialog, showWarningDialog, showMessageDialog
 prefs = getUserPrefs('struva')
@@ -71,9 +71,10 @@ def prefbool(string):
 
 ###Define useful classes###
 class Console(AppConsole):
-    def __init__(self, viewer, panel, buttons, parseCommand):
+    buttons = "Undo Redo Variables"
+    def __init__(self, viewer, panel, parseCommand):
         self.parseCommand = parseCommand
-        AppConsole.__init__(self, viewer, panel, buttons)
+        AppConsole.__init__(self, viewer, panel, self.buttons)
 
     def notifyEnabled(self, callbacktype):
         if str(callbacktype) == 'SYNC':
@@ -103,7 +104,7 @@ class StruVa(Runnable):
         self.actionsDict = {}
         self.wd = WaitDialog()
         if self.values:
-            self.loadCSV(self.values)
+            self.loadCSV()
             SwingUtilities.invokeAndWait(self)
             self.start()
 
@@ -115,7 +116,6 @@ class StruVa(Runnable):
 
     def setupUi(self):
         self.frame = JFrame("Structure Validation Helper", defaultCloseOperation = JFrame.EXIT_ON_CLOSE, size = (700, 410))
-        contentPane = self.frame.contentPane
         jmolPanel = JmolPanel(preferredSize = (500, 500))
         self.viewer = jmolPanel.viewer
         self.execute = self.viewer.evalStringQuiet
@@ -128,11 +128,10 @@ class StruVa(Runnable):
         panelc.weightx = 1
         panelc.weighty = 1
         panelc.fill = GridBagConstraints.BOTH
-
         panel.add(jmolPanel, panelc)
         # main panel -- console panel on right
         panel2 = JPanel(layout = BorderLayout(), preferredSize = (300, 500))
-        self.console = Console(jmolPanel.viewer, panel2,"History Variables State Clear Help", self.parseCommand)
+        self.console = Console(jmolPanel.viewer, panel2, self.parseCommand)
         jmolPanel.viewer.jmolCallbackListener = self.console
         self.viewer=jmolPanel.viewer
         panelc.gridwidth = 1
@@ -143,14 +142,13 @@ class StruVa(Runnable):
         panelc.weighty = 0.5
         panelc.fill = GridBagConstraints.VERTICAL
         panel.add(panel2, panelc)
-        contentPane.add(panel)
+        self.frame.add(panel)
         self.execute('wireframe only')
         self.execute('wireframe off')
         self.execute('set bondMode OR')
         self.execute('set syncScript ON')
         self.execute('set antialiasDisplay ON')
         self.execute('set antialiasTranslucent ON')
-        #buttonPanelLayout = GridLayout(3, 2, 3, 3)
         constraints = GridBagConstraints()
         constraints.gridwidth = 1
         constraints.gridheight =1
@@ -175,7 +173,6 @@ class StruVa(Runnable):
                     checked = prefs.get('coordstoexam_edm', True)
                 later.append(JCheckBox(caction.replace('Toggle', 'EDM for'), prefbool(checked), itemStateChanged=self.nextStruct))
             self.actionsDict[action] = JButton(caction, actionPerformed=self.nextStruct)
-            #buttonPanel.add(self.actionsDict[action], constraints)
             self.execute('function %s () {}' % action.replace(' ', '_'))
         for cb in later:
             cbpanel.add(cb)
@@ -216,6 +213,7 @@ class StruVa(Runnable):
         buttonPanel.setVisible(True)
         panel2.add(buttonPanel, BorderLayout.NORTH)
         self.panel = panel
+        self.frame.pack()
         self.setVisible = self.frame.setVisible
         self.optionsdiag = OptionsDialog(self)
 
@@ -286,16 +284,18 @@ class StruVa(Runnable):
         except:
             pass
         self.execute('delete;')
-        self.console.sendConsoleMessage( "No more structures to view!")
-        self.console.sendConsoleMessage( 'Do you want to exit now?')
-        self.console.sendConsoleMessage( 'you can still manually load more structures and do other operations using the Jmol console')
+        game_over = JOptionPane.showConfirmDialog(self.frame,u'Continue working with other structures?',u'No more structures to view!',JOptionPane.YES_NO_OPTION)
+        if game_over == JOptionPane.OK_OPTION:
+            self.values = getvalues()
+            self.loadCSV()
+            self.start()
+        else:
+            exit(0)
 
     def reloadStruct(self):
         self.wd.show(False)
         self.wd = WaitDialog(parent=self.frame,info='<html>Loading structure %s from PDB and EDS<br /> Please be patient</html>' % self.key)
         self.wd.dialog.pack()
-        #SwingUtilities.invokeAndWait(self.wd)
-        #self.wd.show(True)
         self.ds = DialogShower(self.wd, self.viewer)
         self.ds.execute()
         showbs = prefs.get('bindingsite', True)
@@ -452,7 +452,8 @@ class StruVa(Runnable):
         self.pdbid= self.key.split('|')[0]
         self.reloadStruct()
 
-    def loadCSV(self, values):
+    def loadCSV(self):
+        values = self.values
         self.resultdict = {}
         csvfilename = values.csvfile
         if csvfilename:
@@ -493,7 +494,9 @@ class StruVa(Runnable):
                 _wipfile = os.path.join(outdir, basename + '_wip.csv~')
             else:
                 showWarningDialog('No structures to be viewed.')
-                main(['--no-args'])
+                self.values = getvalues()
+                self.loadCSV()
+                self.start()
         print('Loading data from %s...' % csvfilename)
         csvfile = open(csvfilename, 'rb')
         try:
@@ -803,9 +806,7 @@ def reslist_to_sel(reslist):
     else:
         return 'none'
 
-def main(args=sys.argv):
-    """
-    """
+def getvalues(args=['--no-args']):
     values = argparser.parse_args(args)
     while not (values.csvfile or values.pdbidfile or values.pdbids or values.swissprot) :
         options = ['Load CSV file', 'Enter PDB IDs', 'Enter Swissport IDs', 'Set Options', 'Cancel']
@@ -831,6 +832,12 @@ def main(args=sys.argv):
             values = s.values
         elif option == options[4]:
             exit(0)
+    return values
+
+def main(args=sys.argv):
+    """
+    """
+    values = getvalues(args)
     struva = StruVa(values)
     return struva
 
