@@ -71,10 +71,10 @@ def prefbool(string):
 
 ###Define useful classes###
 class Console(AppConsole):
-    buttons = "Undo Redo Variables"
     def __init__(self, viewer, panel, parseCommand):
         self.parseCommand = parseCommand
-        AppConsole.__init__(self, viewer, panel, self.buttons)
+        AppConsole.__init__(self, viewer, panel, '')
+        self.pane.components[0].remove(1)
 
     def notifyEnabled(self, callbacktype):
         if str(callbacktype) == 'SYNC':
