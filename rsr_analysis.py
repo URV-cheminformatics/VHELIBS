@@ -16,6 +16,7 @@ RSR_upper = 0.4
 RSR_lower = 0.24
 outer_distance = 10.**2
 inner_distance = 4.5**2
+titles = ['PDB ID', "Coordinates to exam", "Ligand Residues", "Binding Site Residues", "Good Ligand", "Good Binding Site"]
 
 ###Create the argument parser###
 import argparse
@@ -237,8 +238,24 @@ def parse_binding_site(argtuple):
                     inner_binding_site.add(atom.residue)
                     classificate_residue(atom.residue)
                     break
-        rte = inner_binding_site.union(ligand).difference(good_rsr)
-        return ligand, inner_binding_site, rte
+        rte = inner_binding_site.union(ligand).intersection(dubious_rsr)
+
+        def validate(residues):
+            if residues < good_rsr:
+                return True
+            if residues < bad_rsr:
+                return False
+            if residues < dubious_rsr:
+                return 'Dubious'
+            else:
+                print "Unclassified residues: %s" % ";".join(residues)
+                exit(89)
+            return '???'
+
+        ligandgood = validate(ligand)
+        bsgood = validate(inner_binding_site)
+        return ligand, inner_binding_site, rte, ligandgood, bsgood
+
     ligand_bs_list = [get_binding_site(ligand) for ligand in ligands]
     return (pdbid, ligand_bs_list)
 
@@ -269,38 +286,24 @@ def results_to_csv(results, outputfile):
     """
     outfile = open(outputfile, 'wb')
     csvfile = csv.writer(outfile)
-    titles = ['PDB ID', "Coordinates to exam", "Ligand Residues", "Binding Site Residues"]
     csvfile.writerow(titles)
-    basename = os.path.splitext(os.path.basename(outputfile))[0]
-    goodfilename = goodfile = None
     print 'Calculating...'
     datawritten = False
     for pdbid, ligand_bs_list in results:
         if pdbid == None:
             continue
-        for ligandresidues, binding_site, residues_to_exam in ligand_bs_list:
+        for ligandresidues, binding_site, residues_to_exam, ligandgood, bsgood in ligand_bs_list:
             id = pdbid
-            if not residues_to_exam:
-                if not ligandresidues:
-                    print '%s has no actual ligands, it will be discarded' % pdbid
-                else:
-                    if not goodfile:
-                        goodfilename = basename + '_good.csv'
-                        goodfile = open(goodfilename,'ab')
-                        goodwriter = csv.writer(goodfile)
-                        goodwriter.writerow(titles)
-                    goodwriter.writerow([id, '', ';'.join(ligandresidues),';'.join(binding_site)])
-                    goodfile.flush()
+            if not ligandresidues:
+                print '%s has no actual ligands, it will be discarded' % pdbid
             else:
-                csvfile.writerow([id, ';'.join(residues_to_exam), ';'.join(ligandresidues),';'.join(binding_site)])
+                csvfile.writerow([id, ';'.join(residues_to_exam), ';'.join(ligandresidues),';'.join(binding_site), ligandgood, bsgood])
                 outfile.flush()
                 datawritten = True
     outfile.close()
     if not datawritten:
         os.remove(outputfile)
-    if goodfile:
-        print'Results for structures with a RSR value below the specified minimum were saved to %s' % goodfilename
-    return datawritten, goodfilename
+    return datawritten
 
 def main(filepath = None, pdbidslist=[], swissprotlist = [], rsr_upper=RSR_upper, rsr_lower = RSR_lower, distance=None, outputfile='rsr_analysis.csv'):
     if not rsr_upper > rsr_lower:
