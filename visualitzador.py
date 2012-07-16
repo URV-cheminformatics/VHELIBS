@@ -16,6 +16,7 @@ import os
 import csv
 import math
 import time
+from textwrap import dedent
 from sys import exit
 #Java stuff
 from java.lang import Runnable
@@ -99,12 +100,29 @@ class JmolPanel(JPanel):
 
 class StruVa(Runnable):
     actions = (u'good', u'bad', u'dubious', u'list', u'help', u'options', u'toggle ligand', u'toggle binding site', u'toggle coordinates to exam',)
+    helpmsg = dedent("""> Special commands:
+    help : print this message
+    good : ???
+    bad :  ???
+    dubious :  ???
+    see <pdbid> : load this structure from the queue
+    list : shows the queue of structures
+    binding_site : select binding site residues
+    ligands : select ligand residues
+    coords_to_exam : select coordinates to exam from the binding site
+    Jmol scripting manual:
+    http://chemapps.stolaf.edu/jmol/docs/?&fullmanual=1&ver=12.4 """)
+    frame = None
     def __init__(self, values):
         self.values = values
         self.actionsDict = {}
         self.wd = WaitDialog()
         if self.values:
-            self.loadCSV()
+            try:
+                self.loadCSV()
+            except Exception, e:
+                print e
+                showErrorDialog('Unable to load RSR analysis results file:\n %s' % str(e))
             SwingUtilities.invokeAndWait(self)
             self.start()
 
@@ -231,7 +249,7 @@ class StruVa(Runnable):
         needreload = False
         if self.resultdict:
             ltext = text.lower()
-            if ltext in self.resultdict:
+            if text.upper() in self.resultdict:
                 self.key = text.upper()
                 self.pdbid = self.key.split('|')[0]
                 self.reloadStruct()
@@ -438,11 +456,13 @@ class StruVa(Runnable):
     def updateOutFile(self):
         outfile = open(self.checkedfilename, 'wb')
         csvfile = csv.writer(outfile)
-        csvfile.writerow(['PDB ID', "Coordinates to exam", "Ligand Residues", "Binding Site Residues"])
+        csvfile.writerow(rsr_analysis.titles)
         for key in self.resultdict:
             ligandresidues, residues_to_exam, binding_site, ligandgood, bsgood = self.resultdict[key]
             csvfile.writerow([key.split('|')[0], ';'.join(residues_to_exam), ';'.join(ligandresidues),';'.join(binding_site), ligandgood, bsgood])
         outfile.close()
+        self.resultdict.pop(self.key)
+        self.key = None
 
     def start(self):
         self.key = self.resultdict.iterkeys().next()
@@ -505,39 +525,32 @@ class StruVa(Runnable):
         reader = csv.reader(csvfile, dialect)
         for id, residues_to_exam_string, ligandresidues_string, binding_site_string, ligandgood, bsgood in reader:
             if id != 'PDB ID':
+                bsgood = bsgood.lower()
+                ligandgood = ligandgood.lower()
                 cont = True
                 if not(\
-                    (check_good_bs and bsgood == 'True') or\
-                    (check_bad_bs and bsgood == 'False') or\
-                    (check_dubious_bs and bsgood == 'Dubious') or\
-                    (check_good_ligand and ligandgood == 'True') or\
-                    (check_bad_ligand and ligandgood == 'False') or\
-                    (check_dubious_ligand and ligandgood == 'Dubious')
+                    (check_good_bs and bsgood == 'true') or\
+                    (check_bad_bs and bsgood == 'false') or\
+                    (check_dubious_bs and bsgood == 'dubious') or\
+                    (check_good_ligand and ligandgood == 'true') or\
+                    (check_bad_ligand and ligandgood == 'false') or\
+                    (check_dubious_ligand and ligandgood == 'dubious')
                 ):
                     continue
                 residues_to_exam = residues_to_exam_string.split(';')
                 ligandresidues = ligandresidues_string.split(';')
                 binding_site = binding_site_string.split(';')
-                self.resultdict[id + '|' +ligandresidues[0]] = ligandresidues, residues_to_exam, binding_site, ligandgood, bsgood
+                self.resultdict[id + '|' +ligandresidues[0]] = [ligandresidues, residues_to_exam, binding_site, ligandgood, bsgood]
         else:
             print 'Data loaded'
         if not self.resultdict:
             print 'File without data!'
-            exit(1)
+            showWarningDialog('No structures to be viewed.')
+            self.values = getvalues()
+            self.loadCSV()
+            self.start()
         csvfile.close()
         self.checkedfilename = os.path.join(outdir, basename + '_checked.csv')
-        self.helpmsg = """> Special commands:
-help : print this message
-good : Considera l'estructura com a bona, la desa a %s
-bad : Considera l'estructura com a incorrecta, la desa a %s
-dubious : Considera l'estructura com a dubtosa, la desa a %s
-see <pdbid> : load this structure from the queue
-list : shows the queue of structures
-binding_site : select binding site residues
-ligands : select ligand residues
-coords_to_exam : select coordinates to exam from the binding site
-Jmol scripting manual:
-http://chemapps.stolaf.edu/jmol/docs/?&fullmanual=1&ver=12.4 """ % (goodfilename, badfilename , dubiousfilename, )
 
 class DialogShower(SwingWorker):
     def __init__(self, diag, viewer):
@@ -843,4 +856,8 @@ def main(args=sys.argv):
     return struva
 
 if __name__ == '__main__':
-    sv = main()
+    try:
+        sv = main()
+    except Exception, e:
+        print e
+        showErrorDialog(e)
