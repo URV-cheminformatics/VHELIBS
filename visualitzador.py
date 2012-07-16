@@ -456,14 +456,16 @@ class StruVa(Runnable):
         outfile = open(self.checkedfilename, 'wb')
         csvfile = csv.writer(outfile)
         csvfile.writerow(rsr_analysis.titles)
-        for key in self.resultdict:
-            ligandresidues, residues_to_exam, binding_site, ligandgood, bsgood = self.resultdict[key]
-            csvfile.writerow([key.split('|')[0], ';'.join(residues_to_exam), ';'.join(ligandresidues),';'.join(binding_site), ligandgood, bsgood])
+        self.savedkeys[self.key] = self.resultdict.pop(self.key)
+        for d in self.savedkeys, self.resultdict:
+            for key in d:
+                ligandresidues, residues_to_exam, binding_site, ligandgood, bsgood = d[key]
+                csvfile.writerow([key.split('|')[0], ';'.join(residues_to_exam), ';'.join(ligandresidues),';'.join(binding_site), ligandgood, bsgood])
         outfile.close()
-        self.resultdict.pop(self.key)
         self.key = None
 
     def start(self):
+        self.savedkeys = {}
         self.key = self.resultdict.iterkeys().next()
         self.pdbid= self.key.split('|')[0]
         self.reloadStruct()
