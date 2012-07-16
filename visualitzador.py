@@ -22,7 +22,7 @@ from sys import exit
 from java.lang import Runnable
 from java.awt import BorderLayout, Dimension, GridLayout, GridBagLayout, GridBagConstraints, Insets
 from java.awt.event import ItemEvent
-from javax.swing import JFrame, JPanel, JButton, JOptionPane, JTextField, JCheckBox, JLabel, UIManager, JDialog, SwingUtilities, SwingWorker
+from javax.swing import JFrame, JPanel, JButton, JOptionPane, JTextField, JCheckBox, JLabel, UIManager, JDialog, SwingUtilities, SwingWorker, JComboBox
 
 systemlaf = UIManager.getSystemLookAndFeelClassName()
 _infoicon = UIManager.getIcon("OptionPane.informationIcon")
@@ -99,7 +99,7 @@ class JmolPanel(JPanel):
         self.viewer.renderScreenImage(g, self.currentSize.width, self.currentSize.height)
 
 class StruVa(Runnable):
-    actions = (u'good', u'bad', u'dubious', u'list', u'help', u'options', u'toggle ligand', u'toggle binding site', u'toggle coordinates to exam',)
+    actions = (u'next structure', u'list', u'help', u'display settings', u'toggle ligand', u'toggle binding site', u'toggle coordinates to exam',)
     helpmsg = dedent("""> Special commands:
     help : print this message
     good : ???
@@ -131,7 +131,6 @@ class StruVa(Runnable):
         if self.values:
             self.setupUi()
             self.setVisible(True)
-            self.console.sendConsoleMessage(self.helpmsg)
 
     def setupUi(self):
         self.frame = JFrame("Structure Validation Helper", defaultCloseOperation = JFrame.EXIT_ON_CLOSE, size = (700, 410))
@@ -178,7 +177,6 @@ class StruVa(Runnable):
         constraints.fill = GridBagConstraints.HORIZONTAL
         constraints.insets = Insets(3,3,3,3)
         cbpanel = JPanel(GridLayout(2, 3, 3, 3))
-        buttonPanel = JPanel(GridBagLayout())
         later = []
         for action in self.actions:
             caction = action[0].upper() + action[1:]
@@ -191,8 +189,9 @@ class StruVa(Runnable):
                 elif 'exam' in action:
                     checked = prefs.get('coordstoexam_edm', True)
                 later.append(JCheckBox(caction.replace('Toggle', 'EDM for'), prefbool(checked), itemStateChanged=self.nextStruct))
-            self.actionsDict[action] = JButton(caction, actionPerformed=self.nextStruct)
-            self.execute('function %s () {}' % action.replace(' ', '_'))
+            #self.execute('function %s () {}' % action.replace(' ', '_'))
+        #Must first add the checkboxes to the panel, then refrence them
+        #Otherwise their selection state is not correctly accessed
         for cb in later:
             cbpanel.add(cb)
         for comp in cbpanel.components:
@@ -204,33 +203,53 @@ class StruVa(Runnable):
         panelc.weightx = 1
         panelc.weighty = 0
         panel.add(cbpanel, panelc)
-        #
+
+        buttonPanel = JPanel(GridBagLayout())
+
+        list_button = JButton('List', actionPerformed=self.nextStruct)
+        opt_button = JButton('Display settings', actionPerformed=self.nextStruct)
+        next_button = JButton('Next structure', actionPerformed=self.nextStruct)
+
+        lig_lbl = JLabel('Ligand')
+        bs_lbl = JLabel('Binding Site')
+
+        qualities = ('Good', 'Bad', 'Dubious')
+
+        self.lig_cbox = JComboBox(qualities)
+        self.bs_cbox = JComboBox(qualities)
+
+        constraints = GridBagConstraints()
+        constraints.gridwidth = 1
+        constraints.gridheight =1
+        constraints.ipadx =0
+        constraints.ipady =0
+        constraints.weightx =0.5
+        constraints.weighty =0.5
+        constraints.fill = GridBagConstraints.HORIZONTAL
+        constraints.insets = Insets(3,3,3,3)
         constraints.gridx = 0
         constraints.gridy = 0
-        buttonPanel.add(self.actionsDict[self.actions[0]], constraints)
-        #
-        constraints.gridx = 1
-        constraints.gridy = 0
-        buttonPanel.add(self.actionsDict[self.actions[1]], constraints)
-        #
-        constraints.gridx = 2
-        constraints.gridy = 0
-        buttonPanel.add(self.actionsDict[self.actions[2]], constraints)
-        #
-        constraints.gridx = 0
-        constraints.gridy = 1
-        buttonPanel.add(self.actionsDict[self.actions[3]], constraints)
-        #
-        constraints.gridx = 1
-        constraints.gridy = 1
-        buttonPanel.add(self.actionsDict[self.actions[4]], constraints)
-        #
-        constraints.gridx = 2
-        constraints.gridy = 1
-        buttonPanel.add(self.actionsDict[self.actions[5]], constraints)
-        #
-        buttonPanel.setVisible(True)
-        panel2.add(buttonPanel, BorderLayout.NORTH)
+
+        buttonPanel.add(list_button, constraints)
+        constraints.gridx += 1
+        buttonPanel.add(opt_button, constraints)
+        constraints.gridx -= 1
+        constraints.gridy += 1
+        buttonPanel.add(lig_lbl, constraints)
+        constraints.gridx += 1
+        buttonPanel.add(self.lig_cbox, constraints)
+        constraints.gridx -= 1
+        constraints.gridy += 1
+        buttonPanel.add(bs_lbl, constraints)
+        constraints.gridx += 1
+        buttonPanel.add(self.bs_cbox, constraints)
+        constraints.gridx -= 1
+        constraints.gridy += 1
+        constraints.gridwidth = 2
+        buttonPanel.add(next_button, constraints)
+        self.buttonPanel = buttonPanel
+
+        panel2.add(self.buttonPanel, BorderLayout.NORTH)
         self.panel = panel
         self.frame.pack()
         self.setVisible = self.frame.setVisible
@@ -247,7 +266,6 @@ class StruVa(Runnable):
         if not text:
             return
         #self.console.sendConsoleEcho("%s has been executed" % text)
-        needreload = False
         if self.resultdict:
             ltext = text.lower()
             if text.upper() in self.resultdict:
@@ -280,21 +298,22 @@ class StruVa(Runnable):
                 self.console.sendConsoleEcho( '\n'.join(self.resultdict.keys()))
             elif ltext == 'help':
                 self.console.sendConsoleMessage(self.helpmsg)
-            elif ltext in ('good', 'bad', 'dubious'):
-                bs_valid = ligand_valid = ltext
+            elif 'next' in ltext:
+                bs_valid = self.bs_cbox.selectedItem.lower()
+                ligand_valid = self.lig_cbox.selectedItem.lower()
                 if bs_valid == 'good':
                     self.resultdict[self.key][-1] = True
                 elif bs_valid == 'bad':
                     self.resultdict[self.key][-1] = False
                 else:
-                    self.resultdict[self.key][-1] = text
+                    self.resultdict[self.key][-1] = bs_valid
 
                 if ligand_valid == 'good':
                     self.resultdict[self.key][-2] = True
                 elif ligand_valid == 'bad':
                     self.resultdict[self.key][-2] = False
                 else:
-                    self.resultdict[self.key][-2] = text
+                    self.resultdict[self.key][-2] = ligand_valid
                 self.updateOutFile()
                 if self.resultdict:
                     self.key = self.resultdict.iterkeys().next()
@@ -338,25 +357,32 @@ class StruVa(Runnable):
         #Load relevant data
         self.ligandresidues, self.residues_to_exam, self.binding_site,  self.ligandgood, self.bsgood = self.resultdict[self.key]
         self.ligandresidues_IS = self.residues_to_exam_IS = self.binding_site_IS = None
-        if self.ligandresidues == ['']:
-            self.console.sendConsoleMessage( 'Structure without ligands!')
-            self.console.sendConsoleMessage( 'Skipping it')
-            self.nextStruct(text='Skip')
+        if self.ligandgood.lower() == 'true':
+            self.lig_cbox.selectedItem = 'Good'
+        elif self.ligandgood.lower() == 'false':
+            self.lig_cbox.selectedItem = 'Bad'
         else:
-            #load in Jmol
-            try:
-                self.execute('load "=%s"' % self.pdbid)
-                self.execute('select all')
-                self.execute('wireframe only')
-                self.execute('wireframe off')
-                self.execute('select none')
-                self.actionsDict[u'toggle binding site'].selected = prefbool(prefs['bindingsite'])
-                self.actionsDict[u'toggle coordinates to exam'].selected = prefbool(prefs['coordstoexam'])
-                self.actionsDict[u'toggle ligand'].selected = prefbool(prefs['ligand'])
-                self.execute('zoom 0')
-            except Exception,  e:
-                self.console.sendConsoleMessage("ERROR: " + str(e))
-                showErrorDialog(e)
+            self.lig_cbox.selectedItem = 'Dubious'
+        if self.bsgood.lower() == 'true':
+            self.bs_cbox.selectedItem = 'Good'
+        elif self.bsgood.lower() == 'false':
+            self.bs_cbox.selectedItem = 'Bad'
+        else:
+            self.bs_cbox.selectedItem = 'Dubious'
+        #load in Jmol
+        try:
+            self.execute('load "=%s"' % self.pdbid)
+            self.execute('select all')
+            self.execute('wireframe only')
+            self.execute('wireframe off')
+            self.execute('select none')
+            self.actionsDict[u'toggle binding site'].selected = prefbool(prefs['bindingsite'])
+            self.actionsDict[u'toggle coordinates to exam'].selected = prefbool(prefs['coordstoexam'])
+            self.actionsDict[u'toggle ligand'].selected = prefbool(prefs['ligand'])
+            self.execute('zoom 0')
+        except Exception,  e:
+            self.console.sendConsoleMessage("ERROR: " + str(e))
+            showErrorDialog(e)
         self.console.sendConsoleEcho( "\n####################################")
         self.console.sendConsoleEcho( "Viewing structure %s" % self.key)
         self.console.sendConsoleEcho( "####################################\n")
@@ -512,6 +538,9 @@ class StruVa(Runnable):
         check_bad_ligand = wannasee['ligand']['Bad']
         check_dubious_bs = wannasee['bs']['Dubious']
         check_dubious_ligand = wannasee['ligand']['Dubious']
+
+        if check_good_bs == check_good_ligand == check_bad_bs == check_bad_ligand == check_dubious_bs == check_dubious_ligand == False:
+            self.restart()
 
         print('Loading data from %s...' % csvfilename)
         csvfile = open(csvfilename, 'rb')
