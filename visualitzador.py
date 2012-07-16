@@ -113,6 +113,7 @@ class StruVa(Runnable):
     Jmol scripting manual:
     http://chemapps.stolaf.edu/jmol/docs/?&fullmanual=1&ver=12.4 """)
     frame = None
+    viewer = None
     def __init__(self, values):
         self.values = values
         self.actionsDict = {}
@@ -313,9 +314,7 @@ class StruVa(Runnable):
         self.execute('delete;')
         game_over = JOptionPane.showConfirmDialog(self.frame,u'Continue working with other structures?',u'No more structures to view!',JOptionPane.YES_NO_OPTION)
         if game_over == JOptionPane.OK_OPTION:
-            self.values = getvalues()
-            self.loadCSV()
-            self.start()
+            self.restart()
         else:
             exit(0)
 
@@ -500,17 +499,17 @@ class StruVa(Runnable):
                 basename = os.path.splitext(os.path.basename(csvfilename))[0]
             else:
                 showWarningDialog('No structures to be viewed.')
-                self.values = getvalues()
-                self.loadCSV()
-                self.start()
-        #Demanar quines estructures mirar
-        #dialog
-        check_good_bs = False
-        check_good_ligand = False
-        check_bad_bs = False
-        check_bad_ligand = False
-        check_dubious_bs = True
-        check_dubious_ligand = True
+                self.restart()
+        #Demana quines estructures mirar
+        struc_d = StructureSelectDialog()
+        wannasee = struc_d.show()
+
+        check_good_bs = wannasee['bs']['Good']
+        check_good_ligand = wannasee['ligand']['Good']
+        check_bad_bs = wannasee['bs']['Bad']
+        check_bad_ligand = wannasee['ligand']['Bad']
+        check_dubious_bs = wannasee['bs']['Dubious']
+        check_dubious_ligand = wannasee['ligand']['Dubious']
 
         print('Loading data from %s...' % csvfilename)
         csvfile = open(csvfilename, 'rb')
@@ -546,11 +545,19 @@ class StruVa(Runnable):
         if not self.resultdict:
             print 'File without data!'
             showWarningDialog('No structures to be viewed.')
-            self.values = getvalues()
-            self.loadCSV()
-            self.start()
+            self.restart()
         csvfile.close()
         self.checkedfilename = os.path.join(outdir, basename + '_checked.csv')
+    def restart(self):
+        self.values = getvalues()
+        try:
+            self.loadCSV()
+        except Exception, e:
+            print e
+            showErrorDialog('Unable to load RSR analysis results file:\n %s' % str(e))
+        if not self.viewer:
+            SwingUtilities.invokeAndWait(self)
+        self.start()
 
 class DialogShower(SwingWorker):
     def __init__(self, diag, viewer):
@@ -568,6 +575,69 @@ class DialogShower(SwingWorker):
             self.get()  #raise exception if abnormal completion
         except ExecutionException, e:
             raise SystemExit, e.getCause()
+
+class StructureSelectDialog(object):
+    def __init__(self, parent=None):
+        self.diag = JDialog(JFrame(),size = (500, 200), title = 'Select which structures to view', modal=True)
+        self.panel = JPanel(GridBagLayout())
+        constraints = GridBagConstraints()
+        constraints.weightx = 0.5
+        constraints.weighty = 0.5
+        constraints.fill = GridBagConstraints.HORIZONTAL
+        constraints.insets = Insets(3,3,3,3)
+        constraints.gridy = 0
+        constraints.gridx = 0
+        constraints.gridwidth = 5
+        self.panel.add(JLabel('Select which structures to view'), constraints)
+        constraints.gridwidth = 2
+        constraints.gridy += 1
+        self.panel.add(JCheckBox('Good Binding Site'), constraints)
+        constraints.gridx += 2
+        self.panel.add(JCheckBox('Good Ligand'), constraints)
+        constraints.gridx -= 2
+        constraints.gridy += 1
+        self.panel.add(JCheckBox('Bad Binding Site'), constraints)
+        constraints.gridx += 2
+        self.panel.add(JCheckBox('Bad Ligand'), constraints)
+        constraints.gridx -= 2
+        constraints.gridy += 1
+        self.panel.add(JCheckBox('Dubious Binding Site'), constraints)
+        constraints.gridx += 2
+        self.panel.add(JCheckBox('Dubious Ligand'), constraints)
+        constraints.gridy += 1
+        constraints.gridx = 0
+        constraints.gridwidth = 2
+        self.panel.add(JButton('OK', actionPerformed=self.choose), constraints)
+        constraints.gridx += 3
+        self.panel.add(JButton('Cancel', actionPerformed=self.cancel), constraints)
+        self.diag.add(self.panel)
+        self.diag.setLocationRelativeTo(parent)
+        self.diag.pack()
+    def show(self, boolean=True):
+        self.diag.visible = boolean
+        return self.getChoice()
+
+    def getChoice(self):
+        checkboxdict = {'bs':{'Good':None, 'Bad':None, 'Dubious':None}, 'ligand':{'Good':None, 'Bad':None, 'Dubious':None}}
+        for c in self.panel.components:
+            if 'Binding Site' in c.text:
+                d = 'bs'
+            elif 'Ligand' in c.text:
+                d = 'ligand'
+            else:
+                continue
+            quality = c.text.split()[0]
+            if quality in checkboxdict[d]:
+                checkboxdict[d][quality] = c.selected
+        print checkboxdict
+        return checkboxdict
+
+    def choose(self, event):
+        self.diag.visible = False
+    def cancel(self, event):
+        self.choose(event)
+        main(['--no-args'])
+
 
 class SettingsDialog(object):
     def __init__(self, values, parent=None):
