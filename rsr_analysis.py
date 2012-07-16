@@ -299,7 +299,7 @@ def results_to_csv(results, outputfile):
             else:
                 csvfile.writerow([id, ';'.join(residues_to_exam), ';'.join(ligandresidues),';'.join(binding_site), ligandgood, bsgood])
                 outfile.flush()
-                datawritten = True
+                datawritten = outputfile
     outfile.close()
     if not datawritten:
         os.remove(outputfile)

@@ -262,8 +262,21 @@ class StruVa(Runnable):
             elif ltext == 'help':
                 self.console.sendConsoleMessage(self.helpmsg)
             elif ltext in ('good', 'bad', 'dubious'):
-                self.updateOutFile(text)
-                self.saveWIP()
+                bs_valid = ligand_valid = ltext
+                if bs_valid == 'good':
+                    self.resultdict[self.key][-1] = True
+                elif bs_valid == 'bad':
+                    self.resultdict[self.key][-1] = False
+                else:
+                    self.resultdict[self.key][-1] = text
+
+                if ligand_valid == 'good':
+                    self.resultdict[self.key][-2] = True
+                elif ligand_valid == 'bad':
+                    self.resultdict[self.key][-2] = False
+                else:
+                    self.resultdict[self.key][-2] = text
+                self.updateOutFile()
                 if self.resultdict:
                     self.key = self.resultdict.iterkeys().next()
                     self.pdbid = self.key.split('|')[0]
@@ -279,10 +292,6 @@ class StruVa(Runnable):
 
     def clean(self):
         #Neteja-ho tot
-        try:
-            os.remove(self.wipfilename)
-        except:
-            pass
         self.execute('delete;')
         game_over = JOptionPane.showConfirmDialog(self.frame,u'Continue working with other structures?',u'No more structures to view!',JOptionPane.YES_NO_OPTION)
         if game_over == JOptionPane.OK_OPTION:
@@ -310,7 +319,7 @@ class StruVa(Runnable):
         #Clean up
         self.execute('delete')
         #Load relevant data
-        self.ligandresidues, self.residues_to_exam, self.binding_site = self.resultdict[self.key]
+        self.ligandresidues, self.residues_to_exam, self.binding_site,  self.ligandgood, self.bsgood = self.resultdict[self.key]
         self.ligandresidues_IS = self.residues_to_exam_IS = self.binding_site_IS = None
         if self.ligandresidues == ['']:
             self.console.sendConsoleMessage( 'Structure without ligands!')
@@ -426,26 +435,14 @@ class StruVa(Runnable):
             self.execute('isosurface LIGAND off')
             self.ligandresidues_IS = 0
 
-    def saveWIP(self):
-        outfile = open(self.wipfilename, 'wb')
+    def updateOutFile(self):
+        outfile = open(self.checkedfilename, 'wb')
         csvfile = csv.writer(outfile)
         csvfile.writerow(['PDB ID', "Coordinates to exam", "Ligand Residues", "Binding Site Residues"])
         for key in self.resultdict:
-            ligandresidues, residues_to_exam, binding_site = self.resultdict[key]
-            csvfile.writerow([key.split('|')[0], ';'.join(residues_to_exam), ';'.join(ligandresidues),';'.join(binding_site)])
+            ligandresidues, residues_to_exam, binding_site, ligandgood, bsgood = self.resultdict[key]
+            csvfile.writerow([key.split('|')[0], ';'.join(residues_to_exam), ';'.join(ligandresidues),';'.join(binding_site), ligandgood, bsgood])
         outfile.close()
-
-    def updateOutFile(self, filetype):
-        filetype = filetype.lower()
-        if filetype not in self.filesdict:
-            raise TypeError('Unknown destination file')
-        ligandresidues, residues_to_exam, binding_site = self.resultdict.pop(self.key)
-        row = [self.key.split('|')[0], ';'.join(residues_to_exam), ';'.join(ligandresidues),';'.join(binding_site)]
-        file = open(self.filesdict[filetype], 'ab')
-        writer = csv.writer(file, self.dialect)
-        writer.writerow(row)
-        file.flush()
-        file.close()
 
     def start(self):
         self.key = self.resultdict.iterkeys().next()
@@ -462,18 +459,9 @@ class StruVa(Runnable):
                 exit(1)
             outdir = os.path.dirname(csvfilename)
             basename = os.path.splitext(os.path.basename(csvfilename))[0]
-            _wipfile = os.path.join(outdir, basename + '_wip.csv~')
-            if csvfilename.endswith('_wip.csv~'):
-                basename = basename.replace('_wip', '')
-            elif os.path.isfile(_wipfile):
-                ans=JOptionPane.showConfirmDialog(None, "Would you like to continue with the validation \nof the structures from the file %s?" % _wipfile)
-                if ans == 2:
-                    exit(0)
-                elif ans ==0:
-                    csvfilename = _wipfile
         else:
             self.wd.show()
-            datawritten, goodfilename = rsr_analysis.main(
+            datawritten = rsr_analysis.main(
                                             values.pdbidfile
                                             , pdbidslist = values.pdbids
                                             , swissprotlist =values.swissprot
@@ -485,18 +473,25 @@ class StruVa(Runnable):
             self.wd.show(False)
             if values.no_view:
                 exit(0)
-            if goodfilename:
-                showMessageDialog('Structures below the specified RSR values were\nconsidered good enough and saved to %s' % goodfilename, 'Good structures saved')
             if datawritten:
+                showMessageDialog('Analysis data saved to %s' % datawritten, 'Analysis completed')
                 csvfilename = values.outputfile
                 outdir = os.path.dirname(csvfilename)
                 basename = os.path.splitext(os.path.basename(csvfilename))[0]
-                _wipfile = os.path.join(outdir, basename + '_wip.csv~')
             else:
                 showWarningDialog('No structures to be viewed.')
                 self.values = getvalues()
                 self.loadCSV()
                 self.start()
+        #Demanar quines estructures mirar
+        #dialog
+        check_good_bs = False
+        check_good_ligand = False
+        check_bad_bs = False
+        check_bad_ligand = False
+        check_dubious_bs = True
+        check_dubious_ligand = True
+
         print('Loading data from %s...' % csvfilename)
         csvfile = open(csvfilename, 'rb')
         try:
@@ -508,23 +503,29 @@ class StruVa(Runnable):
         csvfile.seek(0)
         self.dialect = dialect
         reader = csv.reader(csvfile, dialect)
-        for id, residues_to_exam_string, ligandresidues_string, binding_site_string in reader:
+        for id, residues_to_exam_string, ligandresidues_string, binding_site_string, ligandgood, bsgood in reader:
             if id != 'PDB ID':
+                cont = True
+                if not(\
+                    (check_good_bs and bsgood == 'True') or\
+                    (check_bad_bs and bsgood == 'False') or\
+                    (check_dubious_bs and bsgood == 'Dubious') or\
+                    (check_good_ligand and ligandgood == 'True') or\
+                    (check_bad_ligand and ligandgood == 'False') or\
+                    (check_dubious_ligand and ligandgood == 'Dubious')
+                ):
+                    continue
                 residues_to_exam = residues_to_exam_string.split(';')
                 ligandresidues = ligandresidues_string.split(';')
                 binding_site = binding_site_string.split(';')
-                self.resultdict[id + '|' +ligandresidues[0]] = ligandresidues, residues_to_exam, binding_site
+                self.resultdict[id + '|' +ligandresidues[0]] = ligandresidues, residues_to_exam, binding_site, ligandgood, bsgood
         else:
             print 'Data loaded'
         if not self.resultdict:
             print 'File without data!'
             exit(1)
         csvfile.close()
-        goodfilename = os.path.join(outdir, basename + '_good.csv')
-        badfilename = os.path.join(outdir, basename + '_bad.csv')
-        dubiousfilename = os.path.join(outdir, basename + '_dubious.csv')
-        self.filesdict = {'good':goodfilename, 'bad':badfilename, 'dubious':dubiousfilename}
-        self.wipfilename = os.path.join(outdir, basename + '_wip.csv~')
+        self.checkedfilename = os.path.join(outdir, basename + '_checked.csv')
         self.helpmsg = """> Special commands:
 help : print this message
 good : Considera l'estructura com a bona, la desa a %s
