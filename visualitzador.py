@@ -256,7 +256,7 @@ class StruVa(Runnable):
         self.panel = panel
         self.frame.pack()
         self.setVisible = self.frame.setVisible
-        self.optionsdiag = OptionsDialog(self)
+        self.optionsdiag = DisplaySettingsDialog(self)
 
     def updateDisplay(self, event):
         text = event.source.text.lower()
@@ -707,7 +707,7 @@ class WaitDialog(Runnable):
     def run(self):
         self.show(True)
 
-class OptionsDialog(object):
+class DisplaySettingsDialog(object):
     keys = ('ligwfv', 'ligsfv', 'ligcolor', 'ligedmcolor', 'bswfv', 'bssfv', 'bscolor', 'bsedmcolor', 'rewfv', 'resfv', 'recolor', 'reedmcolor', 'edmdistance', 'sigma')
     def __init__(self, parent = None):
         self.parent = parent
