@@ -21,7 +21,7 @@ from sys import exit
 #Java stuff
 from java.lang import Runnable
 from java.awt import BorderLayout, Dimension, GridLayout, GridBagLayout, GridBagConstraints, Insets
-from java.awt.event import ItemEvent
+from java.awt.event import ItemEvent, ActionListener
 from javax.swing import JFrame, JPanel, JButton, JOptionPane, JTextField, JCheckBox, JLabel, UIManager, JDialog, SwingUtilities, SwingWorker, JComboBox
 
 systemlaf = UIManager.getSystemLookAndFeelClassName()
@@ -97,6 +97,10 @@ class JmolPanel(JPanel):
     def paint(self, g):
         self.getSize(self.currentSize)
         self.viewer.renderScreenImage(g, self.currentSize.width, self.currentSize.height)
+
+class make_listen(ActionListener):
+    def __init__(self, callable):
+        self.actionPerformed = callable
 
 class StruVa(Runnable):
     actions = (u'next structure', u'list', u'help', u'display settings', u'toggle ligand', u'toggle binding site', u'toggle coordinates to exam',)
@@ -207,10 +211,14 @@ class StruVa(Runnable):
 
         buttonPanel = JPanel(GridBagLayout())
 
+        self.structs_cbox = JComboBox(self.resultdict.keys())
+        self.structs_cbox.addActionListener(make_listen(self.reloadStruct))
+
         list_button = JButton('List', actionPerformed=self.nextStruct)
         opt_button = JButton('Display settings', actionPerformed=self.showDisplaySettings)
         next_button = JButton('Next structure', actionPerformed=self.nextStruct)
 
+        struct_lbl = JLabel('Current Structure:')
         lig_lbl = JLabel('Ligand')
         bs_lbl = JLabel('Binding Site')
 
@@ -236,6 +244,13 @@ class StruVa(Runnable):
         buttonPanel.add(opt_button, constraints)
         constraints.gridx -= 1
         constraints.gridy += 1
+
+        buttonPanel.add(struct_lbl, constraints)
+        constraints.gridx += 1
+        buttonPanel.add(self.structs_cbox, constraints)
+        constraints.gridx -= 1
+        constraints.gridy += 1
+
         buttonPanel.add(lig_lbl, constraints)
         constraints.gridx += 1
         buttonPanel.add(self.lig_cbox, constraints)
@@ -269,11 +284,7 @@ class StruVa(Runnable):
         #self.console.sendConsoleEcho("%s has been executed" % text)
         if self.resultdict:
             ltext = text.lower()
-            if text.upper() in self.resultdict:
-                self.key = text.upper()
-                self.pdbid = self.key.split('|')[0]
-                self.reloadStruct()
-            elif 'toggle' in ltext:
+            if 'toggle' in ltext:
                 checked = event.getStateChange() == ItemEvent.SELECTED
                 if 'ligand' in ltext:
                     prefs['ligand'] = checked
@@ -316,11 +327,8 @@ class StruVa(Runnable):
                 else:
                     self.resultdict[self.key][-2] = ligand_valid
                 self.updateOutFile()
-                if self.resultdict:
-                    self.key = self.resultdict.iterkeys().next()
-                    self.pdbid = self.key.split('|')[0]
-                    self.reloadStruct()
-                else:
+                self.structs_cbox.removeItem(self.key)
+                if not self.resultdict:
                     self.key = None
                     self.pdbid = None
                     self.clean()
@@ -339,7 +347,10 @@ class StruVa(Runnable):
         else:
             exit(0)
 
-    def reloadStruct(self):
+    def reloadStruct(self, event=None):
+        if event and event.actionCommand != u'comboBoxChanged': return
+        self.key = self.structs_cbox.selectedItem
+        self.pdbid = self.key.split('|')[0]
         self.wd.show(False)
         self.wd = WaitDialog(parent=self.frame,info='<html>Loading structure %s from PDB and EDS<br /> Please be patient</html>' % self.key)
         self.wd.dialog.pack()
@@ -490,13 +501,11 @@ class StruVa(Runnable):
                 ligandresidues, residues_to_exam, binding_site, ligandgood, bsgood = d[key]
                 csvfile.writerow([key.split('|')[0], ';'.join(residues_to_exam), ';'.join(ligandresidues),';'.join(binding_site), ligandgood, bsgood])
         outfile.close()
-        self.key = None
 
     def start(self):
         self.savedkeys = {}
-        self.key = self.resultdict.iterkeys().next()
-        self.pdbid= self.key.split('|')[0]
-        self.reloadStruct()
+        self.key = self.structs_cbox.selectedItem
+        self.structs_cbox.selectedItem = self.key
 
     def loadCSV(self):
         values = self.values
