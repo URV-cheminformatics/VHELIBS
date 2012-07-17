@@ -121,11 +121,12 @@ class StruVa(Runnable):
         if self.values:
             try:
                 self.loadCSV()
+                if not self.viewer:
+                    SwingUtilities.invokeAndWait(self)
+                    self.start()
             except Exception, e:
                 print e
                 showErrorDialog('Unable to load RSR analysis results file:\n %s' % str(e))
-            SwingUtilities.invokeAndWait(self)
-            self.start()
 
     def run(self):
         if self.values:
@@ -207,7 +208,7 @@ class StruVa(Runnable):
         buttonPanel = JPanel(GridBagLayout())
 
         list_button = JButton('List', actionPerformed=self.nextStruct)
-        opt_button = JButton('Display settings', actionPerformed=self.nextStruct)
+        opt_button = JButton('Display settings', actionPerformed=self.showDisplaySettings)
         next_button = JButton('Next structure', actionPerformed=self.nextStruct)
 
         lig_lbl = JLabel('Ligand')
@@ -323,10 +324,11 @@ class StruVa(Runnable):
                     self.key = None
                     self.pdbid = None
                     self.clean()
-            elif ltext.strip() == 'options':
-                self.optionsdiag.show(not self.optionsdiag.diag.visible)
         else:
             self.clean()
+
+    def showDisplaySettings(self, event):
+        self.optionsdiag.show(not self.optionsdiag.diag.visible)
 
     def clean(self):
         #Neteja-ho tot
@@ -383,9 +385,9 @@ class StruVa(Runnable):
         except Exception,  e:
             self.console.sendConsoleMessage("ERROR: " + str(e))
             showErrorDialog(e)
-        self.console.sendConsoleEcho( "\n####################################")
+        self.console.sendConsoleEcho( "\n#########################")
         self.console.sendConsoleEcho( "Viewing structure %s" % self.key)
-        self.console.sendConsoleEcho( "####################################\n")
+        self.console.sendConsoleEcho( "##########################\n")
 
     def displayBindingSite(self, visible=True):
         if not self.binding_site:
@@ -528,6 +530,7 @@ class StruVa(Runnable):
             else:
                 showWarningDialog('No structures to be viewed.')
                 self.restart()
+                return
         #Demana quines estructures mirar
         struc_d = StructureSelectDialog()
         wannasee = struc_d.show()
@@ -541,6 +544,7 @@ class StruVa(Runnable):
 
         if check_good_bs == check_good_ligand == check_bad_bs == check_bad_ligand == check_dubious_bs == check_dubious_ligand == False:
             self.restart()
+            return
 
         print('Loading data from %s...' % csvfilename)
         csvfile = open(csvfilename, 'rb')
@@ -573,22 +577,15 @@ class StruVa(Runnable):
                 self.resultdict[id + '|' +ligandresidues[0]] = [ligandresidues, residues_to_exam, binding_site, ligandgood, bsgood]
         else:
             print 'Data loaded'
+        csvfile.close()
+        self.checkedfilename = os.path.join(outdir, basename + '_checked.csv')
         if not self.resultdict:
             print 'File without data!'
             showWarningDialog('No structures to be viewed.')
             self.restart()
-        csvfile.close()
-        self.checkedfilename = os.path.join(outdir, basename + '_checked.csv')
+
     def restart(self):
-        self.values = getvalues()
-        try:
-            self.loadCSV()
-        except Exception, e:
-            print e
-            showErrorDialog('Unable to load RSR analysis results file:\n %s' % str(e))
-        if not self.viewer:
-            SwingUtilities.invokeAndWait(self)
-        self.start()
+        self.__init__(getvalues())
 
 class DialogShower(SwingWorker):
     def __init__(self, diag, viewer):
@@ -632,9 +629,9 @@ class StructureSelectDialog(object):
         self.panel.add(JCheckBox('Bad Ligand'), constraints)
         constraints.gridx -= 2
         constraints.gridy += 1
-        self.panel.add(JCheckBox('Dubious Binding Site'), constraints)
+        self.panel.add(JCheckBox('Dubious Binding Site', selected=True), constraints)
         constraints.gridx += 2
-        self.panel.add(JCheckBox('Dubious Ligand'), constraints)
+        self.panel.add(JCheckBox('Dubious Ligand', selected=True), constraints)
         constraints.gridy += 1
         constraints.gridx = 0
         constraints.gridwidth = 2
@@ -666,8 +663,10 @@ class StructureSelectDialog(object):
     def choose(self, event):
         self.diag.visible = False
     def cancel(self, event):
+        for c in self.panel.components:
+            if 'Binding' in c.text or 'Ligand' in c.text:
+                c.selected = False
         self.choose(event)
-        main(['--no-args'])
 
 
 class SettingsDialog(object):
