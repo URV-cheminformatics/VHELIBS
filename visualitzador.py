@@ -174,14 +174,14 @@ class StruVa(Runnable):
         for action in self.actions:
             caction = action[0].upper() + action[1:]
             if 'toggle' in action:
-                cbpanel.add(JCheckBox(caction, itemStateChanged=self.nextStruct))
+                cbpanel.add(JCheckBox(caction, itemStateChanged=self.updateDisplay))
                 if 'ligand' in action:
                     checked = prefs.get('ligand_edm', False)
                 elif 'binding' in action:
                     checked = prefs.get('bindingsite_edm', False)
                 elif 'exam' in action:
                     checked = prefs.get('coordstoexam_edm', True)
-                later.append(JCheckBox(caction.replace('Toggle', 'EDM for'), prefbool(checked), itemStateChanged=self.nextStruct))
+                later.append(JCheckBox(caction.replace('Toggle', 'EDM for'), prefbool(checked), itemStateChanged=self.updateDisplay))
         #Must first add the checkboxes to the panel, then refrence them
         #Otherwise their selection state is not correctly accessed
         for cb in later:
@@ -258,56 +258,55 @@ class StruVa(Runnable):
         self.setVisible = self.frame.setVisible
         self.optionsdiag = OptionsDialog(self)
 
-    def nextStruct(self, event):
+    def updateDisplay(self, event):
         text = event.source.text.lower()
-        if not text:
-            return
-        if self.resultdict:
-            ltext = text.lower()
-            if 'toggle' in ltext:
-                checked = event.getStateChange() == ItemEvent.SELECTED
-                if 'ligand' in ltext:
-                    prefs['ligand'] = checked
-                    self.displayLigand(checked)
-                elif 'binding' in ltext or 'site' in ltext:
-                    prefs['bindingsite'] = checked
-                    self.displayBindingSite(checked)
-                elif 'exam' in ltext:
-                    prefs['coordstoexam'] = checked
-                    self.displayCoordsToExam(checked)
-            elif 'edm for' in ltext:
-                checked = event.getStateChange() == ItemEvent.SELECTED
-                if 'ligand' in ltext:
-                    prefs['ligand_edm'] = checked
-                    self.displayLigand(self.actionsDict[u'toggle ligand'].selected)
-                elif 'binding' in ltext or 'site' in ltext:
-                    prefs['bindingsite_edm'] = checked
-                    self.displayBindingSite(self.actionsDict[u'toggle binding site'].selected)
-                elif 'exam' in ltext:
-                    prefs['coordstoexam_edm'] = checked
-                    self.displayCoordsToExam(self.actionsDict[u'toggle coordinates to exam'].selected)
-            elif 'next' in ltext:
-                bs_valid = self.bs_cbox.selectedItem.lower()
-                ligand_valid = self.lig_cbox.selectedItem.lower()
-                if bs_valid == 'good':
-                    self.resultdict[self.key][-1] = True
-                elif bs_valid == 'bad':
-                    self.resultdict[self.key][-1] = False
-                else:
-                    self.resultdict[self.key][-1] = bs_valid
+        ltext = text.lower()
+        if 'toggle' in ltext:
+            checked = event.getStateChange() == ItemEvent.SELECTED
+            if 'ligand' in ltext:
+                prefs['ligand'] = checked
+                self.displayLigand(checked)
+            elif 'binding' in ltext or 'site' in ltext:
+                prefs['bindingsite'] = checked
+                self.displayBindingSite(checked)
+            elif 'exam' in ltext:
+                prefs['coordstoexam'] = checked
+                self.displayCoordsToExam(checked)
+        elif 'edm for' in ltext:
+            checked = event.getStateChange() == ItemEvent.SELECTED
+            if 'ligand' in ltext:
+                prefs['ligand_edm'] = checked
+                self.displayLigand(self.actionsDict[u'toggle ligand'].selected)
+            elif 'binding' in ltext or 'site' in ltext:
+                prefs['bindingsite_edm'] = checked
+                self.displayBindingSite(self.actionsDict[u'toggle binding site'].selected)
+            elif 'exam' in ltext:
+                prefs['coordstoexam_edm'] = checked
+                self.displayCoordsToExam(self.actionsDict[u'toggle coordinates to exam'].selected)
 
-                if ligand_valid == 'good':
-                    self.resultdict[self.key][-2] = True
-                elif ligand_valid == 'bad':
-                    self.resultdict[self.key][-2] = False
-                else:
-                    self.resultdict[self.key][-2] = ligand_valid
-                self.updateOutFile()
-                self.structs_cbox.removeItem(self.key)
-                if not self.resultdict:
-                    self.key = None
-                    self.pdbid = None
-                    self.clean()
+    def nextStruct(self, event):
+        if self.resultdict:
+            bs_valid = self.bs_cbox.selectedItem.lower()
+            ligand_valid = self.lig_cbox.selectedItem.lower()
+            if bs_valid == 'good':
+                self.resultdict[self.key][-1] = True
+            elif bs_valid == 'bad':
+                self.resultdict[self.key][-1] = False
+            else:
+                self.resultdict[self.key][-1] = bs_valid
+
+            if ligand_valid == 'good':
+                self.resultdict[self.key][-2] = True
+            elif ligand_valid == 'bad':
+                self.resultdict[self.key][-2] = False
+            else:
+                self.resultdict[self.key][-2] = ligand_valid
+            self.updateOutFile()
+            self.structs_cbox.removeItem(self.key)
+            if not self.resultdict:
+                self.key = None
+                self.pdbid = None
+                self.clean()
         else:
             self.clean()
 
