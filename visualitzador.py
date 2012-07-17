@@ -201,9 +201,9 @@ class StruVa(Runnable):
         self.structs_cbox = JComboBox(self.resultdict.keys())
         self.structs_cbox.addActionListener(make_listen(self.reloadStruct))
 
-        list_button = JButton('List', actionPerformed=self.nextStruct)
+        help_button = JButton('Help', actionPerformed=self.displayHelp)
         opt_button = JButton('Display settings', actionPerformed=self.showDisplaySettings)
-        next_button = JButton('Next structure', actionPerformed=self.nextStruct)
+        next_button = JButton('Save & Check Next Structure', actionPerformed=self.nextStruct)
 
         struct_lbl = JLabel('Current Structure:')
         lig_lbl = JLabel('Ligand')
@@ -226,7 +226,7 @@ class StruVa(Runnable):
         constraints.gridx = 0
         constraints.gridy = 0
 
-        buttonPanel.add(list_button, constraints)
+        buttonPanel.add(help_button, constraints)
         constraints.gridx += 1
         buttonPanel.add(opt_button, constraints)
         constraints.gridx -= 1
@@ -312,6 +312,10 @@ class StruVa(Runnable):
 
     def showDisplaySettings(self, event):
         self.optionsdiag.show(not self.optionsdiag.diag.visible)
+
+    def displayHelp(self, event):
+        #Stub, needs to be implemented
+        print helpmsg
 
     def clean(self):
         #Neteja-ho tot
