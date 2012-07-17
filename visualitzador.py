@@ -21,7 +21,7 @@ from sys import exit
 #Java stuff
 from java.lang import Runnable
 from java.awt import BorderLayout, Dimension, GridLayout, GridBagLayout, GridBagConstraints, Insets
-from java.awt.event import ItemEvent, ActionListener
+from java.awt.event import ItemEvent, ActionListener, WindowAdapter
 from javax.swing import JFrame, JPanel, JButton, JOptionPane, JTextField, JCheckBox, JLabel, UIManager, JDialog, SwingUtilities, SwingWorker, JComboBox
 
 systemlaf = UIManager.getSystemLookAndFeelClassName()
@@ -46,7 +46,6 @@ from org.jmol.api import JmolViewer
 from org.openscience.jmol.app.jmolpanel import AppConsole
 
 #Own stuff
-from WrapJOptionPane import JOptionPane2
 sys.argv = [arg for arg in sys.argv if __file__ not in arg]
 if not len(sys.argv):
     sys.argv.append('--no-args')
@@ -570,7 +569,7 @@ class StruVa(Runnable):
             self.restart()
 
     def restart(self):
-        self.__init__(getvalues())
+        self.__init__(SettingsDialog().getvalues())
 
 class DialogShower(SwingWorker):
     def __init__(self, diag, viewer):
@@ -655,39 +654,117 @@ class StructureSelectDialog(object):
 
 
 class SettingsDialog(object):
-    def __init__(self, values, parent=None):
-        self.values = values
+    def __init__(self, args=['--no-args']):
+        self.values = argparser.parse_args(args)
+        self.panel = JPanel(GridBagLayout())
 
-        distance = JTextField()
         if not self.values.distance:
             self.values.distance = math.sqrt(rsr_analysis.inner_distance)
-        distance.setText(str(self.values.distance))
+        self.distance  = JTextField(str(self.values.distance))
 
-        outputfile = JTextField()
         if not self.values.outputfile:
             self.values.outputfile = 'rsr_analysis.csv'
-        outputfile.setText(str(self.values.outputfile))
+        self.outputfile = JTextField(str(self.values.outputfile))
 
-        rsr_lower = JTextField()
         if not self.values.rsr_lower:
             self.values.rsr_lower = rsr_analysis.RSR_lower
-        rsr_lower.setText(str(self.values.rsr_lower))
+        self.rsr_lower = JTextField(str(self.values.rsr_lower))
 
-        rsr_upper = JTextField()
         if not self.values.rsr_upper:
             self.values.rsr_upper = rsr_analysis.RSR_upper
-        rsr_upper.setText(str(self.values.rsr_upper))
+        self.rsr_upper = JTextField(str(self.values.rsr_upper))
 
-        message = ['Distance', distance,  'Output file name', outputfile,  'Lowest RSR', rsr_lower,  'Highest RSR', rsr_upper]
+        constraints = GridBagConstraints()
+        constraints.weightx = 0.5
+        constraints.weighty = 0.5
+        constraints.fill = GridBagConstraints.HORIZONTAL
+        constraints.insets = Insets(3,3,3,3)
+        constraints.gridy = 0
+        constraints.gridx = 0
 
-        self.pane = JOptionPane2(message, JOptionPane.PLAIN_MESSAGE, JOptionPane.OK_CANCEL_OPTION)
-        self.dialog = self.pane.createDialog(parent, "Options")
-        self.dialog.visible = True
-        self.values.distance = float(distance.getText())
-        self.values.rsr_lower = float(rsr_lower.getText())
-        self.values.rsr_upper = float(rsr_upper.getText())
-        self.values.outputfile = outputfile.getText()
-        #print name.getText()
+        self.panel.add(JLabel('Distance'), constraints)
+        constraints.gridx += 1
+        self.panel.add(self.distance, constraints)
+        constraints.gridx -= 1
+
+        constraints.gridy += 1
+        self.panel.add(JLabel('Highest RSR value'), constraints)
+        constraints.gridx += 1
+        self.panel.add(self.rsr_upper, constraints)
+        constraints.gridx -= 1
+
+        constraints.gridy += 1
+        self.panel.add(JLabel('Lower RSR value'), constraints)
+        constraints.gridx += 1
+        self.panel.add(self.rsr_lower, constraints)
+        constraints.gridx -= 1
+
+        constraints.gridy += 1
+        self.panel.add(JButton('Output file name', actionPerformed=self.selectOutFileName), constraints)
+        constraints.gridx += 1
+        self.panel.add(self.outputfile, constraints)
+        constraints.gridx -= 1
+
+        constraints.gridy += 1
+        self.panel.add(JButton('Load from PDB', actionPerformed=self.loadStructsFrom), constraints)
+        constraints.gridx += 1
+        self.panel.add(JButton('Load from UniprotKB', actionPerformed=self.loadStructsFrom), constraints)
+        constraints.gridx -= 1
+
+        constraints.gridy += 1
+        constraints.gridwidth = 2
+        self.panel.add(JButton('Load previous results file', actionPerformed=self.csvFileDialog), constraints)
+
+        self.diag = JDialog(JFrame(),size = (500, 200), title = 'Set options and select provide the structures', modal=True)
+        self.diag.add(self.panel)
+        self.diag.setLocationRelativeTo(None)
+        self.diag.pack()
+
+    def selectOutFileName(self, event):
+        outfn = showOpenDialog(None,multiselect=False)
+        self.outputfile.text = str(outfn)
+
+    def loadStructsFrom(self, event):
+        if 'PDB' in event.source.text:
+            label = 'Enter PDB codes'
+            def updateval(v): self.values.pdbids = v
+        else:
+            label = 'Enter UniprotKB codes'
+            def updateval(v): self.values.swissprot = v
+        idstring = JOptionPane.showInputDialog(label)
+        if idstring:
+            ids = idstring.replace(',', ' ').split()
+        else:
+            ids = []
+        updateval(ids)
+        self.go()
+
+    def csvFileDialog(self, event):
+        csvfilter = SimpleFileFilter('.csv', None, 'CSV files')
+        file = showOpenDialog(csvfilter, prefs=prefs, prefkey='loadedFiles', multiselect=False)
+        if file:
+            self.values.csvfile = str(file)
+        self.go()
+
+    def load_settings(self):
+        self.values.distance = float(self.distance.text)
+        self.values.rsr_lower = float(self.rsr_lower.text)
+        self.values.rsr_upper = float(self.rsr_upper.text)
+        self.values.outputfile = self.outputfile.text
+
+    def isViable(self):
+        return bool(self.values.csvfile or self.values.pdbidfile or self.values.pdbids or self.values.swissprot)
+
+    def go(self):
+        self.load_settings()
+        if self.isViable():
+            self.diag.visible = 0
+
+    def getvalues(self):
+        self.diag.visible = 1
+        if not self.isViable():
+            exit(1)
+        return self.values
 
 class WaitDialog(Runnable):
     def __init__(self, parent=None, info=None, modal=False):
@@ -905,38 +982,10 @@ def reslist_to_sel(reslist):
     else:
         return 'none'
 
-def getvalues(args=['--no-args']):
-    values = argparser.parse_args(args)
-    while not (values.csvfile or values.pdbidfile or values.pdbids or values.swissprot) :
-        options = ['Load CSV file', 'Enter PDB IDs', 'Enter Swissport IDs', 'Set Options', 'Cancel']
-        choice = JOptionPane.showOptionDialog(None, 'Select what to do','Select what to do', JOptionPane.DEFAULT_OPTION, JOptionPane.INFORMATION_MESSAGE, None, options, options[0])
-        option = options[choice]
-        if option == options[0]:
-            csvfilter = SimpleFileFilter('.csv', None, 'CSV files')
-            file = showOpenDialog(csvfilter, prefs=prefs, prefkey='loadedFiles', multiselect=False)
-            if file:
-                values.csvfile = str(file)
-        elif option in options[1:3]:
-            idstring = JOptionPane.showInputDialog(option)
-            if idstring:
-                ids = idstring.replace(',', ' ').split()
-            else:
-                ids = []
-            if option == options[1]:
-                values.pdbids = ids
-            elif option == options[2]:
-                values.swissprot = ids
-        elif option == options[3]:
-            s = SettingsDialog(values)
-            values = s.values
-        elif option == options[4]:
-            exit(0)
-    return values
-
 def main(args=sys.argv):
     """
     """
-    values = getvalues(args)
+    values = SettingsDialog(args).getvalues()
     struva = StruVa(values)
     return struva
 
