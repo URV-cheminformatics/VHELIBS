@@ -725,19 +725,28 @@ class SettingsDialog(object):
         self.outputfile.text = str(outfn)
 
     def loadStructsFrom(self, event):
+        idstring = None
         if 'PDB' in event.source.text:
-            label = 'Enter PDB codes'
+            source = 'PDB'
             def updateval(v): self.values.pdbids = v
         else:
-            label = 'Enter UniprotKB codes'
+            source = 'UniprotKB'
             def updateval(v): self.values.swissprot = v
-        idstring = JOptionPane.showInputDialog(label)
+        label = 'Enter %s codes' % source
+        options = ('Load %s codes from file' % source, 'Enter %s codes manually' %  source)
+        choice = JOptionPane.showOptionDialog(None, 'Select structure source','', JOptionPane.DEFAULT_OPTION, JOptionPane.INFORMATION_MESSAGE, None, options, options[0])
+        if choice == 1:
+            idstring = JOptionPane.showInputDialog(label)
+        elif choice == 0:
+            file = str(showOpenDialog(None,multiselect=False))
+            if not file or not os.path.isfile(file):
+                showErrorDialog('%s is not a readable file' % file)
+                return
+            idstring = ' '.join([line.strip() for line in open(file, 'rb')])
         if idstring:
             ids = idstring.replace(',', ' ').split()
-        else:
-            ids = []
-        updateval(ids)
-        self.go()
+            updateval(ids)
+            self.go()
 
     def csvFileDialog(self, event):
         csvfilter = SimpleFileFilter('.csv', None, 'CSV files')
