@@ -72,21 +72,9 @@ def prefbool(string):
 
 ###Define useful classes###
 class Console(AppConsole):
-    def __init__(self, viewer, panel, parseCommand):
-        self.parseCommand = parseCommand
+    def __init__(self, viewer, panel):
         AppConsole.__init__(self, viewer, panel, '')
         self.pane.components[0].remove(1)
-
-    def notifyEnabled(self, callbacktype):
-        if str(callbacktype) == 'SYNC':
-            return True
-        return AppConsole.notifyEnabled(self, callbacktype)
-
-    def notifyCallback(self, callbacktype, data):
-        if str(callbacktype) == 'SYNC':
-            self.parseCommand(data)
-        else:
-            return AppConsole.notifyCallback(self, callbacktype, data)
 
 class JmolPanel(JPanel):
     def __init__(self, preferredSize):
@@ -103,7 +91,7 @@ class make_listen(ActionListener):
         self.actionPerformed = callable
 
 class StruVa(Runnable):
-    actions = (u'next structure', u'list', u'help', u'display settings', u'toggle ligand', u'toggle binding site', u'toggle coordinates to exam',)
+    actions = (u'next structure', u'help', u'toggle ligand', u'toggle binding site', u'toggle coordinates to exam',)
     helpmsg = dedent("""> Special commands:
     help : print this message
     good : ???
@@ -154,7 +142,7 @@ class StruVa(Runnable):
         panel.add(jmolPanel, panelc)
         # main panel -- console panel on right
         panel2 = JPanel(layout = BorderLayout(), preferredSize = (300, 500))
-        self.console = Console(jmolPanel.viewer, panel2, self.parseCommand)
+        self.console = Console(jmolPanel.viewer, panel2)
         jmolPanel.viewer.jmolCallbackListener = self.console
         self.viewer=jmolPanel.viewer
         panelc.gridwidth = 1
@@ -194,7 +182,6 @@ class StruVa(Runnable):
                 elif 'exam' in action:
                     checked = prefs.get('coordstoexam_edm', True)
                 later.append(JCheckBox(caction.replace('Toggle', 'EDM for'), prefbool(checked), itemStateChanged=self.nextStruct))
-            #self.execute('function %s () {}' % action.replace(' ', '_'))
         #Must first add the checkboxes to the panel, then refrence them
         #Otherwise their selection state is not correctly accessed
         for cb in later:
@@ -271,17 +258,10 @@ class StruVa(Runnable):
         self.setVisible = self.frame.setVisible
         self.optionsdiag = OptionsDialog(self)
 
-    def parseCommand(self, data):
-        command = unicode(data[1].split('##')[0])[:-1].lower()
-        if command in self.actions:
-            self.nextStruct(text=command)
-
-    def nextStruct(self, event = None, text = None):
-        if event:
-            text = event.source.text.lower()
+    def nextStruct(self, event):
+        text = event.source.text.lower()
         if not text:
             return
-        #self.console.sendConsoleEcho("%s has been executed" % text)
         if self.resultdict:
             ltext = text.lower()
             if 'toggle' in ltext:
@@ -306,10 +286,6 @@ class StruVa(Runnable):
                 elif 'exam' in ltext:
                     prefs['coordstoexam_edm'] = checked
                     self.displayCoordsToExam(self.actionsDict[u'toggle coordinates to exam'].selected)
-            elif ltext == 'list':
-                self.console.sendConsoleEcho( '\n'.join(self.resultdict.keys()))
-            elif ltext == 'help':
-                self.console.sendConsoleMessage(self.helpmsg)
             elif 'next' in ltext:
                 bs_valid = self.bs_cbox.selectedItem.lower()
                 ligand_valid = self.lig_cbox.selectedItem.lower()
@@ -396,9 +372,6 @@ class StruVa(Runnable):
         except Exception,  e:
             self.console.sendConsoleMessage("ERROR: " + str(e))
             showErrorDialog(e)
-        self.console.sendConsoleEcho( "\n#########################")
-        self.console.sendConsoleEcho( "Viewing structure %s" % self.key)
-        self.console.sendConsoleEcho( "##########################\n")
 
     def displayBindingSite(self, visible=True):
         if not self.binding_site:
