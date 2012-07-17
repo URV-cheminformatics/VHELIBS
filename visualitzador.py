@@ -91,7 +91,7 @@ class make_listen(ActionListener):
         self.actionPerformed = callable
 
 class StruVa(Runnable):
-    actions = (u'next structure', u'help', u'toggle ligand', u'toggle binding site', u'toggle coordinates to exam',)
+    actions = (u'toggle ligand', u'toggle binding site', u'toggle coordinates to exam',)
     helpmsg = dedent("""> Special commands:
     help : print this message
     good : ???
@@ -154,12 +154,12 @@ class StruVa(Runnable):
         panelc.fill = GridBagConstraints.VERTICAL
         panel.add(panel2, panelc)
         self.frame.add(panel)
-        self.execute('wireframe only')
-        self.execute('wireframe off')
-        self.execute('set bondMode OR')
-        self.execute('set syncScript ON')
-        self.execute('set antialiasDisplay ON')
-        self.execute('set antialiasTranslucent ON')
+        self.execute(';'.join(['wireframe only'
+        ,'wireframe off'
+        ,'set bondMode OR'
+        ,'set syncScript ON'
+        ,'set antialiasDisplay ON'
+        ,'set antialiasTranslucent ON']))
         constraints = GridBagConstraints()
         constraints.gridwidth = 1
         constraints.gridheight =1
@@ -363,11 +363,11 @@ class StruVa(Runnable):
             self.bs_cbox.selectedItem = 'Dubious'
         #load in Jmol
         try:
-            self.execute('load "=%s"' % self.pdbid)
-            self.execute('select all')
-            self.execute('wireframe only')
-            self.execute('wireframe off')
-            self.execute('select none')
+            self.execute(';'.join(['load "=%s"' % self.pdbid
+            ,'select all'
+            ,'wireframe only'
+            ,'wireframe off'
+            ,'select none']))
             self.actionsDict[u'toggle binding site'].selected = prefbool(prefs['bindingsite'])
             self.actionsDict[u'toggle coordinates to exam'].selected = prefbool(prefs['coordstoexam'])
             self.actionsDict[u'toggle ligand'].selected = prefbool(prefs['ligand'])
@@ -380,21 +380,21 @@ class StruVa(Runnable):
         if not self.binding_site:
             return
         if not visible:
-            self.execute('select(binding_site)')
-            self.execute('wireframe only')
-            self.execute('wireframe off')
-            self.execute('select none')
+            self.execute(';'.join(['select(binding_site)'
+            ,'wireframe only'
+            ,'wireframe off'
+            ,'select none']))
             if self.binding_site_IS:
                 self.execute('isosurface BINDINGSITE off')
                 self.binding_site_IS = 0
             return
         binding_site_selection = reslist_to_sel(self.binding_site)
-        self.execute('define binding_site (%s)' % binding_site_selection)
-        self.execute('select(binding_site)')
-        self.execute('wireframe %s' % prefs.get('bswfv','0.01'))
-        self.execute('spacefill %s' % prefs.get('bssfv', 'off'))
-        self.execute('color %s' % prefs.get('bscolor', 'white'))
-        self.execute('select none')
+        self.execute(';'.join(['define binding_site (%s)' % binding_site_selection
+        ,'select(binding_site)'
+        ,'wireframe %s' % prefs.get('bswfv','0.01')
+        ,'spacefill %s' % prefs.get('bssfv', 'off')
+        ,'color %s' % prefs.get('bscolor', 'white')
+        ,'select none']))
         if prefs.get('bindingsite_edm', False):
             if self.binding_site_IS == 0:
                 self.execute('isosurface BINDINGSITE on')
@@ -410,21 +410,21 @@ class StruVa(Runnable):
         if not self.residues_to_exam:
             return
         if not visible:
-            self.execute('select(coords_to_exam)')
-            self.execute('wireframe only')
-            self.execute('wireframe off')
-            self.execute('select none')
+            self.execute(';'.join(['select(coords_to_exam)'
+            ,'wireframe only'
+            ,'wireframe off'
+            ,'select none']))
             if self.residues_to_exam_IS:
                 self.execute('isosurface COORDS_TO_EXAM off')
                 self.residues_to_exam_IS = 0
             return
         exam_residues_selection = reslist_to_sel(self.residues_to_exam)
-        self.execute('define coords_to_exam (%s)' % exam_residues_selection)
-        self.execute('select(coords_to_exam)' )
-        self.execute('wireframe %s' % prefs.get('rewfv', '0.1'))
-        self.execute('spacefill %s' % prefs.get('resfv', '0.2'))
-        self.execute('color %s' % prefs.get('recolor', 'cpk'))
-        self.execute('select none')
+        self.execute(';'.join(['define coords_to_exam (%s)' % exam_residues_selection
+        ,'select(coords_to_exam)'
+        ,'wireframe %s' % prefs.get('rewfv', '0.1')
+        ,'spacefill %s' % prefs.get('resfv', '0.2')
+        ,'color %s' % prefs.get('recolor', 'cpk')
+        ,'select none']))
         if prefs.get('coordstoexam_edm', True):
             if self.residues_to_exam_IS == 0:
                 self.execute('isosurface COORDS_TO_EXAM on')
@@ -440,22 +440,22 @@ class StruVa(Runnable):
         if not self.ligandresidues:
             return
         if not visible:
-            self.execute('select(svligand)')
-            self.execute('wireframe only')
-            self.execute('wireframe off')
-            self.execute('select none')
+            self.execute(';'.join(['select(svligand)'
+            ,'wireframe only'
+            ,'wireframe off'
+            ,'select none']))
             if self.ligandresidues_IS:
                 self.execute('isosurface LIGAND off')
                 self.ligandresidues_IS = 0
             return
         ligands_selection = reslist_to_sel(self.ligandresidues)
-        self.execute('define svligand (%s)' % ligands_selection)
-        self.execute('select(svligand)')
-        self.execute('wireframe %s' % prefs.get('ligwfv', '0.1'))
-        self.execute('spacefill %s' % prefs.get('ligsfv', '0.2'))
-        self.execute('color %s' % prefs.get('ligcolor', 'magenta'))
-        self.execute('select none')
-        self.execute('center svligand')
+        self.execute(';'.join(['define svligand (%s)' % ligands_selection
+        ,'select(svligand)'
+        ,'wireframe %s' % prefs.get('ligwfv', '0.1')
+        ,'spacefill %s' % prefs.get('ligsfv', '0.2')
+        ,'color %s' % prefs.get('ligcolor', 'magenta')
+        ,'select none'
+        ,'center svligand']))
         if prefs.get('ligand_edm', False):
             if self.ligandresidues_IS == 0:
                 self.execute('isosurface LIGAND on')
