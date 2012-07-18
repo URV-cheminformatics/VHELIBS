@@ -155,6 +155,7 @@ class StruVa(Runnable):
         self.frame.add(panel)
         self.execute(';'.join(['wireframe only'
         ,'wireframe off'
+        ,'set frank off'
         ,'set bondMode OR'
         ,'set syncScript ON'
         ,'set antialiasDisplay ON'
