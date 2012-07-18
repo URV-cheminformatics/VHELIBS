@@ -202,7 +202,7 @@ class StruVa(Runnable):
 
         help_button = JButton('Help', actionPerformed=self.displayHelp)
         opt_button = JButton('Display settings', actionPerformed=self.showDisplaySettings)
-        next_button = JButton('Save & Check Next Structure', actionPerformed=self.nextStruct)
+        next_button = JButton('Save & Check Next Structure', toolTipText="Save the current structure with the selected flags to %s, then load another structure to check" % self.checkedfilename, actionPerformed=self.nextStruct)
 
         struct_lbl = JLabel('Current Structure:')
         lig_lbl = JLabel('Ligand')
@@ -682,38 +682,45 @@ class SettingsDialog(object):
         constraints.gridy = 0
         constraints.gridx = 0
 
-        self.panel.add(JLabel('Distance'), constraints)
+        distancetooltip = 'Residues whithin this distance from the ligand will be considered part of the binding site'
+        self.panel.add(JLabel('Distance', toolTipText=distancetooltip), constraints)
         constraints.gridx += 1
         self.panel.add(self.distance, constraints)
         constraints.gridx -= 1
 
         constraints.gridy += 1
-        self.panel.add(JLabel('Highest RSR value'), constraints)
+        hrsrtooltip="Structures whith 'residues' with a RSR value equal o higher to this will be tagged as Bad"
+        self.panel.add(JLabel('Highest RSR value', toolTipText=hrsrtooltip), constraints)
         constraints.gridx += 1
         self.panel.add(self.rsr_upper, constraints)
         constraints.gridx -= 1
 
         constraints.gridy += 1
-        self.panel.add(JLabel('Lower RSR value'), constraints)
+        lrsrtooltip="Structures whith all 'residues' with a RSR value lower than this will be tagged as Good"
+        self.panel.add(JLabel('Lower RSR value', toolTipText=lrsrtooltip), constraints)
         constraints.gridx += 1
         self.panel.add(self.rsr_lower, constraints)
         constraints.gridx -= 1
 
         constraints.gridy += 1
-        self.panel.add(JButton('Output file name', actionPerformed=self.selectOutFileName), constraints)
+        outtt="Select or enter the name of the generated output file and where to save it"
+        self.panel.add(JButton('Output file name', toolTipText=outtt, actionPerformed=self.selectOutFileName), constraints)
         constraints.gridx += 1
         self.panel.add(self.outputfile, constraints)
         constraints.gridx -= 1
 
         constraints.gridy += 1
-        self.panel.add(JButton('Load from PDB', actionPerformed=self.loadStructsFrom), constraints)
+        pdbtt="Parse structures from their PDB codes, either by entering their codes or by providing a file containing them"
+        self.panel.add(JButton('Load from PDB', toolTipText=pdbtt, actionPerformed=self.loadStructsFrom), constraints)
         constraints.gridx += 1
-        self.panel.add(JButton('Load from UniprotKB', actionPerformed=self.loadStructsFrom), constraints)
+        uniprottt="Parse structures from their PDB codes, either by entering their codes or by providing a file containing them"
+        self.panel.add(JButton('Load from UniprotKB', toolTipText=uniprottt, actionPerformed=self.loadStructsFrom), constraints)
         constraints.gridx -= 1
 
         constraints.gridy += 1
         constraints.gridwidth = 2
-        self.panel.add(JButton('Load previous results file', actionPerformed=self.csvFileDialog), constraints)
+        csvfilett = "Load a previously generated file to check its structures"
+        self.panel.add(JButton('Load previous results file',  toolTipText=csvfilett, actionPerformed=self.csvFileDialog), constraints)
 
         self.diag = JDialog(JFrame(),size = (500, 200), title = 'Set options and select provide the structures', modal=True)
         self.diag.add(self.panel)
@@ -875,12 +882,12 @@ class DisplaySettingsDialog(object):
         self.panel.add(JLabel('EDM Color'), constraints)
         constraints.gridy = 5
         constraints.insets = Insets(15,3,3,3)
-        self.panel.add(JLabel('EDM Distance'), constraints)
+        self.panel.add(JLabel('EDM Distance', toolTipText="Distance within which the Electron Density Map will be showed"), constraints)
         constraints.gridx = 1
         self.edmdistance = JTextField()
         self.panel.add(self.edmdistance, constraints)
         constraints.gridx = 2
-        self.panel.add(JLabel('EDM sigma'), constraints)
+        self.panel.add(JLabel('EDM sigma', toolTipText="Contour level of the Electron Density Map"), constraints)
         constraints.gridx = 3
         self.sigma = JTextField()
         self.panel.add(self.sigma, constraints)
