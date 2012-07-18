@@ -728,8 +728,10 @@ class SettingsDialog(object):
         self.diag.pack()
 
     def selectOutFileName(self, event):
-        outfn = showOpenDialog(None,multiselect=False)
-        self.outputfile.text = str(outfn)
+        outfn = str(showOpenDialog(SimpleFileFilter('.csv', None, 'CSV files'), prefkey='loadedFiles', prefs=prefs,multiselect=False))
+        if not outfn.endswith('.csv'):
+            outfn += '.csv'
+        self.outputfile.text = outfn
 
     def loadStructsFrom(self, event):
         idstring = None
@@ -777,9 +779,10 @@ class SettingsDialog(object):
             self.diag.visible = 0
 
     def getvalues(self):
-        self.diag.visible = 1
         if not self.isViable():
-            exit(1)
+            self.diag.visible = 1
+            if not self.isViable():
+                exit(1)
         return self.values
 
 class WaitDialog(Runnable):
