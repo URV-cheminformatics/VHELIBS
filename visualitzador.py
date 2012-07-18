@@ -516,7 +516,7 @@ class StruVa(Runnable):
                 self.restart()
                 return
         #Demana quines estructures mirar
-        struc_d = StructureSelectDialog()
+        struc_d = StructureSelectDialog(values)
         wannasee = struc_d.show()
 
         check_good_bs = wannasee['bs']['Good']
@@ -589,7 +589,7 @@ class DialogShower(SwingWorker):
             raise SystemExit, e.getCause()
 
 class StructureSelectDialog(object):
-    def __init__(self, parent=None):
+    def __init__(self, values):
         self.diag = JDialog(JFrame(),size = (500, 200), title = 'Select which structures to view', modal=True)
         self.panel = JPanel(GridBagLayout())
         constraints = GridBagConstraints()
@@ -603,19 +603,19 @@ class StructureSelectDialog(object):
         self.panel.add(JLabel('Select which structures to view'), constraints)
         constraints.gridwidth = 2
         constraints.gridy += 1
-        self.panel.add(JCheckBox('Good Binding Site'), constraints)
+        self.panel.add(JCheckBox('Good Binding Site', toolTipText='Check Binding Sites whith all residues with an RSR < %s' % values.rsr_lower), constraints)
         constraints.gridx += 2
-        self.panel.add(JCheckBox('Good Ligand'), constraints)
+        self.panel.add(JCheckBox('Good Ligand', toolTipText='Check Ligands with RSR < %s' % values.rsr_lower), constraints)
         constraints.gridx -= 2
         constraints.gridy += 1
-        self.panel.add(JCheckBox('Bad Binding Site'), constraints)
+        self.panel.add(JCheckBox('Bad Binding Site', toolTipText='Check Binding Sites with residues with RSR > %s' % values.rsr_upper), constraints)
         constraints.gridx += 2
-        self.panel.add(JCheckBox('Bad Ligand'), constraints)
+        self.panel.add(JCheckBox('Bad Ligand', toolTipText='Check Ligands with RSR > %s' % values.rsr_upper), constraints)
         constraints.gridx -= 2
         constraints.gridy += 1
-        self.panel.add(JCheckBox('Dubious Binding Site', selected=True), constraints)
+        self.panel.add(JCheckBox('Dubious Binding Site', toolTipText='Check Binding Sites with residues with RSR between %s and %s' % (values.rsr_lower, values.rsr_upper), selected=True), constraints)
         constraints.gridx += 2
-        self.panel.add(JCheckBox('Dubious Ligand', selected=True), constraints)
+        self.panel.add(JCheckBox('Dubious Ligand', toolTipText='Check Ligands with RSR between %s and %s' % (values.rsr_lower, values.rsr_upper), selected=True), constraints)
         constraints.gridy += 1
         constraints.gridx = 0
         constraints.gridwidth = 2
@@ -623,7 +623,7 @@ class StructureSelectDialog(object):
         constraints.gridx += 3
         self.panel.add(JButton('Cancel', actionPerformed=self.cancel), constraints)
         self.diag.add(self.panel)
-        self.diag.setLocationRelativeTo(parent)
+        self.diag.setLocationRelativeTo(None)
         self.diag.pack()
     def show(self, boolean=True):
         self.diag.visible = boolean
