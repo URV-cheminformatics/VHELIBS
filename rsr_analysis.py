@@ -238,7 +238,8 @@ def parse_binding_site(argtuple):
                     inner_binding_site.add(atom.residue)
                     classificate_residue(atom.residue)
                     break
-        rte = inner_binding_site.union(ligand).intersection(dubious_rsr)
+        #rte = inner_binding_site.union(ligand).intersection(dubious_rsr)
+        rte = inner_binding_site.union(ligand).difference(good_rsr)
 
         def validate(residues):
             if residues < good_rsr:
