@@ -692,6 +692,7 @@ class SettingsDialog(object):
         constraints.gridy += 1
         distancetooltip = 'Residues with at least one atom within this distance from any atom of the ligand will be considered as part of the binding site'
         self.panel.add(JLabel(u'Radius (in Å)', toolTipText=distancetooltip), constraints)
+        self.distance.toolTipText=distancetooltip
         constraints.gridx += 1
         self.panel.add(self.distance, constraints)
         constraints.gridx -= 1
@@ -700,6 +701,7 @@ class SettingsDialog(object):
         hrsrtooltip="Ligands and binding sites with at least one 'residue' with an RSR above this value will be tagged as Bad."
         self.panel.add(JLabel('Upper cap for RSR', toolTipText=hrsrtooltip), constraints)
         constraints.gridx += 1
+        self.rsr_upper.toolTipText=hrsrtooltip
         self.panel.add(self.rsr_upper, constraints)
         constraints.gridx -= 1
 
@@ -707,6 +709,7 @@ class SettingsDialog(object):
         lrsrtooltip="Ligands and binding sites with all 'residues' with a RSR below this value will be tagged as Good"
         self.panel.add(JLabel('Good RSR cap', toolTipText=lrsrtooltip), constraints)
         constraints.gridx += 1
+        self.rsr_lower.toolTipText=lrsrtooltip
         self.panel.add(self.rsr_lower, constraints)
         constraints.gridx -= 1
 
@@ -714,6 +717,7 @@ class SettingsDialog(object):
         outtt="Select or enter the name of the output file and where to save it."
         self.panel.add(JButton('Output file name', toolTipText=outtt, actionPerformed=self.selectOutFileName), constraints)
         constraints.gridx += 1
+        self.outputfile.toolTipText=outtt
         self.panel.add(self.outputfile, constraints)
         constraints.gridx -= 1
 
