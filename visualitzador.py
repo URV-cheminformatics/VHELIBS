@@ -697,14 +697,14 @@ class SettingsDialog(object):
         constraints.gridx -= 1
 
         constraints.gridy += 1
-        hrsrtooltip="Ligands and binding sites with at least one residue with an RSR above this value will be tagged as Bad."
+        hrsrtooltip="Ligands and binding sites with at least one 'residue' with an RSR above this value will be tagged as Bad."
         self.panel.add(JLabel('Upper cap for RSR', toolTipText=hrsrtooltip), constraints)
         constraints.gridx += 1
         self.panel.add(self.rsr_upper, constraints)
         constraints.gridx -= 1
 
         constraints.gridy += 1
-        lrsrtooltip="Ligands and binding sites with all residues with a RSR below this value will be tagged as Good"
+        lrsrtooltip="Ligands and binding sites with all 'residues' with a RSR below this value will be tagged as Good"
         self.panel.add(JLabel('Good RSR cap', toolTipText=lrsrtooltip), constraints)
         constraints.gridx += 1
         self.panel.add(self.rsr_lower, constraints)
@@ -727,7 +727,7 @@ class SettingsDialog(object):
 
         constraints.gridy += 1
         constraints.gridwidth = 2
-        csvfilett = "Load a previously generated file to check its structures"
+        csvfilett = "Load a previously generated file to view its structures"
         self.panel.add(JButton('Load previous results file',  toolTipText=csvfilett, actionPerformed=self.csvFileDialog), constraints)
 
         self.diag = JDialog(JFrame(),size = (500, 200), title = 'Input and Options', modal=True)
