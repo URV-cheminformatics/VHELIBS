@@ -6,6 +6,7 @@
 import os, gzip, sys, urllib2, csv, itertools
 if sys.platform.startswith('java'):
     import multithreading as multiprocessing
+    from sys import exit
 else:
     import multiprocessing
 
@@ -244,13 +245,18 @@ def parse_binding_site(argtuple):
         def validate(residues):
             if residues < good_rsr:
                 return True
-            if residues < bad_rsr:
+            if residues.intersection(bad_rsr):
                 return False
-            if residues < dubious_rsr:
-                return 'Dubious'
             else:
-                print "Unclassified residues: %s" % ";".join(residues)
-                exit(89)
+                for residue in residues:
+                    if residue in dubious_rsr:
+                        return 'Dubious'
+                else:
+                    print "Unclassified residues: "
+                    print residues < (dubious_rsr | bad_rsr | good_rsr)
+                    print
+                    print residues
+                    exit(89)
             return '???'
 
         ligandgood = validate(ligand)

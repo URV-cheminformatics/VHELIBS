@@ -28,6 +28,7 @@ systemlaf = UIManager.getSystemLookAndFeelClassName()
 _infoicon = UIManager.getIcon("OptionPane.informationIcon")
 if systemlaf == u'javax.swing.plaf.metal.MetalLookAndFeel':
     try:
+        import com.sun.java.swing.plaf.gtk.GTKLookAndFeel
         UIManager.setLookAndFeel(u'com.sun.java.swing.plaf.gtk.GTKLookAndFeel')
     except Exception,  e:
         print e
