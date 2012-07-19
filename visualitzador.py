@@ -22,7 +22,7 @@ from sys import exit
 from java.lang import Runnable
 from java.awt import BorderLayout, Dimension, GridLayout, GridBagLayout, GridBagConstraints, Insets
 from java.awt.event import ItemEvent, ActionListener, WindowAdapter
-from javax.swing import JFrame, JPanel, JButton, JOptionPane, JTextField, JCheckBox, JLabel, UIManager, JDialog, SwingUtilities, SwingWorker, JComboBox
+from javax.swing import JFrame, JPanel, JButton, JOptionPane, JTextField, JCheckBox, JLabel, UIManager, JDialog, SwingUtilities, SwingWorker, JComboBox, ToolTipManager
 
 systemlaf = UIManager.getSystemLookAndFeelClassName()
 _infoicon = UIManager.getIcon("OptionPane.informationIcon")
@@ -684,28 +684,34 @@ class SettingsDialog(object):
         constraints.gridy = 0
         constraints.gridx = 0
 
-        distancetooltip = 'Residues whithin this distance from the ligand will be considered part of the binding site'
-        self.panel.add(JLabel('Distance', toolTipText=distancetooltip), constraints)
+        constraints.gridwidth = 2
+        infolabel = JLabel('Set options and select the structures to be checked')
+        self.panel.add(infolabel, constraints)
+        constraints.gridwidth = 1
+
+        constraints.gridy += 1
+        distancetooltip = 'Residues with at least one atom within this distance from any atom of the ligand will be considered as part of the binding site'
+        self.panel.add(JLabel(u'Radius (in Å)', toolTipText=distancetooltip), constraints)
         constraints.gridx += 1
         self.panel.add(self.distance, constraints)
         constraints.gridx -= 1
 
         constraints.gridy += 1
-        hrsrtooltip="Structures whith 'residues' with a RSR value equal o higher to this will be tagged as Bad"
-        self.panel.add(JLabel('Highest RSR value', toolTipText=hrsrtooltip), constraints)
+        hrsrtooltip="Ligands and binding sites with at least one residue with an RSR above this value will be tagged as Bad."
+        self.panel.add(JLabel('Upper cap for RSR', toolTipText=hrsrtooltip), constraints)
         constraints.gridx += 1
         self.panel.add(self.rsr_upper, constraints)
         constraints.gridx -= 1
 
         constraints.gridy += 1
-        lrsrtooltip="Structures whith all 'residues' with a RSR value lower than this will be tagged as Good"
-        self.panel.add(JLabel('Lower RSR value', toolTipText=lrsrtooltip), constraints)
+        lrsrtooltip="Ligands and binding sites with all residues with a RSR below this value will be tagged as Good"
+        self.panel.add(JLabel('Good RSR cap', toolTipText=lrsrtooltip), constraints)
         constraints.gridx += 1
         self.panel.add(self.rsr_lower, constraints)
         constraints.gridx -= 1
 
         constraints.gridy += 1
-        outtt="Select or enter the name of the generated output file and where to save it"
+        outtt="Select or enter the name of the output file and where to save it."
         self.panel.add(JButton('Output file name', toolTipText=outtt, actionPerformed=self.selectOutFileName), constraints)
         constraints.gridx += 1
         self.panel.add(self.outputfile, constraints)
@@ -713,10 +719,10 @@ class SettingsDialog(object):
 
         constraints.gridy += 1
         pdbtt="Parse structures from their PDB codes, either by entering their codes or by providing a file containing them"
-        self.panel.add(JButton('Load from PDB', toolTipText=pdbtt, actionPerformed=self.loadStructsFrom), constraints)
+        self.panel.add(JButton('Use PDB codes', toolTipText=pdbtt, actionPerformed=self.loadStructsFrom), constraints)
         constraints.gridx += 1
-        uniprottt="Parse structures from their PDB codes, either by entering their codes or by providing a file containing them"
-        self.panel.add(JButton('Load from UniProtKB', toolTipText=uniprottt, actionPerformed=self.loadStructsFrom), constraints)
+        uniprottt="Parse structures from their UniProtKB codes, either by entering their codes or by providing a file containing them"
+        self.panel.add(JButton('Use UniProtKB codes', toolTipText=uniprottt, actionPerformed=self.loadStructsFrom), constraints)
         constraints.gridx -= 1
 
         constraints.gridy += 1
@@ -724,7 +730,7 @@ class SettingsDialog(object):
         csvfilett = "Load a previously generated file to check its structures"
         self.panel.add(JButton('Load previous results file',  toolTipText=csvfilett, actionPerformed=self.csvFileDialog), constraints)
 
-        self.diag = JDialog(JFrame(),size = (500, 200), title = 'Set options and select provide the structures', modal=True)
+        self.diag = JDialog(JFrame(),size = (500, 200), title = 'Input and Options', modal=True)
         self.diag.add(self.panel)
         self.diag.setLocationRelativeTo(None)
         self.diag.pack()
@@ -743,9 +749,9 @@ class SettingsDialog(object):
         else:
             source = 'UniProtKB'
             def updateval(v): self.values.swissprot = v
-        label = 'Enter %s codes' % source
-        options = ('Load %s codes from file' % source, 'Enter %s codes manually' %  source)
-        choice = JOptionPane.showOptionDialog(None, 'Select structure source','', JOptionPane.DEFAULT_OPTION, JOptionPane.INFORMATION_MESSAGE, None, options, options[0])
+        label = 'Enter %s codes: (must be separated by commas, white space or tabs)' % source
+        options = ('Load %s codes from file' % source, 'Enter %s codes manually' %  source, 'Cancel')
+        choice = JOptionPane.showOptionDialog(None, 'Select %s codes source' % source,'', JOptionPane.DEFAULT_OPTION, JOptionPane.INFORMATION_MESSAGE, None, options, options[1])
         if choice == 1:
             idstring = JOptionPane.showInputDialog(label)
         elif choice == 0:
@@ -754,6 +760,8 @@ class SettingsDialog(object):
                 showErrorDialog('%s is not a readable file' % file)
                 return
             idstring = ' '.join([line.strip() for line in open(file, 'rb')])
+        else:
+            return
         if idstring:
             ids = idstring.replace(',', ' ').split()
             updateval(ids)
@@ -887,7 +895,7 @@ class DisplaySettingsDialog(object):
         self.panel.add(JLabel('EDM Color'), constraints)
         constraints.gridy = 5
         constraints.insets = Insets(15,3,3,3)
-        self.panel.add(JLabel('EDM Distance', toolTipText="Distance within which the Electron Density Map will be showed"), constraints)
+        self.panel.add(JLabel(u'EDM Radius (in Å)', toolTipText="Distance within which the Electron Density Map will be showed"), constraints)
         constraints.gridx = 1
         self.edmdistance = JTextField()
         self.panel.add(self.edmdistance, constraints)
@@ -1018,6 +1026,9 @@ def reslist_to_sel(reslist):
 def main(args=sys.argv):
     """
     """
+    ttm = ToolTipManager.sharedInstance()
+    ttm.reshowDelay = 0
+    ttm.dismissDelay = 100000
     values = SettingsDialog(args).getvalues()
     struva = StruVa(values)
     return struva
