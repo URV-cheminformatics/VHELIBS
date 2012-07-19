@@ -716,7 +716,7 @@ class SettingsDialog(object):
         self.panel.add(JButton('Load from PDB', toolTipText=pdbtt, actionPerformed=self.loadStructsFrom), constraints)
         constraints.gridx += 1
         uniprottt="Parse structures from their PDB codes, either by entering their codes or by providing a file containing them"
-        self.panel.add(JButton('Load from UniprotKB', toolTipText=uniprottt, actionPerformed=self.loadStructsFrom), constraints)
+        self.panel.add(JButton('Load from UniProtKB', toolTipText=uniprottt, actionPerformed=self.loadStructsFrom), constraints)
         constraints.gridx -= 1
 
         constraints.gridy += 1
@@ -741,7 +741,7 @@ class SettingsDialog(object):
             source = 'PDB'
             def updateval(v): self.values.pdbids = v
         else:
-            source = 'UniprotKB'
+            source = 'UniProtKB'
             def updateval(v): self.values.swissprot = v
         label = 'Enter %s codes' % source
         options = ('Load %s codes from file' % source, 'Enter %s codes manually' %  source)
