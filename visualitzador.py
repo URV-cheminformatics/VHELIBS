@@ -731,7 +731,7 @@ class SettingsDialog(object):
 
         constraints.gridy += 1
         constraints.gridwidth = 2
-        csvfilett = "Load a previously generated file to view its structures"
+        csvfilett = "Load a previously generated file to review its structures"
         self.panel.add(JButton('Load previous results file',  toolTipText=csvfilett, actionPerformed=self.csvFileDialog), constraints)
 
         self.diag = JDialog(JFrame(),size = (500, 200), title = 'Input and Options', modal=True)
