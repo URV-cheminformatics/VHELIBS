@@ -807,7 +807,7 @@ class WaitDialog(Runnable):
 
 class DisplaySettingsDialog(object):
     keys = ('ligwfv', 'ligsfv', 'ligcolor', 'ligedmcolor', 'bswfv', 'bssfv', 'bscolor', 'bsedmcolor', 'rewfv', 'resfv', 'recolor', 'reedmcolor', 'edmdistance', 'sigma')
-    def __init__(self, parent = None):
+    def __init__(self, parent):
         self.parent = parent
         self.frame =  JFrame()
         self.panel = JPanel(GridBagLayout())
@@ -939,6 +939,12 @@ class DisplaySettingsDialog(object):
             prefs['edmdistance'] = self.edmdistance.text
             prefs['sigma'] = self.sigma.text
             self.parent.ligandresidues_IS = self.parent.residues_to_exam_IS = self.parent.binding_site_IS = None
+            if displaybs:
+                self.parent.actionsDict[u'toggle binding site'].selected = False
+            if displaycoords:
+                self.parent.actionsDict[u'toggle coordinates to exam'].selected = False
+            if displaylig:
+                self.parent.actionsDict[u'toggle ligand'].selected = False
 
         if (prefs['bswfv'], prefs['bssfv'], prefs['bscolor']) != (self.bswfv.text, self.bssfv.text, self.bscolor.text):
             prefs['bswfv'] = self.bswfv.text
@@ -948,6 +954,8 @@ class DisplaySettingsDialog(object):
         if prefs['bsedmcolor'] != self.bsedmcolor.text:
             prefs['bsedmcolor'] = self.bsedmcolor.text
             self.parent.binding_site_IS = None
+            if displaybs:
+                self.parent.actionsDict[u'toggle binding site'].selected = False
 
         if (prefs['rewfv'], prefs['resfv'], prefs['recolor']) != (self.rewfv.text, self.resfv.text, self.recolor.text):
             prefs['rewfv'] = self.rewfv.text
@@ -957,6 +965,8 @@ class DisplaySettingsDialog(object):
         if prefs['reedmcolor'] != self.reedmcolor.text:
             prefs['reedmcolor'] = self.reedmcolor.text
             self.parent.residues_to_exam_IS = None
+            if displaycoords:
+                self.parent.actionsDict[u'toggle coordinates to exam'].selected = False
 
         if (prefs['ligwfv'], prefs['ligsfv'], prefs['ligcolor']) != (self.ligwfv.text, self.ligsfv.text, self.ligcolor.text):
             prefs['ligwfv'] = self.ligwfv.text
@@ -966,6 +976,8 @@ class DisplaySettingsDialog(object):
         if prefs['ligedmcolor'] != self.ligedmcolor.text:
             prefs['ligedmcolor'] = self.ligedmcolor.text
             self.parent.ligandresidues_IS = None
+            if displaylig:
+                self.parent.actionsDict[u'toggle ligand'].selected = False
 
         self.parent.actionsDict[u'toggle binding site'].selected = displaybs
         self.parent.actionsDict[u'toggle coordinates to exam'].selected = displaycoords
