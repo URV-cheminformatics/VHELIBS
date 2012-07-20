@@ -126,7 +126,7 @@ class StruVa(Runnable):
             self.setVisible(True)
 
     def setupUi(self):
-        self.frame = JFrame("Structure Validation Helper", defaultCloseOperation = JFrame.EXIT_ON_CLOSE, size = (700, 410))
+        self.frame = JFrame("VHELIBS", defaultCloseOperation = JFrame.EXIT_ON_CLOSE, size = (700, 410))
         jmolPanel = JmolPanel(preferredSize = (500, 500))
         self.viewer = jmolPanel.viewer
         self.execute = self.viewer.evalStringQuiet
@@ -400,7 +400,7 @@ class StruVa(Runnable):
             if self.binding_site_IS == 0:
                 self.execute('isosurface BINDINGSITE on')
             elif not self.binding_site_IS:
-                self.execute('isosurface BINDINGSITE color %s sigma %s within %s {binding_site} "=%s" mesh nofill' %\
+                self.execute('isosurface BINDINGSITE color %s sigma %s within %s {binding_site} "=%s" mesh fill translucent 0.3' %\
                             (prefs.get('bsedmcolor', 'cyan'), prefs.get('sigma', '1.0'), prefs.get('edmdistance', '2.0'),  self.pdbid))
             self.binding_site_IS = 1
         elif self.binding_site_IS:
@@ -430,7 +430,7 @@ class StruVa(Runnable):
             if self.residues_to_exam_IS == 0:
                 self.execute('isosurface COORDS_TO_EXAM on')
             elif not self.residues_to_exam_IS:
-                self.execute('isosurface COORDS_TO_EXAM color %s sigma %s within %s {coords_to_exam} "=%s" mesh nofill' %\
+                self.execute('isosurface COORDS_TO_EXAM color %s sigma %s within %s {coords_to_exam} "=%s" mesh fill translucent 0.3' %\
                         (prefs.get('reedmcolor', 'yellow'), prefs.get('sigma', '1.0'), prefs.get('edmdistance', '2.0'),  self.pdbid))
             self.residues_to_exam_IS = 1
         elif self.residues_to_exam_IS:
@@ -461,7 +461,7 @@ class StruVa(Runnable):
             if self.ligandresidues_IS == 0:
                 self.execute('isosurface LIGAND on')
             elif not self.ligandresidues_IS:
-                self.execute('isosurface LIGAND color %s sigma %s within %s {svligand} "=%s" mesh nofill' %\
+                self.execute('isosurface LIGAND color %s sigma %s within %s {svligand} "=%s" mesh fill translucent 0.3' %\
                         (prefs.get('ligedmcolor', 'red'), prefs.get('sigma', '1.0'), prefs.get('edmdistance', '2.0'),  self.pdbid))
             self.ligandresidues_IS = 1
         elif self.ligandresidues_IS:
@@ -734,7 +734,7 @@ class SettingsDialog(object):
         csvfilett = "Load a previously generated file to review its structures"
         self.panel.add(JButton('Load previous results file',  toolTipText=csvfilett, actionPerformed=self.csvFileDialog), constraints)
 
-        self.diag = JDialog(JFrame(),size = (500, 200), title = 'Input and Options', modal=True)
+        self.diag = JDialog(JFrame(),size = (500, 200), title = 'VHELIBS', modal=True)
         self.diag.add(self.panel)
         self.diag.setLocationRelativeTo(None)
         self.diag.pack()

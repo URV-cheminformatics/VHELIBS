@@ -3,7 +3,7 @@
   <!-- #################################################
        These two properties are the only ones you are 
        likely to want to change for your own projects:     -->
-  <property name="jar.name" value="visualitzador.jar" />
+  <property name="jar.name" value="VHELIBS.jar" />
   <property name="java-main-class" value="Main" />
   <!-- ##################################################  -->
 
@@ -55,7 +55,7 @@
     <jar destfile="${jar.name}" basedir="${build.dir}">
       <manifest>
 	<attribute name="Main-Class" value="com.simontuffs.onejar.Boot" />
-	<attribute name="Class-Path" value="lib/jython-full.jar" />
+	<attribute name="Class-Path" value="lib/jython.jar:lib/Jmol.jar" />
       </manifest>
     </jar>
     <!-- clean up -->
