@@ -400,8 +400,8 @@ class StruVa(Runnable):
             if self.binding_site_IS == 0:
                 self.execute('isosurface BINDINGSITE on')
             elif not self.binding_site_IS:
-                self.execute('isosurface BINDINGSITE color %s sigma %s within %s {binding_site} "=%s" mesh fill translucent 0.3' %\
-                            (prefs.get('bsedmcolor', 'cyan'), prefs.get('sigma', '1.0'), prefs.get('edmdistance', '2.0'),  self.pdbid))
+                self.execute('isosurface BINDINGSITE color %s sigma %s within %s {binding_site} "=%s" mesh dots fill translucent 0.3' %\
+                            (prefs.get('bsedmcolor', 'cyan'), prefs.get('sigma', '1.0'), prefs.get('edmdistance', '2.1'),  self.pdbid))
             self.binding_site_IS = 1
         elif self.binding_site_IS:
             self.execute('isosurface BINDINGSITE off')
@@ -430,8 +430,8 @@ class StruVa(Runnable):
             if self.residues_to_exam_IS == 0:
                 self.execute('isosurface COORDS_TO_EXAM on')
             elif not self.residues_to_exam_IS:
-                self.execute('isosurface COORDS_TO_EXAM color %s sigma %s within %s {coords_to_exam} "=%s" mesh fill translucent 0.3' %\
-                        (prefs.get('reedmcolor', 'yellow'), prefs.get('sigma', '1.0'), prefs.get('edmdistance', '2.0'),  self.pdbid))
+                self.execute('isosurface COORDS_TO_EXAM color %s sigma %s within %s {coords_to_exam} "=%s" mesh dots fill translucent 0.3' %\
+                        (prefs.get('reedmcolor', 'yellow'), prefs.get('sigma', '1.0'), prefs.get('edmdistance', '2.1'),  self.pdbid))
             self.residues_to_exam_IS = 1
         elif self.residues_to_exam_IS:
             self.execute('isosurface COORDS_TO_EXAM off')
@@ -461,8 +461,8 @@ class StruVa(Runnable):
             if self.ligandresidues_IS == 0:
                 self.execute('isosurface LIGAND on')
             elif not self.ligandresidues_IS:
-                self.execute('isosurface LIGAND color %s sigma %s within %s {svligand} "=%s" mesh fill translucent 0.3' %\
-                        (prefs.get('ligedmcolor', 'red'), prefs.get('sigma', '1.0'), prefs.get('edmdistance', '2.0'),  self.pdbid))
+                self.execute('isosurface LIGAND color %s sigma %s within %s {svligand} "=%s" mesh dots fill translucent 0.3' %\
+                        (prefs.get('ligedmcolor', 'red'), prefs.get('sigma', '1.0'), prefs.get('edmdistance', '2.1'),  self.pdbid))
             self.ligandresidues_IS = 1
         elif self.ligandresidues_IS:
             self.execute('isosurface LIGAND off')
@@ -937,7 +937,7 @@ class DisplaySettingsDialog(object):
         self.recolor.text = prefs.get('recolor', 'cpk')
         self.reedmcolor.text = prefs.get('reedmcolor', 'yellow')
 
-        self.edmdistance.text = prefs.get('edmdistance', '2.0')
+        self.edmdistance.text = prefs.get('edmdistance', '2.1')
         self.sigma.text = prefs.get('sigma', '1.0')
 
         self.saveprefs()
