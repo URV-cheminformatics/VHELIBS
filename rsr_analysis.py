@@ -240,7 +240,7 @@ def parse_binding_site(argtuple):
         rte = inner_binding_site.union(ligand).difference(good_rsr)
 
         def validate(residues):
-            if residues < good_rsr:
+            if residues <= good_rsr:
                 return True
             if residues.intersection(bad_rsr):
                 return False
@@ -252,7 +252,11 @@ def parse_binding_site(argtuple):
                     print "Unclassified residues for %s:" % pdbid
                     print
                     print residues
-                    exit(89)
+                    print residues.intersection(dubious_rsr)
+                    print residues.intersection(bad_rsr)
+                    print residues.intersection(good_rsr)
+                    print
+                    return 'Dubious'
             return '???'
 
         ligandgood = validate(ligand)
