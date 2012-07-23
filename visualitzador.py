@@ -928,7 +928,7 @@ class DisplaySettingsDialog(object):
         constraints.gridwidth = 1
         constraints.gridx = 3
         self.panel.add(JButton('Defaults', actionPerformed=self.loaddefaults), constraints)
-        self.diag = JDialog(self.frame,size = (500, 200), title = 'Options')
+        self.diag = JDialog(self.frame,size = (500, 500), title = 'Display Settings')
         self.diag.pack()
         self.diag.setLocationRelativeTo(self.parent.frame)
         self.diag.add(self.panel)
