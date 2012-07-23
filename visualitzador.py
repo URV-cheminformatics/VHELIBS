@@ -5,10 +5,18 @@
 
 #Python stuff
 import sys
+class OutLog(object):
+    def __init__(self, filename):
+        self.file = open(filename, 'w')
+    def write(self, text):
+        sys.__stdout__.write(text)
+        self.file.write(text)
+        self.file.flush()
+    def close(self):
+        self.file.close()
+sys.stdout = OutLog('VHELIBS_log.txt')
 ######One-jar magic#######
 sys.path.append('__pyclasspath__/pylib')
-print sys.path
-print sys.prefix
 if not sys.prefix:
     sys.prefix='.'
 ######One-jar magic#######
@@ -38,7 +46,6 @@ else:
     UIManager.setLookAndFeel(systemlaf)
 
 r = java.lang.ClassLoader.getSystemClassLoader().getResource('icon.png')
-print r
 if r:
     u = URL(str(r))
     vhelibsicon = ImageIcon(u).image
@@ -67,7 +74,6 @@ argparser.add_argument('-c','--csvfile', metavar='CSVFILE', type=unicode, defaul
 argparser.add_argument('--no-view', required=False, action='store_true', help="Do not visualize the generated csv file")
 argparser.add_argument('--no-args', required=False, action='store_true')
 
-
 def prefbool(string):
     if type(string) == type(True):
         return string
@@ -79,8 +85,6 @@ def prefbool(string):
         return False
     else:
         raise TypeError(string + ' cannot be booleaned!')
-
-
 
 ###Define useful classes###
 class Console(AppConsole):
@@ -328,7 +332,7 @@ class StruVa(Runnable):
 
     def displayHelp(self, event):
         #Stub, needs to be implemented
-        print helpmsg
+        pass
 
     def clean(self):
         #Neteja-ho tot
@@ -503,7 +507,8 @@ class StruVa(Runnable):
         if csvfilename:
             if not os.path.isfile(csvfilename):
                 print 'File %s does not exist' % csvfilename
-                exit(1)
+                showWarningDialog('File %s does not exist' % csvfilename)
+                self.restart()
             outdir = os.path.dirname(csvfilename)
             basename = os.path.splitext(os.path.basename(csvfilename))[0]
         else:
@@ -578,7 +583,7 @@ class StruVa(Runnable):
         csvfile.close()
         self.checkedfilename = os.path.join(outdir, basename + '_checked.csv')
         if not self.resultdict:
-            print 'File without data!'
+            print 'File without data! %s' % self.checkedfilename
             showWarningDialog('No structures to be viewed.')
             self.restart()
 
@@ -655,7 +660,6 @@ class StructureSelectDialog(object):
             quality = c.text.split()[0]
             if quality in checkboxdict[d]:
                 checkboxdict[d][quality] = c.selected
-        print checkboxdict
         return checkboxdict
 
     def choose(self, event):

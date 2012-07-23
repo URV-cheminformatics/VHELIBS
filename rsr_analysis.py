@@ -81,7 +81,6 @@ def parse_binding_site(argtuple):
     ligand_all_atoms_dict = {}
     ligand_res_atom_dict = {}
     for hetid in hetids_list:
-        #print hetid
         ligand_all_atoms_dict[hetid] = set()
     protein_ca_atoms = set()
     pdbfilepath = os.path.join(PDBfiles.PREFIX, pdbid.upper() + ".pdb.gz")
@@ -94,7 +93,6 @@ def parse_binding_site(argtuple):
     if not os.path.isfile(pdbfilepath):
         PDBfiles.get_pdb_file(pdbid.upper(), pdbfilepath)
     pdbfile = gzip.GzipFile(pdbfilepath)
-    #print pdbfilepath
     try:
         seqres = set()
         links = []
@@ -184,7 +182,6 @@ def parse_binding_site(argtuple):
         """
         Split all the ligand residues into different molecules
         """
-        print links
         ligands = []
         added = False
         for lres in ligand_residues:
@@ -199,7 +196,7 @@ def parse_binding_site(argtuple):
                 else:
                     otherres = None
                 if otherres:
-                    print lres, res1, res2
+                    #print lres, res1, res2
                     links.remove((res1,  res2,  blen))
                     if otherres in ligand_residues:
                         ligand.add(otherres)
@@ -252,8 +249,7 @@ def parse_binding_site(argtuple):
                     if residue in dubious_rsr:
                         return 'Dubious'
                 else:
-                    print "Unclassified residues: "
-                    print residues < (dubious_rsr | bad_rsr | good_rsr)
+                    print "Unclassified residues for %s:" % pdbid
                     print
                     print residues
                     exit(89)
