@@ -19,10 +19,12 @@ import time
 from textwrap import dedent
 from sys import exit
 #Java stuff
+import java
+from java.net import URL
 from java.lang import Runnable
 from java.awt import BorderLayout, Dimension, GridLayout, GridBagLayout, GridBagConstraints, Insets
 from java.awt.event import ItemEvent, ActionListener, WindowAdapter
-from javax.swing import JFrame, JPanel, JButton, JOptionPane, JTextField, JCheckBox, JLabel, UIManager, JDialog, SwingUtilities, SwingWorker, JComboBox, ToolTipManager
+from javax.swing import JFrame, JPanel, JButton, JOptionPane, JTextField, JCheckBox, JLabel, UIManager, JDialog, SwingUtilities, SwingWorker, JComboBox, ToolTipManager, ImageIcon
 
 systemlaf = UIManager.getSystemLookAndFeelClassName()
 _infoicon = UIManager.getIcon("OptionPane.informationIcon")
@@ -34,6 +36,14 @@ if systemlaf == u'javax.swing.plaf.metal.MetalLookAndFeel':
         print e
 else:
     UIManager.setLookAndFeel(systemlaf)
+
+r = java.lang.ClassLoader.getSystemClassLoader().getResource('icon.png')
+print r
+if r:
+    u = URL(str(r))
+    vhelibsicon = ImageIcon(u).image
+else:
+    vhelibsicon=ImageIcon('icon.png').image
 
 #Jython-specific stuff
 from swingutils.preferences import getUserPrefs
@@ -69,6 +79,8 @@ def prefbool(string):
         return False
     else:
         raise TypeError(string + ' cannot be booleaned!')
+
+
 
 ###Define useful classes###
 class Console(AppConsole):
@@ -126,7 +138,7 @@ class StruVa(Runnable):
             self.setVisible(True)
 
     def setupUi(self):
-        self.frame = JFrame("VHELIBS", defaultCloseOperation = JFrame.EXIT_ON_CLOSE, size = (700, 410))
+        self.frame = JFrame("VHELIBS", iconImage=vhelibsicon, defaultCloseOperation = JFrame.EXIT_ON_CLOSE, size = (700, 410))
         jmolPanel = JmolPanel(preferredSize = (500, 500))
         self.viewer = jmolPanel.viewer
         self.execute = self.viewer.evalStringQuiet
@@ -592,7 +604,7 @@ class DialogShower(SwingWorker):
 
 class StructureSelectDialog(object):
     def __init__(self, values):
-        self.diag = JDialog(JFrame(),size = (500, 200), title = 'Select which structures to view', modal=True)
+        self.diag = JDialog(JFrame(iconImage=vhelibsicon),size = (500, 200), title = 'Select which structures to view', modal=True)
         self.panel = JPanel(GridBagLayout())
         constraints = GridBagConstraints()
         constraints.weightx = 0.5
@@ -734,7 +746,7 @@ class SettingsDialog(object):
         csvfilett = "Load a previously generated file to review its structures"
         self.panel.add(JButton('Load previous results file',  toolTipText=csvfilett, actionPerformed=self.csvFileDialog), constraints)
 
-        self.diag = JDialog(JFrame(),size = (500, 200), title = 'VHELIBS', modal=True)
+        self.diag = JDialog(JFrame(iconImage=vhelibsicon),size = (500, 200), title = 'VHELIBS', modal=True)
         self.diag.add(self.panel)
         self.diag.setLocationRelativeTo(None)
         self.diag.pack()
@@ -804,7 +816,7 @@ class WaitDialog(Runnable):
         self.info = info if info else '<html>Calculating binding sites and retrieving RSR information<br /> Please be patient</html>'
         i = UIManager.getIcon("OptionPane.informationIcon")
         self.icon = JLabel(i) if i is not None else JLabel(_infoicon)
-        self.frame =  JFrame()
+        self.frame =  JFrame(iconImage=vhelibsicon)
         self.panel = JPanel()
         self.panel.add(self.icon)
         self.panel.add(JLabel(self.info))
@@ -821,7 +833,7 @@ class DisplaySettingsDialog(object):
     keys = ('ligwfv', 'ligsfv', 'ligcolor', 'ligedmcolor', 'bswfv', 'bssfv', 'bscolor', 'bsedmcolor', 'rewfv', 'resfv', 'recolor', 'reedmcolor', 'edmdistance', 'sigma')
     def __init__(self, parent):
         self.parent = parent
-        self.frame =  JFrame()
+        self.frame =  JFrame(iconImage=vhelibsicon)
         self.panel = JPanel(GridBagLayout())
         constraints = GridBagConstraints()
         constraints.weightx = 0.5
