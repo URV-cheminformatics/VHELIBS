@@ -932,10 +932,10 @@ class DisplaySettingsDialog(object):
         constraints.gridwidth = 1
         constraints.gridx = 3
         self.panel.add(JButton('Defaults', actionPerformed=self.loaddefaults), constraints)
-        self.diag = JDialog(self.frame,size = (500, 500), title = 'Display Settings')
-        self.diag.pack()
+        self.diag = JDialog(self.frame, title = 'Display Settings')
         self.diag.setLocationRelativeTo(self.parent.frame)
         self.diag.add(self.panel)
+        self.diag.pack()
 
     def loadprefs(self):
         self.ligwfv.text = prefs.get('ligwfv', '0.1')
