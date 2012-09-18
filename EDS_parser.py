@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-#   Copyright 2010 - 2012 Adrián Cereto Massagué <adrian.cereto@.urv.cat>
+#   Copyright 2010 - 2012 Adrià Cereto Massagué <adrian.cereto@.urv.cat>
 #
 """
 Mòdul que extreu informació la EDS database
@@ -22,7 +22,7 @@ if not os.path.isdir(EDSdir):
 
 def get_EDS(pdbid):
     """
-    Funció encarregada d'extreure informació d'una pàgina de l'EDS
+    Extract data from EDS site for a given PDB code
     """
     pdbdict={'PDB_ID':pdbid.upper(),'IN_EDS':None}
     rsrdict = {}
@@ -79,7 +79,7 @@ def get_EDS(pdbid):
 
 def parse_EDS(pdblist, ligandlist = []):
     """
-    Obté informació del EDS d'una llista de codis del PDB
+    Get EDS data from a list of PDB codes
     """
     global residuelist
     residuelist = ligandlist
@@ -99,37 +99,3 @@ def parse_EDS(pdblist, ligandlist = []):
     pool.close()
     pool.join()
     return pdboutdict,  macro_rsrdict
-
-if __name__ == "__main__":
-    if len(sys.argv[1:]) != 3:
-       exit("""Us:
-       %s fitxer_llista_pdbs minim maxim"""  % sys.argv[0])
-    file = sys.argv[1]
-    maxval = Decimal(sys.argv[3])
-    minval = Decimal(sys.argv[2])
-    vurl = 'http://eds.bmc.uu.se/cgi-bin/eds/eds_astex.pl?infile=%s'
-    resultfile  = open('valors_rsr<%s_%s.csv' % (sys.argv[2] + '~' +sys.argv[3], os.path.basename(file)), 'wb')
-
-    pdblist = open(file, 'rb')
-    liganddict = PDBfiles.get_ligand_pdb_dict(blacklist = False)
-    print "Llegint fitxers d'entrada"
-    for pdbid in pdblist.readlines():
-        pdbid = pdbid.lower().strip()
-        print 'Mirant informaci de %s' % pdbid
-        pdbdict,  rsrdict = get_EDS(pdbid)
-        if pdbdict['IN_EDS'] == 'TRUE':
-            if liganddict.has_key(pdbid):
-                for residue in rsrdict:
-                    hetid = residue.split()[0]
-                    if hetid in liganddict[pdbid]:
-                        if Decimal(rsrdict[residue]) <= maxval and Decimal(rsrdict[residue]) >= minval:
-                            line = '"' + '"\t"'.join([pdbid, residue, rsrdict[residue],  vurl % pdbid]) + '"' + '\n'
-                            resultfile.write(line)
-            else:
-                print pdbid, 'no te lligands'
-        else:
-            print pdbid, "no a l'EDS"
-    resultfile.close()
-    print 'Fet!'
-
-

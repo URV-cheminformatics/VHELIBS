@@ -2,7 +2,7 @@
 #
 #   Copyright 2011-2012 Adrià Cereto Massagué <adrian.cereto@.urv.cat>
 #
-#   Llista negra de lligands
+#   Ligand blacklist
 #
 
 ligand_blacklist = {

@@ -118,7 +118,7 @@ def parse_binding_site(argtuple):
                             ligand_res_atom_dict[atom.residue] = set()
                         ligand_res_atom_dict[atom.residue].add(atom)
             elif label == 'LINK':
-                links.append((line[17:27],  line[47:57], float(line[73:78]))) #distancia
+                links.append((line[17:27],  line[47:57], float(line[73:78]))) #distance
     except IOError, error:
         print pdbfilepath
         print error
@@ -236,7 +236,6 @@ def parse_binding_site(argtuple):
                     inner_binding_site.add(atom.residue)
                     classificate_residue(atom.residue)
                     break
-        #rte = inner_binding_site.union(ligand).intersection(dubious_rsr)
         rte = inner_binding_site.union(ligand).difference(good_rsr)
 
         def validate(residues):

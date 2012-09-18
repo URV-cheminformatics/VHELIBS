@@ -3,9 +3,9 @@
 #   Copyright 2010 - 2012 Adrià Cereto Massagué <adrian.cereto@.urv.cat>
 #
 """
-Mòdul encarregat de manipular i descarregar fitxers del PDB
+Handle and download PDB files
 """
-import os, shutil, gzip, urllib2, time, sys, tempfile
+import os, gzip, urllib2, time, sys, tempfile
 if sys.platform.startswith('java'):
     import multithreading as multiprocessing
 else:

@@ -108,18 +108,6 @@ class make_listen(ActionListener):
 
 class StruVa(Runnable):
     actions = (u'toggle ligand', u'toggle binding site', u'toggle coordinates to exam',)
-    helpmsg = dedent("""> Special commands:
-    help : print this message
-    good : ???
-    bad :  ???
-    dubious :  ???
-    see <pdbid> : load this structure from the queue
-    list : shows the queue of structures
-    binding_site : select binding site residues
-    ligands : select ligand residues
-    coords_to_exam : select coordinates to exam from the binding site
-    Jmol scripting manual:
-    http://chemapps.stolaf.edu/jmol/docs/?&fullmanual=1&ver=12.4 """)
     frame = None
     viewer = None
     def __init__(self, values):
@@ -335,7 +323,7 @@ class StruVa(Runnable):
         pass
 
     def clean(self):
-        #Neteja-ho tot
+        #Clean everything
         self.execute('delete;')
         game_over = JOptionPane.showConfirmDialog(self.frame,u'Continue working with other structures?',u'No more structures to view!',JOptionPane.YES_NO_OPTION)
         if game_over == JOptionPane.OK_OPTION:
@@ -534,7 +522,7 @@ class StruVa(Runnable):
                 showWarningDialog('No structures to be viewed.')
                 self.restart()
                 return
-        #Demana quines estructures mirar
+        #Ask about which structures to look at.
         struc_d = StructureSelectDialog(values)
         wannasee = struc_d.show()
 
