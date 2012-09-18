@@ -121,6 +121,7 @@ class StruVa(Runnable):
                     SwingUtilities.invokeAndWait(self)
                     self.start()
             except Exception, e:
+                self.e = e
                 print e
                 showErrorDialog('Unable to load RSR analysis results file:\n %s' % str(e))
 
@@ -539,16 +540,9 @@ class StruVa(Runnable):
 
         print('Loading data from %s...' % csvfilename)
         csvfile = open(csvfilename, 'rb')
-        try:
-            dialect = csv.Sniffer().sniff(csvfile.read(1024))
-        except csv.Error,  e:
-            print e
-            dialect = 'excel'
-            print 'using default dialect: %s' % dialect
-        csvfile.seek(0)
-        self.dialect = dialect
-        reader = csv.reader(csvfile, dialect)
-        for id, residues_to_exam_string, ligandresidues_string, binding_site_string, ligandgood, bsgood in reader:
+        reader = csv.reader(csvfile, 'excel')
+        for fields in reader:
+            id, residues_to_exam_string, ligandresidues_string, binding_site_string, ligandgood, bsgood = fields
             if id != 'PDB ID':
                 bsgood = bsgood.lower()
                 ligandgood = ligandgood.lower()
