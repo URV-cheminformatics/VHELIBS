@@ -1,4 +1,4 @@
-*.ods
+*.pdf
 *.csv
 EDS_data
 *.pdb.gz
@@ -17,4 +17,9 @@ CSV
 *~
 *.class
 *.jar
+*.od?
+*.doc
 data
+*.build
+*.txt
+
