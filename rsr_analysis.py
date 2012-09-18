@@ -183,34 +183,43 @@ def parse_binding_site(argtuple):
         Split all the ligand residues into different molecules
         """
         ligands = []
-        added = False
         for lres in ligand_residues:
             ligand = set()
             ligand.add(lres)
-            for res1,  res2,  blen in links:
-                added = False
-                if res1 == lres:
-                    otherres = res2
-                elif res2 == lres:
-                    otherres = res1
+            if links:
+                for res1,  res2,  blen in links:
+                    added = False
+                    if res1 == lres:
+                        otherres = res2
+                    elif res2 == lres:
+                        otherres = res1
+                    else:
+                        otherres = None
+                    if otherres:
+                        #print lres, res1, res2
+                        links.remove((res1,  res2,  blen))
+                        if otherres in ligand_residues:
+                            ligand.add(otherres)
+                            for kligand in ligands:
+                                if otherres in kligand:
+                                    kligand.update(ligand)
+                                    added = True
+                                    break
                 else:
-                    otherres = None
-                if otherres:
-                    #print lres, res1, res2
-                    links.remove((res1,  res2,  blen))
-                    if otherres in ligand_residues:
-                        ligand.add(otherres)
-                        for kligand in ligands:
-                            if otherres in kligand:
-                                kligand.update(ligand)
-                                added = True
-                                break
+                    if not added:
+                        ligands.append(ligand)
+                        added = True
             else:
-                if not added:
-                    ligands.append(ligand)
-                    added = True
+                ligands = [set([res, ]) for res in ligand_residues]
         return ligands
     ligands = group_ligands(ligand_residues)
+    ligands_res = set()
+    for ligand in ligands:
+        ligands_res.update(ligand)
+    ligdiff = ligand_residues.difference(ligands_res)
+    if ligdiff:
+        print "!!!Ligand residues without ligand:"
+        print "\n".join(ligdiff)
 
     def get_binding_site(ligand):
         """
