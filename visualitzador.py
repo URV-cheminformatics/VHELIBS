@@ -63,6 +63,8 @@ from org.jmol.adapter.smarter import SmarterJmolAdapter
 from org.jmol.api import JmolViewer
 from org.openscience.jmol.app.jmolpanel import AppConsole
 
+VHELIBS_VERSION = "0.99b"
+
 #Own stuff
 sys.argv = [arg for arg in sys.argv if __file__ not in arg]
 if not len(sys.argv):
@@ -207,7 +209,7 @@ class StruVa(Runnable):
         self.structs_cbox = JComboBox(self.resultdict.keys())
         self.structs_cbox.addActionListener(make_listen(self.reloadStruct))
 
-        help_button = JButton('Help', actionPerformed=self.displayHelp)
+        about_button = JButton('About', actionPerformed=self.displayAbout)
         opt_button = JButton('Display settings', actionPerformed=self.showDisplaySettings)
         next_button = JButton('Save & Check Next Structure', toolTipText="Save the current structure with the selected flags to %s, then load another structure to check" % self.checkedfilename, actionPerformed=self.nextStruct)
 
@@ -232,7 +234,7 @@ class StruVa(Runnable):
         constraints.gridx = 0
         constraints.gridy = 0
 
-        buttonPanel.add(help_button, constraints)
+        buttonPanel.add(about_button, constraints)
         constraints.gridx += 1
         buttonPanel.add(opt_button, constraints)
         constraints.gridx -= 1
@@ -263,6 +265,7 @@ class StruVa(Runnable):
         self.frame.pack()
         self.setVisible = self.frame.setVisible
         self.optionsdiag = DisplaySettingsDialog(self)
+        self.aboutdiag = AboutDialog(self)
 
     def updateDisplay(self, event):
         text = event.source.text.lower()
@@ -319,8 +322,8 @@ class StruVa(Runnable):
     def showDisplaySettings(self, event):
         self.optionsdiag.show(not self.optionsdiag.diag.visible)
 
-    def displayHelp(self, event):
-        #Stub, needs to be implemented
+    def displayAbout(self, event):
+        self.aboutdiag.show()
         pass
 
     def clean(self):
@@ -814,6 +817,82 @@ class WaitDialog(Runnable):
          self.dialog.visible = boolean
     def run(self):
         self.show(True)
+
+class AboutDialog(object):
+    def __init__(self, parent=None):
+        self.parentframe = parent.frame if parent else None
+        urvfn = 'URV.png'
+        urv = java.lang.ClassLoader.getSystemClassLoader().getResource(urvfn)
+        if urv:
+            u = URL(str(urv))
+            self.urvicon = ImageIcon(u)
+        else:
+           self.urvicon=ImageIcon(urvfn)
+        ctnsfn = 'logo_ctns.png'
+        urv = java.lang.ClassLoader.getSystemClassLoader().getResource(ctnsfn)
+        if urv:
+            u = URL(str(urv))
+            self.ctnsicon = ImageIcon(u)
+        else:
+            self.ctnsicon=ImageIcon(ctnsfn)
+        self.frame =  JFrame(iconImage=vhelibsicon)
+        self.panel = JPanel(GridBagLayout())
+        constraints = GridBagConstraints()
+        constraints.weightx = 0.5
+        constraints.weighty = 0.5
+        constraints.fill = GridBagConstraints.HORIZONTAL
+        constraints.insets = Insets(3,3,3,3)
+
+        constraints.gridy = 0
+        constraints.gridx = 0
+        constraints.gridwidth = 3
+        self.panel.add(JLabel(ImageIcon(vhelibsicon)), constraints)
+
+        label = dedent(u"""<html><body>
+        <div style="text-align: center;"><big><big><big><span style="font-weight: bold;">VHELIBS %s</span></big></big></big><br>
+        <br>
+        <big><span style="font-weight: bold;">V</span>alidation <span style="font-weight: bold;">HE</span>lper for <span style="font-weight: bold;">LI</span>gands and <span style="font-weight: bold;">B</span>inding <span style="font-weight: bold;">S</span>ites</big>
+        <br>
+        <p style="margin-top: 0.12cm; margin-bottom: 0cm; line-height: 0.53cm;" lang="en-US"><small><small>
+        <font face="Helvetica-Light, Arial Unicode MS, sans-serif"><font style="font-size: 13pt;" size="3"><small><small>Adrià
+        Cereto-Massagué<sup> 1</sup>, María José Ojeda<sup>1</sup>,
+        Cristina Valls<sup> 1</sup>, Miquel Mulero<sup> 1</sup>, M. Josepa
+        Salvado<sup>1</sup>, Anna Arola-Arnal<sup>1</sup>, Lluís Arola<sup>1,
+        2</sup>, Santiago Garcia-Vallvé<sup>1, 2</sup> and Gerard Pujadas<sup>
+        1, 2,</sup></small></small></font></font></small></small></p>
+        <p style="margin-top: 0.07cm; margin-bottom: 0.09cm;" lang="pt-BR"><small><small><font face="Helvetica-Light, Arial Unicode MS, sans-serif"><sup>1</sup>Grup
+        de Recerca en Nutrigenòmica, Departament de Bioquímica i
+        Biotecnologia, Universitat Rovira i Virgili, Campus de Sescelades, C/
+        Marce&#320;lí Domingo s/n, 43007 Tarragona, Catalonia, Spain</font></small></small></p>
+        <p style="margin-top: 0.07cm; margin-bottom: 0.09cm;" lang="pt-BR"><small><small><font face="Helvetica-Light, Arial Unicode MS, sans-serif"><sup>2</sup>Centre
+        Tecnològic de Nutrició i Salut (CTNS), TECNIO, CEICS, Avinguda
+        Universitat 1, 43204, Reus, Catalonia, Spain</font></small></small></p>
+        <br>
+        <br>
+        </div>
+        </body></html>""") % VHELIBS_VERSION
+
+        constraints.gridy = 1
+        self.panel.add(JLabel(label), constraints)
+
+        constraints.gridy = 2
+        constraints.gridx = 0
+        constraints.gridwidth = 1
+        self.panel.add(JLabel(self.urvicon), constraints)
+
+        constraints.gridx = 2
+        self.panel.add(JLabel(self.ctnsicon), constraints)
+
+        constraints.gridx = 1
+        self.panel.add(JLabel(u"""<html><body>More information, help and documentation can be found at <br><a href="http://urvnutrigenomica-ctns.github.com/VHELIBS/">http://urvnutrigenomica-ctns.github.com/VHELIBS/</a></body></html>"""), constraints)
+
+        self.diag = JDialog(self.frame, title = 'About VHELIBS')
+        self.diag.setLocationRelativeTo(self.parentframe)
+        self.diag.add(self.panel)
+        self.diag.pack()
+        self.diag.size = (734,524)
+    def show(self):
+        self.diag.visible = True
 
 class DisplaySettingsDialog(object):
     keys = ('ligwfv', 'ligsfv', 'ligcolor', 'ligedmcolor', 'bswfv', 'bssfv', 'bscolor', 'bsedmcolor', 'rewfv', 'resfv', 'recolor', 'reedmcolor', 'edmdistance', 'sigma')
