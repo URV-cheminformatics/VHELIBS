@@ -28,9 +28,9 @@ from textwrap import dedent
 from sys import exit
 #Java stuff
 import java
-from java.net import URL
+from java.net import URL, URI
 from java.lang import Runnable
-from java.awt import BorderLayout, Dimension, GridLayout, GridBagLayout, GridBagConstraints, Insets
+from java.awt import BorderLayout, Dimension, GridLayout, GridBagLayout, GridBagConstraints, Insets, Cursor, Desktop
 from java.awt.event import ItemEvent, ActionListener, WindowAdapter
 from javax.swing import JFrame, JPanel, JButton, JOptionPane, JTextField, JCheckBox, JLabel, UIManager, JDialog, SwingUtilities, SwingWorker, JComboBox, ToolTipManager, ImageIcon
 
@@ -878,19 +878,28 @@ class AboutDialog(object):
         constraints.gridy = 2
         constraints.gridx = 0
         constraints.gridwidth = 1
+        constraints.gridheight = 2
         self.panel.add(JLabel(self.urvicon), constraints)
 
         constraints.gridx = 2
         self.panel.add(JLabel(self.ctnsicon), constraints)
 
         constraints.gridx = 1
-        self.panel.add(JLabel(u"""<html><body>More information, help and documentation can be found at <br><a href="http://urvnutrigenomica-ctns.github.com/VHELIBS/">http://urvnutrigenomica-ctns.github.com/VHELIBS/</a></body></html>"""), constraints)
+        constraints.gridheight = 1
+        self.panel.add(JLabel(u"""<html>More information, help and documentation can be found at:</html>"""), constraints)
+
+        constraints.gridy = 3
+        website = JLabel()
+        website.text = "<html><a href=\"\">urvnutrigenomica-ctns.github.com/VHELIBS</a></html>"
+        website.cursor = Cursor(Cursor.HAND_CURSOR)
+        website.mouseClicked = lambda e: Desktop.getDesktop().browse(URI("http://urvnutrigenomica-ctns.github.com/VHELIBS"))
+        self.panel.add(website, constraints)
 
         self.diag = JDialog(self.frame, title = 'About VHELIBS')
         self.diag.setLocationRelativeTo(self.parentframe)
         self.diag.add(self.panel)
         self.diag.pack()
-        self.diag.size = (734,524)
+        self.diag.size = (692,524)
     def show(self):
         self.diag.visible = True
 
