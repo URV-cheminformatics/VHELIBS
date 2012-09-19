@@ -4,23 +4,32 @@
 #
 
 #Python stuff
-import sys
-class OutLog(object):
-    def __init__(self, filename):
+import sys, shutil, tempfile, os
+class LogProxy(object):
+    def __init__(self, std, filename):
+        self.filename = filename
+        self.std = std
         self.file = open(filename, 'w')
     def write(self, text):
-        sys.__stdout__.write(text)
+        self.std.write(text)
         self.file.write(text)
         self.file.flush()
     def close(self):
         self.file.close()
-sys.stdout = OutLog('VHELIBS_log.txt')
+        self.std.close()
+    def moveto(self, dir):
+        self.file.close()
+        filename = os.path.join(dir, os.path.basename(self.filename))
+        shutil.move(self.filename, filename)
+        self.filename = filename
+        self.file = open(filename, 'w')
+sys.stdout = LogProxy(sys.__stdout__, os.path.join(tempfile.gettempdir(),'VHELIBS_log.txt'))
+sys.stderr = LogProxy(sys.__stderr__, os.path.join(tempfile.gettempdir(),'VHELIBS_errors.txt'))
 ######One-jar magic#######
 sys.path.append('__pyclasspath__/pylib')
 if not sys.prefix:
     sys.prefix='.'
 ######One-jar magic#######
-import os
 import csv
 import math
 import time
@@ -496,6 +505,7 @@ class StruVa(Runnable):
         values = self.values
         self.resultdict = {}
         csvfilename = values.csvfile
+        outdir = None
         if csvfilename:
             if not os.path.isfile(csvfilename):
                 print 'File %s does not exist' % csvfilename
@@ -516,6 +526,9 @@ class StruVa(Runnable):
                                             )
             self.wd.show(False)
             if values.no_view:
+                if outdir:
+                    sys.stdout.moveto(outdir)
+                    sys.stderr.moveto(outdir)
                 exit(0)
             if datawritten:
                 showMessageDialog('Analysis data saved to %s' % datawritten, 'Analysis completed')
@@ -526,6 +539,9 @@ class StruVa(Runnable):
                 showWarningDialog('No structures to be viewed.')
                 self.restart()
                 return
+        if outdir:
+            sys.stdout.moveto(outdir)
+            sys.stderr.moveto(outdir)
         #Ask about which structures to look at.
         struc_d = StructureSelectDialog(values)
         wannasee = struc_d.show()
