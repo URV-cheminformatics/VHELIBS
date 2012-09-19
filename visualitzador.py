@@ -348,6 +348,7 @@ class StruVa(Runnable):
         if event and event.actionCommand != u'comboBoxChanged': return
         self.console.clearContent('')
         self.key = self.structs_cbox.selectedItem
+        if not self.key: return
         self.pdbid = self.key.split('|')[0]
         self.wd.show(False)
         self.wd = WaitDialog(parent=self.frame,info='<html>Loading structure %s from PDB and EDS<br /> Please be patient</html>' % self.key)
