@@ -4,7 +4,13 @@
 #
 
 #Python stuff
-import sys, shutil, tempfile, os
+######One-jar magic#######
+import sys
+sys.path.append('__pyclasspath__/pylib')
+if not sys.prefix:
+    sys.prefix='.'
+######One-jar magic#######
+import shutil, tempfile, os
 class LogProxy(object):
     def __init__(self, std, filename):
         self.filename = filename
@@ -25,11 +31,6 @@ class LogProxy(object):
         self.file = open(filename, 'w')
 sys.stdout = LogProxy(sys.__stdout__, os.path.join(tempfile.gettempdir(),'VHELIBS_log.txt'))
 sys.stderr = LogProxy(sys.__stderr__, os.path.join(tempfile.gettempdir(),'VHELIBS_errors.txt'))
-######One-jar magic#######
-sys.path.append('__pyclasspath__/pylib')
-if not sys.prefix:
-    sys.prefix='.'
-######One-jar magic#######
 import csv
 import math
 import time
