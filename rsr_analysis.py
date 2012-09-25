@@ -118,7 +118,9 @@ def parse_binding_site(argtuple):
                             ligand_res_atom_dict[atom.residue] = set()
                         ligand_res_atom_dict[atom.residue].add(atom)
             elif label == 'LINK':
-                links.append((line[17:27],  line[47:57], float(line[73:78]))) #distance
+                dist = line[73:78]
+                if dist:
+                    links.append((line[17:27],  line[47:57], float(dist))) #distance
     except IOError, error:
         print pdbfilepath
         print error
