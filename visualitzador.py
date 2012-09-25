@@ -13,22 +13,31 @@ if not sys.prefix:
 import shutil, tempfile, os
 class LogProxy(object):
     def __init__(self, std, filename):
+        self.files = {}
         self.filename = filename
         self.std = std
-        self.file = open(filename, 'w')
+        self.files[filename] = open(filename, 'w')
     def write(self, text):
         self.std.write(text)
-        self.file.write(text)
-        self.file.flush()
+        for file in self.files.values():
+            file.write(text)
+            file.flush()
     def close(self):
         self.file.close()
         self.std.close()
     def moveto(self, dir):
-        self.file.close()
-        filename = os.path.join(dir, os.path.basename(self.filename))
-        shutil.move(self.filename, filename)
-        self.filename = filename
-        self.file = open(filename, 'w')
+        pass
+#        self.remfiles()
+#        filename = os.path.join(dir, os.path.basename(self.filename))
+#        shutil.copy(self.filename, filename)
+#        self.files[filename] = open(filename, 'w')
+#    def remfiles(self):
+#        for filename in self.files:
+#            if filename != self.filename:
+#                file = self.files.pop(filename)
+#                file.flush()
+#                file.close()
+
 sys.stdout = LogProxy(sys.__stdout__, os.path.join(tempfile.gettempdir(),'VHELIBS_log.txt'))
 sys.stderr = LogProxy(sys.__stderr__, os.path.join(tempfile.gettempdir(),'VHELIBS_errors.txt'))
 import csv
