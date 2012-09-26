@@ -195,6 +195,8 @@ ligand_blacklist = {
 , 'UQ8': 'UBIQUINONE-8'
 , 'HOH': 'Water'
 , 'NAG': 'n-acetylglucosamine'
+, 'EPE': 'Hepes'
+, 'PEG': 'poly(ethylene glycol)'
 }
 
 
