@@ -11,7 +11,7 @@ else:
     import multiprocessing
 
 import PDBfiles, EDS_parser
-from cofactors import ligand_blacklist
+from cofactors import ligand_blacklist, metals
 
 RSR_upper = 0.4
 RSR_lower = 0.24
@@ -108,7 +108,9 @@ def parse_binding_site(argtuple):
                         protein_ca_atoms.add(atom)
                     seqres.add(atom.residue)
                 elif label == 'HETATM':
-                    if atom.hetid in hetids_list or (not hetids_list and (atom.hetid not in ligand_blacklist)):
+                    if not hetids_list or atom.hetid in hetids_list:
+                        if (atom.hetid in ligand_blacklist) or (atom.hetid in metals):
+                            continue
                         ligand_residues.add(atom.residue)
                         if not hetids_list and atom.hetid not in ligand_all_atoms_dict:
                             future_hetids_list.add(atom.hetid)
@@ -142,16 +144,32 @@ def parse_binding_site(argtuple):
             if res2[:3] in seqres or res2 in seqres:
                 inseqres +=1
                 sres,  ligres = res2, res1
-            if res1[:3] in ligand_blacklist or res2[:3] in ligand_blacklist:
-                print 'Binding to a blacklisted ligand: %s - %s' % (res1, res2)
+            if res1[:3].strip() in ligand_blacklist:
+                print 'Binding to a blacklisted ligand: %s -> %s' % (res2, res1)
                 notligands.add(res1)
                 seqres.add(res1)
                 ligres = res2
                 inseqres = 1
+            elif res1[:3].strip() in metals:
+                notligands.add(res1)
+                ligres = res2
+            if res2[:3].strip() in ligand_blacklist:
+                print 'Binding to a blacklisted ligand: %s -> %s' % (res1, res2)
+                notligands.add(res2)
+                seqres.add(res2)
+                ligres = res1
+                inseqres = 1
+            elif res2[:3].strip() in metals:
+                notligands.add(res2)
+                ligres = res1
             if inseqres == 1:
                 if not blen or blen >= 2.1: #Disulfide bonds are about 2.05;
                     print 'Bond distance big enough (%s) between %s and %s' % (blen, res1,  res2)
                     continue
+                if (res1[:3].strip() in metals) or (res2[:3].strip() in metals):
+                    print 'Ignoring metal bonds: %s - %s' % (res1, res2)
+                    continue
+                print res1, res2
                 notligands.add(ligres)
                 seqres.add(ligres)
                 links.remove((res1,  res2,  blen))
