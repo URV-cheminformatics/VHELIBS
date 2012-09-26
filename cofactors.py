@@ -202,4 +202,45 @@ ligand_blacklist = {
 , 'PEG': 'poly(ethylene glycol)'
 }
 
+def update_lists(new_m = metals, new_lb = ligand_blacklist):
+    global metals
+    metals = new_m
+    global ligand_blacklist
+    ligand_blacklist = new_lb
+
+def dump_lists(fname = 'notligands.ini'):
+    file = open(fname, 'w')
+    metalstring = ''
+    for hetid in metals:
+        if hetid:
+            metalstring += hetid + ' : ' + metals[hetid] + '\n'
+    lblstring = ''
+    for hetid in ligand_blacklist:
+        if hetid:
+            lblstring += hetid + ' : ' + ligand_blacklist[hetid] + '\n'
+    file.write('[Blacklist]\n')
+    file.write(lblstring)
+    file.write('[Non-exclusive]\n')
+    file.write(metalstring)
+    file.close()
+
+def load_lists(fname):
+    new_m = {}
+    new_lb = {}
+    file = open(fname, 'r')
+    lines = file.readlines()
+    file.close()
+    d = None
+    for line in lines:
+        if line.lower().startswith('[blacklist]'):
+            d = new_lb
+            continue
+        elif line.lower().startswith('[non-exclusive]'):
+            d = new_m
+            continue
+        if d != None:
+            dirty_hetid,  dirty_desc = line.strip().split(':')
+            d[dirty_hetid.strip()] = dirty_desc.strip()
+    update_lists(new_m, new_lb)
+
 

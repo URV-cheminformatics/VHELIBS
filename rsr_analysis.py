@@ -11,6 +11,7 @@ else:
     import multiprocessing
 
 import PDBfiles, EDS_parser
+import cofactors
 from cofactors import ligand_blacklist, metals
 
 RSR_upper = 0.4
