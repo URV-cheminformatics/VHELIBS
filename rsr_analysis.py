@@ -360,7 +360,7 @@ def main(filepath = None, pdbidslist=[], swissprotlist = [], rsr_upper=RSR_upper
                     pdblist = itertools.chain(pdblist, sptopdb_dict[key])
     if filepath:
         pdblistfile = open(filepath, 'rb')
-        pdblist = itertools.chain(pdblist, (line.strip() for line in pdblistfile if line.strip()))
+        pdblist = itertools.chain(pdblist, [line.strip() for line in pdblistfile if line.strip()])
     argsarray = ((pdbid.upper(), rsr_upper, rsr_lower) for pdbid in pdblist if pdbid)
     if filepath:
         pdblistfile.close()
