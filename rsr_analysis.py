@@ -168,8 +168,8 @@ def parse_binding_site(argtuple):
             ligand_all_atoms_dict.pop(nonligand[:3])
 
     def classificate_residue(residue):
-        rsr = float(rsrdict.get(residue, None))
-        if rsr != None and rsr <= rsr_upper:
+        rsr = float(rsrdict.get(residue, 100))
+        if rsr != 100. and rsr <= rsr_upper:
             if rsr <= rsr_lower:
                 good_rsr.add(residue)
             else:
