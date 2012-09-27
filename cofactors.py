@@ -211,16 +211,20 @@ def update_lists(new_m = metals, new_lb = ligand_blacklist):
 def dump_lists(fname = 'notligands.ini'):
     file = open(fname, 'w')
     metalstring = ''
-    for hetid in metals:
+    metalhetids = metals.keys()
+    metalhetids.sort()
+    for hetid in metalhetids:
         if hetid:
             metalstring += hetid + ' : ' + metals[hetid] + '\n'
     lblstring = ''
-    for hetid in ligand_blacklist:
+    lblhetids = ligand_blacklist.keys()
+    lblhetids.sort()
+    for hetid in lblhetids:
         if hetid:
             lblstring += hetid + ' : ' + ligand_blacklist[hetid] + '\n'
     file.write('[Blacklist]\n')
     file.write(lblstring)
-    file.write('[Non-exclusive]\n')
+    file.write('\n[Non-propagating]\n')
     file.write(metalstring)
     file.close()
 
@@ -235,12 +239,14 @@ def load_lists(fname):
         if line.lower().startswith('[blacklist]'):
             d = new_lb
             continue
-        elif line.lower().startswith('[non-exclusive]'):
+        elif line.lower().startswith('[non-propagating]'):
             d = new_m
             continue
         if d != None:
-            dirty_hetid,  dirty_desc = line.strip().split(':')
-            d[dirty_hetid.strip()] = dirty_desc.strip()
+            line = line.strip()
+            if ':' in line and len(line) >= 3:
+                dirty_hetid,  dirty_desc = line.split(':')
+                d[dirty_hetid.strip()] = dirty_desc.strip()
     update_lists(new_m, new_lb)
 
 

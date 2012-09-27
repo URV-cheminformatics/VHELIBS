@@ -12,7 +12,6 @@ else:
 
 import PDBfiles, EDS_parser
 import cofactors
-from cofactors import ligand_blacklist, metals
 
 RSR_upper = 0.4
 RSR_lower = 0.24
@@ -30,6 +29,8 @@ parser.add_argument('-l','--rsr_lower', type=float, default=RSR_lower, metavar='
 parser.add_argument('-d','--distance', type=float, default=4.5, metavar='Å', help='consider part of the binding sites all the residues nearer than this to the ligand (in Å)')
 parser.add_argument('-f','--pdbidfile', metavar='PATH', type=unicode, default=None, required=False, help='text file containing a list of PDB ids, one per line')
 parser.add_argument('-o','--outputfile', metavar='PATH', type=unicode, default='rsr_analysis.csv', required=False, help='output file name')
+parser.add_argument('-w','--writeexcludes', metavar='PATH', type=unicode, default=None, required=False, help='Write current excluded HET ids to a file')
+parser.add_argument('-e','--excludesfile', metavar='PATH', type=unicode, default=None, required=False, help='Override excluded HET ids with the ones provided in this file')
 #######################
 
 def get_sptopdb_dict():
@@ -110,7 +111,7 @@ def parse_binding_site(argtuple):
                     seqres.add(atom.residue)
                 elif label == 'HETATM':
                     if not hetids_list or atom.hetid in hetids_list:
-                        if (atom.hetid in ligand_blacklist) or (atom.hetid in metals):
+                        if (atom.hetid in cofactors.ligand_blacklist) or (atom.hetid in cofactors.metals):
                             continue
                         ligand_residues.add(atom.residue)
                         if not hetids_list and atom.hetid not in ligand_all_atoms_dict:
@@ -145,29 +146,29 @@ def parse_binding_site(argtuple):
             if res2[:3] in seqres or res2 in seqres:
                 inseqres +=1
                 sres,  ligres = res2, res1
-            if res1[:3].strip() in ligand_blacklist:
+            if res1[:3].strip() in cofactors.ligand_blacklist:
                 print 'Binding to a blacklisted ligand: %s -> %s' % (res2, res1)
                 notligands.add(res1)
                 seqres.add(res1)
                 ligres = res2
                 inseqres = 1
-            elif res1[:3].strip() in metals:
+            elif res1[:3].strip() in cofactors.metals:
                 notligands.add(res1)
                 ligres = res2
-            if res2[:3].strip() in ligand_blacklist:
+            if res2[:3].strip() in cofactors.ligand_blacklist:
                 print 'Binding to a blacklisted ligand: %s -> %s' % (res1, res2)
                 notligands.add(res2)
                 seqres.add(res2)
                 ligres = res1
                 inseqres = 1
-            elif res2[:3].strip() in metals:
+            elif res2[:3].strip() in cofactors.metals:
                 notligands.add(res2)
                 ligres = res1
             if inseqres == 1:
                 if not blen or blen >= 2.1: #Disulfide bonds are about 2.05;
                     print 'Bond distance big enough (%s) between %s and %s' % (blen, res1,  res2)
                     continue
-                if (res1[:3].strip() in metals) or (res2[:3].strip() in metals):
+                if (res1[:3].strip() in cofactors.metals) or (res2[:3].strip() in cofactors.metals):
                     print 'Ignoring metal bonds: %s - %s' % (res1, res2)
                     continue
                 print res1, res2
@@ -341,7 +342,7 @@ def results_to_csv(results, outputfile):
         os.remove(outputfile)
     return datawritten
 
-def main(filepath = None, pdbidslist=[], swissprotlist = [], rsr_upper=RSR_upper, rsr_lower = RSR_lower, distance=None, outputfile='rsr_analysis.csv'):
+def main(filepath = None, pdbidslist=[], swissprotlist = [], rsr_upper=RSR_upper, rsr_lower = RSR_lower, distance=None, outputfile='rsr_analysis.csv', writeexcludes = None, excludesfile = None):
     if not rsr_upper > rsr_lower:
         print '%s is higher than %s!' % (rsr_lower, rsr_upper)
         raise ValueError
@@ -352,6 +353,12 @@ def main(filepath = None, pdbidslist=[], swissprotlist = [], rsr_upper=RSR_upper
         inner_distance = distance**2
         outer_distance =  inner_distance*distfactor
     pdblist = pdbidslist
+    if excludesfile:
+        cofactors.load_lists(excludesfile)
+        print "Loading hetids to exclude from %s" % excludesfile
+    if writeexcludes:
+        cofactors.dump_lists(writeexcludes)
+        print 'List of excluded Hetids written to %s' % writeexcludes
     if swissprotlist:
         sptopdb_dict = get_sptopdb_dict()
         for swissprot_id in swissprotlist:
@@ -375,4 +382,4 @@ def main(filepath = None, pdbidslist=[], swissprotlist = [], rsr_upper=RSR_upper
 
 if __name__ == '__main__':
     values = parser.parse_args()
-    main(values.pdbidfile, pdbidslist = values.pdbids, swissprotlist =values.swissprot , rsr_upper=values.rsr_upper, rsr_lower = values.rsr_lower, distance=values.distance, outputfile = values.outputfile)
+    main(values.pdbidfile, pdbidslist = values.pdbids, swissprotlist =values.swissprot , rsr_upper=values.rsr_upper, rsr_lower = values.rsr_lower, distance=values.distance, outputfile = values.outputfile, writeexcludes = values.writeexcludes, excludesfile = values.excludesfile)
