@@ -84,7 +84,6 @@ def parse_binding_site(argtuple):
     ligand_res_atom_dict = {}
     for hetid in hetids_list:
         ligand_all_atoms_dict[hetid] = set()
-    protein_ca_atoms = set()
     pdbfilepath = os.path.join(PDBfiles.PREFIX, pdbid.upper() + ".pdb.gz")
     if not os.path.isdir(PDBfiles.PREFIX):
         os.makedirs(PDBfiles.PREFIX)
@@ -106,8 +105,6 @@ def parse_binding_site(argtuple):
                 atom = PdbAtom(line)
                 if label == "ATOM" and inner_distance: #Don't care about protein when distance = 0
                     protein_atoms.add(atom)
-                    if atom.name[1:3] == 'CA':  #Is alpha-carbon
-                        protein_ca_atoms.add(atom)
                     seqres.add(atom.residue)
                 elif label == 'HETATM':
                     if not hetids_list or atom.hetid in hetids_list:
@@ -185,7 +182,7 @@ def parse_binding_site(argtuple):
         if nonligand in ligand_residues:
             ligand_residues.remove(nonligand)
         if nonligand[:3] in ligand_all_atoms_dict:
-            ligand_all_atoms_dict.pop(nonligand[:3])
+            protein_atoms.update(ligand_all_atoms_dict.pop(nonligand[:3]))
 
     def classificate_residue(residue):
         rsr = float(rsrdict.get(residue, 100))
@@ -247,26 +244,15 @@ def parse_binding_site(argtuple):
         """
         Get the binding site residues for the provided ligand and return them in a tuple
         """
-        #Generate outer distance set
-        outer_binding_site = set()
+        inner_binding_site = set()
         for ligandres in ligand:
-            for atom in protein_ca_atoms:
+            for atom in protein_atoms:
                 for ligandatom in ligand_res_atom_dict[ligandres]:
                     distance = atom | ligandatom
-                    if distance <= outer_distance:
-                        outer_binding_site.add(atom.residue)
+                    if distance <= inner_distance:
+                        inner_binding_site.add(atom.residue)
+                        classificate_residue(atom.residue)
                         break
-        #Generate inner distance set
-        inner_binding_site = set()
-        for atom in protein_atoms:
-            if atom.residue not in outer_binding_site:
-                continue
-            for ligandatom in ligand_res_atom_dict[ligandres]:
-                distance = atom | ligandatom
-                if distance <= inner_distance:
-                    inner_binding_site.add(atom.residue)
-                    classificate_residue(atom.residue)
-                    break
         rte = inner_binding_site.union(ligand).difference(good_rsr)
 
         def validate(residues):
