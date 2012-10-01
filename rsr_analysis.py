@@ -199,37 +199,30 @@ def parse_binding_site(argtuple):
 
     def group_ligands(ligand_residues):
         """
-        Split all the ligand residues into different molecules
+        Group all the ligand residues into molecules
         """
         ligands = []
         for lres in ligand_residues:
-            ligand = set()
-            ligand.add(lres)
+            for ligand in ligands:
+                if lres in ligand:
+                    L = ligand
+                    break
+            else:
+                L = set()
+                L.add(lres)
+                ligands.append(L)
             if links:
                 for res1,  res2,  blen in links:
-                    added = False
-                    if res1 == lres:
-                        otherres = res2
-                    elif res2 == lres:
-                        otherres = res1
-                    else:
-                        otherres = None
-                    if otherres:
-                        #print lres, res1, res2
-                        links.remove((res1,  res2,  blen))
+                    if blen <= 2.1:
+                        if lres == res1:
+                            otherres = res2
+                        elif lres == res2:
+                            otherres = res1
+                        else:
+                            continue
                         if otherres in ligand_residues:
-                            ligand.add(otherres)
-                            for kligand in ligands:
-                                if otherres in kligand:
-                                    kligand.update(ligand)
-                                    added = True
-                                    break
-                else:
-                    if not added:
-                        ligands.append(ligand)
-                        added = True
-            else:
-                ligands = [set([res, ]) for res in ligand_residues]
+                            links.remove((res1,  res2,  blen))
+                            L.add(otherres)
         return ligands
     ligands = group_ligands(ligand_residues)
     ligands_res = set()
@@ -253,6 +246,17 @@ def parse_binding_site(argtuple):
                         inner_binding_site.add(atom.residue)
                         classificate_residue(atom.residue)
                         break
+            for l in ligands:
+                if l == ligand:
+                    continue
+                for lres in l:
+                    for latom in ligand_res_atom_dict[lres]:
+                        for ligandatom in ligand_res_atom_dict[ligandres]:
+                            distance = latom | ligandatom
+                            if distance <= inner_distance:
+                                inner_binding_site.add(lres)
+                                classificate_residue(lres)
+                                break
         rte = inner_binding_site.union(ligand).difference(good_rsr)
 
         def validate(residues):
