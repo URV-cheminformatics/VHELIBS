@@ -75,6 +75,8 @@ metals = {
 , 'AU': 'GOLD'
 , 'W': 'Tungsten'
 , 'EU': 'Europium ion'
+, 'OS': 'Osmium ion'
+, 'HO': 'Holmium ion'
 }
 
 ligand_blacklist = {
@@ -200,6 +202,35 @@ ligand_blacklist = {
 , 'NAG': 'n-acetylglucosamine'
 , 'EPE': 'Hepes'
 , 'PEG': 'poly(ethylene glycol)'
+, '0U': 'L-nucleotide'
+, '6HT': 'L-nucleotide'
+, '0C': 'L-nucleotide'
+, '0G': 'L-nucleotide'
+, '6HG': 'chemically modified oligonucleotide derivative'
+, '6HA': 'chemically modified oligonucleotide derivative'
+, '6HC': 'chemically modified oligonucleotide derivative'
+, 'A44': 'chemically modified oligonucleotide derivative'
+, 'C43': 'chemically modified oligonucleotide derivative'
+, 'G48': 'chemically modified oligonucleotide derivative'
+, 'U36': 'chemically modified oligonucleotide derivative'
+, 'ZCY': 'RNA linking'
+, 'ZGU': 'RNA linking'
+, 'ZAD': 'RNA linking'
+, 'ZTH': 'RNA linking'
+, 'LCA': 'RNA linking'
+, 'LCC': 'RNA linking'
+, 'LCG': 'RNA linking'
+, 'TLN': 'RNA linking'
+, 'ZBC': 'RNA linking'
+, 'ZBU': 'RNA linking'
+, 'ZHP': 'RNA linking'
+, 'AF2': 'DNA linking'
+, 'GF2': 'DNA linking'
+, 'XAD': 'DNA linking'
+, 'XCT': 'DNA linking'
+, 'XGU': 'DNA linking'
+, 'XTH': 'DNA linking'
+
 }
 
 def update_lists(new_m = metals, new_lb = ligand_blacklist):
