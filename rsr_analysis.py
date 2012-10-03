@@ -168,7 +168,6 @@ def parse_binding_site(argtuple):
                 if (res1[:3].strip() in cofactors.metals) or (res2[:3].strip() in cofactors.metals):
                     print 'Ignoring metal bonds: %s - %s' % (res1, res2)
                     continue
-                print res1, res2
                 notligands.add(ligres)
                 seqres.add(ligres)
                 links.remove((res1,  res2,  blen))
@@ -202,27 +201,73 @@ def parse_binding_site(argtuple):
         Group all the ligand residues into molecules
         """
         ligands = []
+
+        ligand_links = []
+        linked_ligand_res = set()
+        for res1,  res2,  blen in links:
+            if res1 in ligand_residues and res2 in ligand_residues:
+                ligand_links.append((res1,  res2,  blen))
+                linked_ligand_res.add(res1)
+                linked_ligand_res.add(res2)
+
+        while ligand_links:
+            for  res1,  res2,  blen in ligand_links:
+                for ligand in ligands:
+                    n = ''
+                    if res1 in ligand:
+                        n = ligands.index(ligand)
+                        ligand.add(res2)
+                    elif res2 in ligand:
+                        n = ligands.index(ligand)
+                        ligand.add(res1)
+                    if n != '':
+                        ligands[n] = ligand
+                        ligand_links.remove((res1,  res2,  blen))
+                        break
+                else:
+                    ligand = set()
+                    ligand.add(res1)
+                    ligand.add(res2)
+                    ligands.append(ligand)
+                    ligand_links.remove((res1,  res2,  blen))
+                    break
+
+        print ligands
+
         for lres in ligand_residues:
             for ligand in ligands:
+                present = False
                 if lres in ligand:
-                    L = ligand
+                    present = True
                     break
-            else:
-                L = set()
-                L.add(lres)
-                ligands.append(L)
-            if links:
-                for res1,  res2,  blen in links:
-                    if blen <= 2.1:
-                        if lres == res1:
-                            otherres = res2
-                        elif lres == res2:
-                            otherres = res1
+            if not present:
+                ligands.append(set([lres, ]))
+
+        all_ligands_parsed = False
+        while not all_ligands_parsed:
+            needbreak = False
+            for ligand in ligands:
+                if needbreak:
+                    needbreak = False
+                    break
+                for lres in list(ligand):
+                    if lres in linked_ligand_res:
+                        for ligand2 in ligands:
+                            if ligand != ligand2:
+                                print 'Checking if ',  lres, 'is in', ligand2
+                                if lres in ligand2:
+                                    ligands.remove(ligand2)
+                                    n = ligands.index(ligand)
+                                    ligand.update(ligand2)
+                                    ligands[n] = ligand
+                                    all_ligands_parsed = False
+                                    needbreak = True
+                                    break
                         else:
-                            continue
-                        if otherres in ligand_residues:
-                            links.remove((res1,  res2,  blen))
-                            L.add(otherres)
+                            all_ligands_parsed = True
+                    else:
+                        print lres,  'is not in', linked_ligand_res
+                        all_ligands_parsed = True
         return ligands
     ligands = group_ligands(ligand_residues)
     ligands_res = set()
