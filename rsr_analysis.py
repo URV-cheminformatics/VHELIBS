@@ -232,15 +232,12 @@ def parse_binding_site(argtuple):
                     ligand_links.remove((res1,  res2,  blen))
                     break
 
-        print ligands
-
         for lres in ligand_residues:
             for ligand in ligands:
                 present = False
                 if lres in ligand:
-                    present = True
                     break
-            if not present:
+            else:
                 ligands.append(set([lres, ]))
 
         all_ligands_parsed = False
