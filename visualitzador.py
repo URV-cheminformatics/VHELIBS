@@ -759,6 +759,14 @@ class SettingsDialog(object):
         constraints.gridx -= 1
 
         constraints.gridy += 1
+        slett="Writes to a file a list of the ligands that would be excluded from the analysis, i.e. solvents, ions"
+        self.panel.add(JButton('Save ligands to exclude', toolTipText=slett, actionPerformed=self.writeLe), constraints)
+        constraints.gridx += 1
+        llett="Loads from a file a list of ligands to be excluded from the analysis"
+        self.panel.add(JButton('Load ligands to exclude', toolTipText=llett, actionPerformed=self.readLe), constraints)
+        constraints.gridx -= 1
+
+        constraints.gridy += 1
         constraints.gridwidth = 2
         csvfilett = "Load a previously generated file to review its structures"
         self.panel.add(JButton('Load previous results file',  toolTipText=csvfilett, actionPerformed=self.csvFileDialog), constraints)
@@ -767,6 +775,22 @@ class SettingsDialog(object):
         self.diag.add(self.panel)
         self.diag.setLocationRelativeTo(None)
         self.diag.pack()
+
+    def writeLe(self, e):
+        lefn = str(showOpenDialog(SimpleFileFilter('.ini', None, 'INI files'), prefkey='loadedFiles', prefs=prefs,multiselect=False))
+        try:
+            print 'Saved to', lefn
+            rsr_analysis.cofactors.dump_lists(lefn)
+        except Exception, e:
+            showErrorDialog(e)
+
+    def readLe(self, e):
+        lefn = str(showOpenDialog(SimpleFileFilter('.ini', None, 'INI files'), prefkey='loadedFiles', prefs=prefs,multiselect=False))
+        try:
+            print "Loading from", lefn
+            rsr_analysis.cofactors.load_lists(lefn)
+        except Exception, e:
+            showErrorDialog(e)
 
     def selectOutFileName(self, event):
         outfn = str(showOpenDialog(SimpleFileFilter('.csv', None, 'CSV files'), prefkey='loadedFiles', prefs=prefs,multiselect=False))
