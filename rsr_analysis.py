@@ -242,6 +242,7 @@ def parse_binding_site(argtuple):
 
         all_ligands_parsed = False
         while not all_ligands_parsed:
+            all_ligands_parsed = True
             needbreak = False
             for ligand in ligands:
                 if needbreak:
