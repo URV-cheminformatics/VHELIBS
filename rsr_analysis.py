@@ -90,7 +90,7 @@ def parse_binding_site(argtuple):
     pdbdict, rsrdict = EDS_parser.get_EDS(pdbid)
     if pdbdict['IN_EDS'] != 'TRUE':
         print "No EDS data available for %s, it will be discarded" % pdbid
-        return  (None, None)
+        return  (pdbid, "No EDS data available")
     if not os.path.isfile(pdbfilepath):
         PDBfiles.get_pdb_file(pdbid.upper(), pdbfilepath)
     pdbfile = gzip.GzipFile(pdbfilepath)
@@ -128,7 +128,7 @@ def parse_binding_site(argtuple):
     finally:
         pdbfile.close()
         if error:
-            return  (None, None)
+            return  (pdbid, str(error))
     #Now let's prune covalently bound ligands
     notligands = set()
     alllinksparsed = True
@@ -327,7 +327,7 @@ def parse_binding_site(argtuple):
         return ligand, inner_binding_site, rte, ligandgood, bsgood
 
     ligand_bs_list = [get_binding_site(ligand) for ligand in ligands]
-    return (pdbid, ligand_bs_list)
+    return (pdbid, ligand_bs_list, notligands)
 
 class PdbAtom(object):
     """
@@ -355,13 +355,17 @@ def results_to_csv(results, outputfile):
     Writes the output of parse_binding_site's to a csv file
     """
     outfile = open(outputfile, 'wb')
+    rejectedfile = open(os.path.splitext(outputfile)[0] + '_rejected.txt', 'w')
     csvfile = csv.writer(outfile)
     csvfile.writerow(titles)
     print 'Calculating...'
     datawritten = False
-    for pdbid, ligand_bs_list in results:
-        if pdbid == None:
+    for pdbid, ligand_bs_list, notligands in results:
+        if type(ligand_bs_list) in (str,unicode) :
+            rejectedfile.write(pdbid + ':\t' + ligand_bs_list + '\n')
             continue
+        for nonligand in notligands:
+            rejectedfile.write(pdbid + ':\t' + nonligand + ' is a blacklisted ligand\n')
         for ligandresidues, binding_site, residues_to_exam, ligandgood, bsgood in ligand_bs_list:
             id = pdbid
             if not ligandresidues:
@@ -371,6 +375,7 @@ def results_to_csv(results, outputfile):
                 outfile.flush()
                 datawritten = outputfile
     outfile.close()
+    rejectedfile.close()
     if not datawritten:
         os.remove(outputfile)
     return datawritten
