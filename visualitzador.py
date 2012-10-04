@@ -82,7 +82,7 @@ from org.jmol.adapter.smarter import SmarterJmolAdapter
 from org.jmol.api import JmolViewer
 from org.openscience.jmol.app.jmolpanel import AppConsole
 
-VHELIBS_VERSION = "1.0"
+VHELIBS_VERSION = "2.0b"
 
 #Own stuff
 sys.argv = [arg for arg in sys.argv if __file__ not in arg]
