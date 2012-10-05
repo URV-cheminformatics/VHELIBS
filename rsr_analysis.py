@@ -360,20 +360,24 @@ def results_to_csv(results, outputfile):
     csvfile.writerow(titles)
     print 'Calculating...'
     datawritten = False
-    for pdbid, ligand_bs_list, notligands in results:
-        if type(ligand_bs_list) in (str,unicode) :
-            rejectedfile.write(pdbid + ':\t' + ligand_bs_list + '\n')
-            continue
-        for nonligand in notligands:
-            rejectedfile.write(pdbid + ':\t' + nonligand + ' is a blacklisted ligand\n')
-        for ligandresidues, binding_site, residues_to_exam, ligandgood, bsgood in ligand_bs_list:
-            id = pdbid
-            if not ligandresidues:
-                print '%s has no actual ligands, it will be discarded' % pdbid
-            else:
-                csvfile.writerow([id, ';'.join(residues_to_exam), ';'.join(ligandresidues),';'.join(binding_site), ligandgood, bsgood])
-                outfile.flush()
-                datawritten = outputfile
+    for restuple in results:
+        if len(restuple) == 2:
+            pdbid, reason = restuple
+            if type(ligand_bs_list) in (str,unicode) :
+                rejectedfile.write(pdbid + ':\t' + reason + '\n')
+                continue
+        elif len(restuple) == 3:
+            pdbid, ligand_bs_list, notligands = restuple
+            for nonligand in notligands:
+                rejectedfile.write(pdbid + ':\t' + nonligand + ' is a blacklisted ligand\n')
+            for ligandresidues, binding_site, residues_to_exam, ligandgood, bsgood in ligand_bs_list:
+                id = pdbid
+                if not ligandresidues:
+                    print '%s has no actual ligands, it will be discarded' % pdbid
+                else:
+                    csvfile.writerow([id, ';'.join(residues_to_exam), ';'.join(ligandresidues),';'.join(binding_site), ligandgood, bsgood])
+                    outfile.flush()
+                    datawritten = outputfile
     outfile.close()
     rejectedfile.close()
     if not datawritten:
