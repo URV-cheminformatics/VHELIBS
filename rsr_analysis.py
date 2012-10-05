@@ -369,7 +369,14 @@ def results_to_csv(results, outputfile):
         elif len(restuple) == 3:
             pdbid, ligand_bs_list, notligands = restuple
             for nonligand in notligands:
-                rejectedfile.write(pdbid + ':\t' + nonligand + ' is a blacklisted ligand\n')
+                resname = nonligand[:3].strip()
+                if resname in cofactors.metals:
+                    line = pdbid + ':\t' + "%s is in the ligand blacklist (non-propagating)\n" % nonligand
+                elif resname in cofactors.ligand_blacklist:
+                    line = pdbid + ':\t' + "%s is in the ligand blacklist\n"  % nonligand
+                else:
+                    line = pdbid + ':\t' + "%s covalently bound to the sequence or to a blacklisted ligand\n"  % nonligand
+                rejectedfile.write( line)
             for ligandresidues, binding_site, residues_to_exam, ligandgood, bsgood in ligand_bs_list:
                 id = pdbid
                 if not ligandresidues:
