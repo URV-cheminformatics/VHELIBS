@@ -77,6 +77,18 @@ metals = {
 , 'EU': 'Europium ion'
 , 'OS': 'Osmium ion'
 , 'HO': 'Holmium ion'
+, 'IR': 'Iridium(4+)'
+, 'IR3': 'IRIDIUM (III) ION '
+, 'U1': 'Uranium'
+, 'SB': 'ANTIMONY (III) ION '
+, 'PR': 'PRASEODYMIUM ION'
+, 'GD': 'GADOLINIUM ATOM '
+, 'SM': 'SAMARIUM (III) ION'
+, 'LU': 'LUTETIUM (III) ION'
+, 'TB': 'TERBIUM(III) ION'
+, 'RB': 'RUBIDIUM ION'
+, 'Y1': 'yttrium(+2) cation'
+, 'TL': 'THALLIUM (I) ION'
 }
 
 ligand_blacklist = {
