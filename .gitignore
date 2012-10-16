@@ -22,4 +22,4 @@ CSV
 data
 *.build
 *.txt
-
+*.ini
