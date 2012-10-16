@@ -51,7 +51,7 @@ def get_pdb_file(pdbcode, filename = None):
 
 ########################################################
 
-def get_ligand_pdb_dict(blacklist = True):
+def get_ligand_pdb_dict(blacklist = False):
     """Returns a pdb code - ligands dictionary"""
     outdict={}
     if os.path.isfile('cc-to-pdb.tdd'):

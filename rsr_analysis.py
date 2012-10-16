@@ -133,39 +133,27 @@ def parse_binding_site(argtuple):
             return  (pdbid, str(error))
     #Now let's prune covalently bound ligands
     notligands = set()
-    alllinksparsed = True
-    while alllinksparsed:
-        alllinksparsed = False
+    alllinksparsed = False
+    while not alllinksparsed:
         for res1,  res2,  blen in links:
-            inseqres = 0
+            checklink = 0
             ligres = sres = None
-            if res1[:3] in seqres or res1 in seqres:
-                inseqres +=1
+            if res1 in seqres:
+                checklink +=1
                 sres,  ligres = res1, res2
                 print 'Binding to the sequence: %s -> %s' % (ligres, sres)
-            elif res2[:3] in seqres or res2 in seqres:
-                inseqres +=1
+            if res2 in seqres:
+                checklink +=1
                 sres,  ligres = res2, res1
                 print 'Binding to the sequence: %s -> %s' % (ligres, sres)
-            if res1[:3].strip() in cofactors.ligand_blacklist:
-                print 'Binding to a blacklisted ligand: %s -> %s' % (res2, res1)
-                notligands.add(res1)
-                seqres.add(res1)
+            if checklink == 2:
+                links.remove((res1,  res2,  blen))
+                break
+            if res1[:3].strip() in cofactors.metals:
                 ligres = res2
-                inseqres = 1
-            elif res1[:3].strip() in cofactors.metals:
-                notligands.add(res1)
-                ligres = res2
-            if res2[:3].strip() in cofactors.ligand_blacklist:
-                print 'Binding to a blacklisted ligand: %s -> %s' % (res1, res2)
-                notligands.add(res2)
-                seqres.add(res2)
-                ligres = res1
-                inseqres = 1
             elif res2[:3].strip() in cofactors.metals:
-                notligands.add(res2)
                 ligres = res1
-            if inseqres == 1:
+            if checklink == 1:
                 if not blen or blen >= 2.1: #Disulfide bonds are about 2.05;
                     print 'Bond distance big enough (%s) between %s and %s' % (blen, res1,  res2)
                     continue
@@ -175,8 +163,9 @@ def parse_binding_site(argtuple):
                 notligands.add(ligres)
                 seqres.add(ligres)
                 links.remove((res1,  res2,  blen))
-                alllinksparsed = True
                 break
+        else:
+            alllinksparsed = True
     for nonligand in notligands:
         print nonligand + 'is not a ligand!'
         for hetlist in (future_hetids_list, hetids_list):
