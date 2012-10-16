@@ -95,6 +95,7 @@ def parse_binding_site(argtuple):
         PDBfiles.get_pdb_file(pdbid.upper(), pdbfilepath)
     pdbfile = gzip.GzipFile(pdbfilepath)
     try:
+        notligands = set()
         seqres = set()
         links = []
         error = False
@@ -111,6 +112,7 @@ def parse_binding_site(argtuple):
                         if (atom.hetid in cofactors.ligand_blacklist) or (atom.hetid in cofactors.metals):
                             protein_atoms.add(atom)
                             seqres.add(atom.residue)
+                            notligands.add(atom.residue)
                             continue
                         ligand_residues.add(atom.residue)
                         if not hetids_list and atom.hetid not in ligand_all_atoms_dict:
@@ -132,7 +134,6 @@ def parse_binding_site(argtuple):
         if error:
             return  (pdbid, str(error))
     #Now let's prune covalently bound ligands
-    notligands = set()
     alllinksparsed = False
     while not alllinksparsed:
         for res1,  res2,  blen in links:
