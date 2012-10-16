@@ -109,6 +109,8 @@ def parse_binding_site(argtuple):
                 elif label == 'HETATM':
                     if not hetids_list or atom.hetid in hetids_list:
                         if (atom.hetid in cofactors.ligand_blacklist) or (atom.hetid in cofactors.metals):
+                            protein_atoms.add(atom)
+                            seqres.add(atom.residue)
                             continue
                         ligand_residues.add(atom.residue)
                         if not hetids_list and atom.hetid not in ligand_all_atoms_dict:
@@ -119,7 +121,7 @@ def parse_binding_site(argtuple):
                             ligand_res_atom_dict[atom.residue] = set()
                         ligand_res_atom_dict[atom.residue].add(atom)
             elif label == 'LINK':
-                dist = line[73:78]
+                dist = line[73:78].strip()
                 if dist:
                     links.append((line[17:27],  line[47:57], float(dist))) #distance
     except IOError, error:
@@ -140,9 +142,11 @@ def parse_binding_site(argtuple):
             if res1[:3] in seqres or res1 in seqres:
                 inseqres +=1
                 sres,  ligres = res1, res2
-            if res2[:3] in seqres or res2 in seqres:
+                print 'Binding to the sequence: %s -> %s' % (ligres, sres)
+            elif res2[:3] in seqres or res2 in seqres:
                 inseqres +=1
                 sres,  ligres = res2, res1
+                print 'Binding to the sequence: %s -> %s' % (ligres, sres)
             if res1[:3].strip() in cofactors.ligand_blacklist:
                 print 'Binding to a blacklisted ligand: %s -> %s' % (res2, res1)
                 notligands.add(res1)
@@ -180,8 +184,10 @@ def parse_binding_site(argtuple):
                 hetlist.remove(nonligand[:3])
         if nonligand in ligand_residues:
             ligand_residues.remove(nonligand)
+            print nonligand, 'removed from ligand residues'
         if nonligand[:3] in ligand_all_atoms_dict:
             protein_atoms.update(ligand_all_atoms_dict.pop(nonligand[:3]))
+            print nonligand, 'atoms added to protein'
 
     def classificate_residue(residue):
         rsr = float(rsrdict.get(residue, 100))
