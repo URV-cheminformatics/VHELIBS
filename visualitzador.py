@@ -535,6 +535,9 @@ class StruVa(Runnable):
                                             , rsr_lower = values.rsr_lower
                                             , distance=values.distance
                                             , outputfile = values.outputfile
+                                            , writeexcludes = values.writeexcludes
+                                            , excludesfile = values.excludesfile
+                                            , usecache = values.use_cache
                                             )
             self.wd.show(False)
             if values.no_view:

@@ -14,7 +14,7 @@ from cofactors import ligand_blacklist
 
 PDBbase = "http://www.rcsb.org/pdb/files/%s.pdb.gz"
 #On guardarem els fitxers:
-PREFIX = tempfile.mkdtemp()
+CACHEDIR = tempfile.mkdtemp()
 
 hetdict = None
 
@@ -54,13 +54,18 @@ def get_pdb_file(pdbcode, filename = None):
 def get_ligand_pdb_dict(blacklist = False):
     """Returns a pdb code - ligands dictionary"""
     outdict={}
-    if os.path.isfile('cc-to-pdb.tdd'):
-        handler = open('cc-to-pdb.tdd', 'rb')
+    destfile = os.path.join(CACHEDIR, 'cc-to-pdb.tdd')
+    if os.path.isfile(destfile):
+        handler = open(destfile, 'r')
+        writer = None
     else:
+        writer = open(destfile, 'w')
         print(u'Downloading PDBID-HETID dictionary...'),
         dicturl = "http://ligand-expo.rcsb.org/dictionaries/cc-to-pdb.tdd"
         handler = urllib2.urlopen(dicturl)
     for line in handler:
+        if writer:
+            writer.write(line)
         ligand,  pdb_codes = line.strip().split("\t")
         if not blacklist or ligand not in ligand_blacklist:
             for pdb_code in pdb_codes.split():

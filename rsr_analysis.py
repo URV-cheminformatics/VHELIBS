@@ -15,7 +15,6 @@ import cofactors
 
 RSR_upper = 0.4
 RSR_lower = 0.24
-outer_distance = 10.**2
 inner_distance = 4.5**2
 titles = ['PDB ID', "Coordinates to exam", "Ligand Residues", "Binding Site Residues", "Good Ligand", "Good Binding Site"]
 
@@ -31,6 +30,7 @@ parser.add_argument('-f','--pdbidfile', metavar='PATH', type=unicode, default=No
 parser.add_argument('-o','--outputfile', metavar='PATH', type=unicode, default='rsr_analysis.csv', required=False, help='output file name')
 parser.add_argument('-w','--writeexcludes', metavar='PATH', type=unicode, default=None, required=False, help='Write current excluded HET ids to a file')
 parser.add_argument('-e','--excludesfile', metavar='PATH', type=unicode, default=None, required=False, help='Override excluded HET ids with the ones provided in this file')
+parser.add_argument('-C','--use-cache', required=False, action='store_true', help="Use cached EDS data if available for the analysis, otherwise cache it.")
 #######################
 
 def get_sptopdb_dict():
@@ -84,9 +84,9 @@ def parse_binding_site(argtuple):
     ligand_res_atom_dict = {}
     for hetid in hetids_list:
         ligand_all_atoms_dict[hetid] = set()
-    pdbfilepath = os.path.join(PDBfiles.PREFIX, pdbid.upper() + ".pdb.gz")
-    if not os.path.isdir(PDBfiles.PREFIX):
-        os.makedirs(PDBfiles.PREFIX)
+    pdbfilepath = os.path.join(PDBfiles.CACHEDIR, pdbid.upper() + ".pdb.gz")
+    if not os.path.isdir(PDBfiles.CACHEDIR):
+        os.makedirs(PDBfiles.CACHEDIR)
     pdbdict, rsrdict = EDS_parser.get_EDS(pdbid)
     if pdbdict['IN_EDS'] != 'TRUE':
         print "No EDS data available for %s, it will be discarded" % pdbid
@@ -387,16 +387,19 @@ def results_to_csv(results, outputfile):
         os.remove(outputfile)
     return datawritten
 
-def main(filepath = None, pdbidslist=[], swissprotlist = [], rsr_upper=RSR_upper, rsr_lower = RSR_lower, distance=None, outputfile='rsr_analysis.csv', writeexcludes = None, excludesfile = None):
+def main(filepath = None, pdbidslist=[], swissprotlist = [], rsr_upper=RSR_upper, rsr_lower = RSR_lower, distance=None, outputfile='rsr_analysis.csv', writeexcludes = None, excludesfile = None, usecache = False):
+    if usecache:
+        print 'Using cache'
+        cachedir = os.path.join(os.path.expanduser('~'), '.vhelibs_cache')
+        if not os.path.isdir(cachedir):
+            os.makedirs(cachedir)
+        PDBfiles.CACHEDIR = cachedir
     if not rsr_upper > rsr_lower:
         print '%s is higher than %s!' % (rsr_lower, rsr_upper)
         raise ValueError
     if distance != None:
-        global outer_distance
         global inner_distance
-        distfactor = outer_distance/inner_distance
         inner_distance = distance**2
-        outer_distance =  inner_distance*distfactor
     pdblist = pdbidslist
     if excludesfile:
         cofactors.load_lists(excludesfile)
@@ -427,4 +430,4 @@ def main(filepath = None, pdbidslist=[], swissprotlist = [], rsr_upper=RSR_upper
 
 if __name__ == '__main__':
     values = parser.parse_args()
-    main(values.pdbidfile, pdbidslist = values.pdbids, swissprotlist =values.swissprot , rsr_upper=values.rsr_upper, rsr_lower = values.rsr_lower, distance=values.distance, outputfile = values.outputfile, writeexcludes = values.writeexcludes, excludesfile = values.excludesfile)
+    main(values.pdbidfile, pdbidslist = values.pdbids, swissprotlist =values.swissprot , rsr_upper=values.rsr_upper, rsr_lower = values.rsr_lower, distance=values.distance, outputfile = values.outputfile, writeexcludes = values.writeexcludes, excludesfile = values.excludesfile, usecache=values.use_cache)

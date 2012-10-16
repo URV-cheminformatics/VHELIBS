@@ -14,11 +14,7 @@ import PDBfiles
 from decimal import Decimal
 
 edsurl = "http://eds.bmc.uu.se/eds/dfs/PDB2/PDB1/PDB1_stat.lis"
-EDSdir = PDBfiles.PREFIX
 residuelist = None
-
-if not os.path.isdir(EDSdir):
-    os.makedirs(EDSdir)
 
 def get_EDS(pdbid):
     """
@@ -26,7 +22,7 @@ def get_EDS(pdbid):
     """
     pdbdict={'PDB_ID':pdbid.upper(),'IN_EDS':None}
     rsrdict = {}
-    downloaddir = os.path.join(EDSdir, pdbid.lower())
+    downloaddir = os.path.join(PDBfiles.CACHEDIR, pdbid.lower())
     if not os.path.isdir(downloaddir):
         os.makedirs(downloaddir)
     statfilepath = os.path.join(downloaddir,  '%s_stat.lis' % pdbid.lower())
