@@ -89,6 +89,8 @@ metals = {
 , 'RB': 'RUBIDIUM ION'
 , 'Y1': 'yttrium(+2) cation'
 , 'TL': 'THALLIUM (I) ION'
+, 'PD': 'PALLADIUM ION'
+, 'SO3': 'SULFITE ION'
 }
 
 ligand_blacklist = {
