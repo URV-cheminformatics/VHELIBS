@@ -365,13 +365,13 @@ def results_to_csv(results, outputfile):
         restuplelen = len(restuple)
         if  restuplelen == 2:
             pdbid, reason = restuple
-            rejectedfile.write(pdbid + ':\t' + reason + '\n')
+            rejectedfile.write('%s:\t%s\n' % (pdbid, reason))
             continue
         elif restuplelen == 3:
             pdbid, ligand_bs_list, notligands = restuple
             for nonligand in notligands:
                 resname = nonligand[:3].strip()
-                line = pdbid + ':\t' + nonligand +' ' + notligands[nonligand] + '\n'
+                line = '%s:\t%s %s\n' %(pdbid, nonligand, notligands[nonligand])
                 rejectedfile.write( line)
             for ligandresidues, binding_site, residues_to_exam, ligandgood, bsgood in ligand_bs_list:
                 id = pdbid
