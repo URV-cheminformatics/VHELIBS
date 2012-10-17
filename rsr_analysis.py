@@ -108,6 +108,8 @@ def parse_binding_site(argtuple):
                     protein_atoms.add(atom)
                     seqres.add(atom.residue)
                 elif label == 'HETATM':
+                    if atom.hetid == 'HOH':
+                        continue #Skip waters
                     if not hetids_list or atom.hetid in hetids_list:
                         if (atom.hetid in cofactors.ligand_blacklist) or (atom.hetid in cofactors.metals):
                             protein_atoms.add(atom)
@@ -417,10 +419,10 @@ def main(filepath = None, pdbidslist=[], swissprotlist = [], rsr_upper=RSR_upper
     argsarray = ((pdbid.upper(), rsr_upper, rsr_lower) for pdbid in pdblist if pdbid)
     if filepath:
         pdblistfile.close()
-    #results = (parse_binding_site(argstuple) for argstuple in argsarray)
     PDBfiles.setglobaldicts()
     pool = multiprocessing.Pool(multiprocessing.cpu_count())
     results = pool.imap(parse_binding_site, argsarray)
+    #results = (parse_binding_site(argstuple) for argstuple in argsarray)
     datawritten = results_to_csv(results, outputfile)
     pool.terminate()
     pool.join()
