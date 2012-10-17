@@ -33,6 +33,9 @@ parser.add_argument('-e','--excludesfile', metavar='PATH', type=unicode, default
 parser.add_argument('-C','--use-cache', required=False, action='store_true', help="Use cached EDS data if available for the analysis, otherwise cache it.")
 #######################
 
+def dbg(string):
+    print(string)
+
 def get_sptopdb_dict():
     """
     Returns a dictionary containing the pdb entries for each Swiss-Prot entry
@@ -89,7 +92,7 @@ def parse_binding_site(argtuple):
         os.makedirs(PDBfiles.CACHEDIR)
     pdbdict, rsrdict = EDS_parser.get_EDS(pdbid)
     if pdbdict['IN_EDS'] != 'TRUE':
-        print("No EDS data available for %s, it will be discarded" % pdbid)
+        dbg("No EDS data available for %s, it will be discarded" % pdbid)
         return  (pdbid, "No EDS data available")
     if not os.path.isfile(pdbfilepath):
         PDBfiles.get_pdb_file(pdbid.upper(), pdbfilepath)
@@ -129,8 +132,8 @@ def parse_binding_site(argtuple):
                 if dist:
                     links.append((line[17:27],  line[47:57], float(dist))) #distance
     except IOError, error:
-        print(pdbfilepath)
-        print(error)
+        dbg(pdbfilepath)
+        dbg(error)
     finally:
         pdbfile.close()
         if error:
@@ -144,11 +147,11 @@ def parse_binding_site(argtuple):
             if res1 in seqres:
                 checklink +=1
                 sres,  ligres = res1, res2
-                print('Binding to the sequence: %s -> %s' % (ligres, sres))
+                dbg('Binding to the sequence: %s -> %s' % (ligres, sres))
             if res2 in seqres:
                 checklink +=1
                 sres,  ligres = res2, res1
-                print('Binding to the sequence: %s -> %s' % (ligres, sres))
+                dbg('Binding to the sequence: %s -> %s' % (ligres, sres))
             if checklink == 2:
                 links.remove((res1,  res2,  blen))
                 break
@@ -158,10 +161,10 @@ def parse_binding_site(argtuple):
                 ligres = res1
             if checklink == 1:
                 if not blen or blen >= 2.1: #Disulfide bonds are about 2.05;
-                    print('Bond distance big enough (%s) between %s and %s' % (blen, res1,  res2))
+                    dbg('Bond distance big enough (%s) between %s and %s' % (blen, res1,  res2))
                     continue
                 if (res1[:3].strip() in cofactors.metals) or (res2[:3].strip() in cofactors.metals):
-                    print('Ignoring metal bonds: %s - %s' % (res1, res2))
+                    dbg('Ignoring metal bonds: %s - %s' % (res1, res2))
                     continue
                 if (res1[:3].strip() in cofactors.ligand_blacklist) or (res2[:3].strip() in cofactors.ligand_blacklist):
                     notligands[ligres] = "Covalently bound to a blacklisted ligand"
@@ -173,16 +176,16 @@ def parse_binding_site(argtuple):
         else:
             alllinksparsed = True
     for nonligand in notligands:
-        print('%s is not a ligand!' % nonligand)
+        dbg('%s is not a ligand!' % nonligand)
         for hetlist in (future_hetids_list, hetids_list):
             if nonligand[:3] in hetlist:
                 hetlist.remove(nonligand[:3])
         if nonligand in ligand_residues:
             ligand_residues.remove(nonligand)
-            print('%s removed from ligand residues' % nonligand)
+            dbg('%s removed from ligand residues' % nonligand)
         if nonligand[:3] in ligand_all_atoms_dict:
             protein_atoms.update(ligand_all_atoms_dict.pop(nonligand[:3]))
-            print('%s atoms added to protein' % nonligand)
+            dbg('%s atoms added to protein' % nonligand)
 
     def classificate_residue(residue):
         rsr = float(rsrdict.get(residue, 100))
@@ -253,7 +256,7 @@ def parse_binding_site(argtuple):
                     if lres in linked_ligand_res:
                         for ligand2 in ligands:
                             if ligand != ligand2:
-                                print('Checking if %s is in %s'  % (lres, ligand2))
+                                dbg('Checking if %s is in %s'  % (lres, ligand2))
                                 if lres in ligand2:
                                     ligands.remove(ligand2)
                                     n = ligands.index(ligand)
@@ -265,7 +268,7 @@ def parse_binding_site(argtuple):
                         else:
                             all_ligands_parsed = True
                     else:
-                        print( '%s is not in %s' %(lres, linked_ligand_res))
+                        dbg( '%s is not in %s' %(lres, linked_ligand_res))
                         all_ligands_parsed = True
         return ligands
     ligands = group_ligands(ligand_residues)
@@ -274,8 +277,8 @@ def parse_binding_site(argtuple):
         ligands_res.update(ligand)
     ligdiff = ligand_residues.difference(ligands_res)
     if ligdiff:
-        print("!!!Ligand residues without ligand:")
-        print("\n".join(ligdiff))
+        dbg("!!!Ligand residues without ligand:")
+        dbg("\n".join(ligdiff))
 
     def get_binding_site(ligand):
         """
@@ -313,12 +316,12 @@ def parse_binding_site(argtuple):
                     if residue in dubious_rsr:
                         return 'Dubious'
                 else:
-                    print("Unclassified residues for %s:\n" % pdbid)
-                    print(residues)
-                    print(residues.intersection(dubious_rsr))
-                    print(residues.intersection(bad_rsr))
-                    print(residues.intersection(good_rsr))
-                    print('\n')
+                    dbg("Unclassified residues for %s:\n" % pdbid)
+                    dbg(residues)
+                    dbg(residues.intersection(dubious_rsr))
+                    dbg(residues.intersection(bad_rsr))
+                    dbg(residues.intersection(good_rsr))
+                    dbg('\n')
                     return('Dubious')
             return '???'
 
@@ -358,7 +361,7 @@ def results_to_csv(results, outputfile):
     rejectedfile = open(os.path.splitext(outputfile)[0] + '_rejected.txt', 'w')
     csvfile = csv.writer(outfile)
     csvfile.writerow(titles)
-    print('Calculating...')
+    dbg('Calculating...')
     datawritten = False
     for restuple in results:
         restuplelen = len(restuple)
@@ -375,7 +378,7 @@ def results_to_csv(results, outputfile):
             for ligandresidues, binding_site, residues_to_exam, ligandgood, bsgood in ligand_bs_list:
                 id = pdbid
                 if not ligandresidues:
-                    print('%s has no actual ligands, it will be discarded' % pdbid)
+                    dbg('%s has no actual ligands, it will be discarded' % pdbid)
                 else:
                     csvfile.writerow([id, ';'.join(residues_to_exam), ';'.join(ligandresidues),';'.join(binding_site), ligandgood, bsgood])
                     outfile.flush()
@@ -388,13 +391,13 @@ def results_to_csv(results, outputfile):
 
 def main(filepath = None, pdbidslist=[], swissprotlist = [], rsr_upper=RSR_upper, rsr_lower = RSR_lower, distance=None, outputfile='rsr_analysis.csv', writeexcludes = None, excludesfile = None, usecache = False):
     if usecache:
-        print('Using cache')
+        dbg('Using cache')
         cachedir = os.path.join(os.path.expanduser('~'), '.vhelibs_cache')
         if not os.path.isdir(cachedir):
             os.makedirs(cachedir)
         PDBfiles.CACHEDIR = cachedir
     if not rsr_upper > rsr_lower:
-        print('%s is higher than %s!' % (rsr_lower, rsr_upper))
+        dbg('%s is higher than %s!' % (rsr_lower, rsr_upper))
         raise ValueError
     if distance != None:
         global inner_distance
@@ -402,10 +405,10 @@ def main(filepath = None, pdbidslist=[], swissprotlist = [], rsr_upper=RSR_upper
     pdblist = pdbidslist
     if excludesfile:
         cofactors.load_lists(excludesfile)
-        print("Loading hetids to exclude from %s" % excludesfile)
+        dbg("Loading hetids to exclude from %s" % excludesfile)
     if writeexcludes:
         cofactors.dump_lists(writeexcludes)
-        print('List of excluded Hetids written to %s' % writeexcludes)
+        dbg('List of excluded Hetids written to %s' % writeexcludes)
     if swissprotlist:
         sptopdb_dict = get_sptopdb_dict()
         for swissprot_id in swissprotlist:
