@@ -360,12 +360,12 @@ def results_to_csv(results, outputfile):
     print 'Calculating...'
     datawritten = False
     for restuple in results:
-        if len(restuple) == 2:
+        restuplelen = len(restuple)
+        if  restuplelen == 2:
             pdbid, reason = restuple
-            if type(ligand_bs_list) in (str,unicode) :
-                rejectedfile.write(pdbid + ':\t' + reason + '\n')
-                continue
-        elif len(restuple) == 3:
+            rejectedfile.write(pdbid + ':\t' + reason + '\n')
+            continue
+        elif restuplelen == 3:
             pdbid, ligand_bs_list, notligands = restuple
             for nonligand in notligands:
                 resname = nonligand[:3].strip()
