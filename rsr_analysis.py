@@ -95,7 +95,7 @@ def parse_binding_site(argtuple):
         PDBfiles.get_pdb_file(pdbid.upper(), pdbfilepath)
     pdbfile = gzip.GzipFile(pdbfilepath)
     try:
-        notligands = set()
+        notligands = {}
         seqres = set()
         links = []
         error = False
@@ -112,7 +112,7 @@ def parse_binding_site(argtuple):
                         if (atom.hetid in cofactors.ligand_blacklist) or (atom.hetid in cofactors.metals):
                             protein_atoms.add(atom)
                             seqres.add(atom.residue)
-                            notligands.add(atom.residue)
+                            notligands[atom.residue] = "Blacklisted ligand"
                             continue
                         ligand_residues.add(atom.residue)
                         if not hetids_list and atom.hetid not in ligand_all_atoms_dict:
@@ -161,7 +161,10 @@ def parse_binding_site(argtuple):
                 if (res1[:3].strip() in cofactors.metals) or (res2[:3].strip() in cofactors.metals):
                     print 'Ignoring metal bonds: %s - %s' % (res1, res2)
                     continue
-                notligands.add(ligres)
+                if (res1[:3].strip() in cofactors.ligand_blacklist) or (res2[:3].strip() in cofactors.ligand_blacklist):
+                    notligands[ligres] = "Covalently bound to a blacklisted ligand"
+                else:
+                    notligands[ligres] = "Covalently bound to the sequence"
                 seqres.add(ligres)
                 links.remove((res1,  res2,  blen))
                 break
@@ -366,12 +369,7 @@ def results_to_csv(results, outputfile):
             pdbid, ligand_bs_list, notligands = restuple
             for nonligand in notligands:
                 resname = nonligand[:3].strip()
-                if resname in cofactors.metals:
-                    line = pdbid + ':\t' + "%s is in the ligand blacklist (non-propagating)\n" % nonligand
-                elif resname in cofactors.ligand_blacklist:
-                    line = pdbid + ':\t' + "%s is in the ligand blacklist\n"  % nonligand
-                else:
-                    line = pdbid + ':\t' + "%s covalently bound to the sequence or to a blacklisted ligand\n"  % nonligand
+                line = pdbid + ':\t' + nonligand +' ' + notligands[nonligand] + '\n'
                 rejectedfile.write( line)
             for ligandresidues, binding_site, residues_to_exam, ligandgood, bsgood in ligand_bs_list:
                 id = pdbid
