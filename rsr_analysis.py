@@ -6,9 +6,14 @@
 import os, gzip, sys, urllib2, csv, itertools
 if sys.platform.startswith('java'):
     import multithreading as multiprocessing
+    import PdbAtomJava as PdbAtom
     from sys import exit
 else:
     import multiprocessing
+    try:
+        from cPdbAtom import PdbAtom
+    except:
+        from PdbAtom import PdbAtom
 
 import PDBfiles, EDS_parser
 import cofactors
@@ -331,27 +336,6 @@ def parse_binding_site(argtuple):
 
     ligand_bs_list = [get_binding_site(ligand) for ligand in ligands]
     return (pdbid, ligand_bs_list, notligands)
-
-class PdbAtom(object):
-    """
-    Represents an atom from a PDB file
-    """
-    def __init__(self, record):
-        """
-        Needs an ATOM or HETATM record
-        """
-        self.name = record[12:16]
-        self.residue = record[17:27]
-        self.hetid = self.residue[:3].strip()
-        self.xyz = (float(record[30:38]), float(record[38:46]), float(record[46:54]))
-    def __or__(self, other):
-        """
-        Return squared distance
-        """
-        if not hasattr(other, 'xyz') or len(other.xyz) != 3:
-            raise ValueError('invalid coordinates')
-        else:
-            return (self.xyz[0] - other.xyz[0])**2 + (self.xyz[1] - other.xyz[1])**2 + (self.xyz[2] - other.xyz[2])**2
 
 def results_to_csv(results, outputfile):
     """
