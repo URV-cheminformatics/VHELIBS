@@ -40,6 +40,7 @@ parser.add_argument('-C','--use-cache', required=False, action='store_true', hel
 
 def dbg(string):
     print(string)
+    return 0
 
 def get_sptopdb_dict():
     """
@@ -366,7 +367,7 @@ def results_to_csv(results, outputfile):
                 else:
                     csvfile.writerow([id, ';'.join(residues_to_exam), ';'.join(ligandresidues),';'.join(binding_site), ligandgood, bsgood])
                     outfile.flush()
-                    datawritten = outputfile
+                    datawritten = bool(outputfile)
     outfile.close()
     rejectedfile.close()
     if not datawritten:
@@ -413,7 +414,3 @@ def main(filepath = None, pdbidslist=[], swissprotlist = [], rsr_upper=RSR_upper
     pool.terminate()
     pool.join()
     return datawritten
-
-if __name__ == '__main__':
-    values = parser.parse_args()
-    main(values.pdbidfile, pdbidslist = values.pdbids, swissprotlist =values.swissprot , rsr_upper=values.rsr_upper, rsr_lower = values.rsr_lower, distance=values.distance, outputfile = values.outputfile, writeexcludes = values.writeexcludes, excludesfile = values.excludesfile, usecache=values.use_cache)
