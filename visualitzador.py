@@ -547,7 +547,7 @@ class StruVa(Runnable):
                     sys.stderr.moveto(outdir)
                 exit(0)
             if datawritten:
-                showMessageDialog('Analysis data saved to %s' % datawritten, 'Analysis completed')
+                showMessageDialog('Analysis data saved to %s' % values.outputfile, 'Analysis completed')
                 csvfilename = values.outputfile
                 outdir = os.path.dirname(csvfilename)
                 basename = os.path.splitext(os.path.basename(csvfilename))[0]
