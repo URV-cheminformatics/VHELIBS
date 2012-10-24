@@ -83,6 +83,7 @@ from org.jmol.api import JmolViewer
 from org.openscience.jmol.app.jmolpanel import AppConsole
 
 VHELIBS_VERSION = "2.0b"
+TITLE =  "VHELIBS " + VHELIBS_VERSION
 
 #Own stuff
 sys.argv = [arg for arg in sys.argv if __file__ not in arg]
@@ -152,7 +153,7 @@ class StruVa(Runnable):
             self.setVisible(True)
 
     def setupUi(self):
-        self.frame = JFrame("VHELIBS", iconImage=vhelibsicon, defaultCloseOperation = JFrame.EXIT_ON_CLOSE, size = (700, 410))
+        self.frame = JFrame(TITLE, iconImage=vhelibsicon, defaultCloseOperation = JFrame.EXIT_ON_CLOSE, size = (700, 410))
         jmolPanel = JmolPanel(preferredSize = (500, 500))
         self.viewer = jmolPanel.viewer
         self.execute = self.viewer.evalStringQuiet
@@ -774,7 +775,7 @@ class SettingsDialog(object):
         csvfilett = "Load a previously generated file to review its structures"
         self.panel.add(JButton('Load previous results file',  toolTipText=csvfilett, actionPerformed=self.csvFileDialog), constraints)
 
-        self.diag = JDialog(JFrame(iconImage=vhelibsicon),size = (500, 200), title = 'VHELIBS', modal=True)
+        self.diag = JDialog(JFrame(iconImage=vhelibsicon),size = (500, 200), title = TITLE, modal=True)
         self.diag.add(self.panel)
         self.diag.setLocationRelativeTo(None)
         self.diag.pack()
