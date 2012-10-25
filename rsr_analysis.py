@@ -4,16 +4,21 @@
 #   Copyright 2011 - 2012 Adrià Cereto Massagué <adrian.cereto@.urv.cat>
 #
 import os, gzip, sys, urllib2, csv, itertools
-if sys.platform.startswith('java'):
-    import multithreading as multiprocessing
-    import PdbAtomJava as PdbAtom
-    from sys import exit
-else:
-    import multiprocessing
-    try:
+try:
+    if sys.platform.startswith('java'):
+        #Do appropiate things for jython
+        import multithreading as multiprocessing
+        #Load optimized java version
+        import PdbAtomJava as PdbAtom
+        from sys import exit
+    else:
+        #CPython
+        import multiprocessing
+        #Use cython optimized version
         from cPdbAtom import PdbAtom
-    except:
-        from PdbAtom import PdbAtom
+except:
+    #Fallback to pure python
+    from PdbAtom import PdbAtom
 
 import PDBfiles, EDS_parser
 import cofactors
@@ -193,91 +198,10 @@ def parse_binding_site(argtuple):
             protein_atoms.update(ligand_all_atoms_dict.pop(nonligand[:3]))
             dbg('%s atoms added to protein' % nonligand)
 
-    def classificate_residue(residue):
-        rsr = float(rsrdict.get(residue, 100))
-        if rsr != 100. and rsr <= rsr_upper:
-            if rsr <= rsr_lower:
-                good_rsr.add(residue)
-            else:
-                dubious_rsr.add(residue)
-        else:
-            bad_rsr.add(residue)
-
     for res in ligand_res_atom_dict:
-        classificate_residue(res)
+        classificate_residue(res, rsrdict, good_rsr, dubious_rsr, bad_rsr, rsr_upper, rsr_lower)
 
-    def group_ligands(ligand_residues):
-        """
-        Group all the ligand residues into molecules
-        """
-        ligands = []
-
-        ligand_links = []
-        linked_ligand_res = set()
-        for res1,  res2,  blen in links:
-            if res1 in ligand_residues and res2 in ligand_residues:
-                ligand_links.append((res1,  res2,  blen))
-                linked_ligand_res.add(res1)
-                linked_ligand_res.add(res2)
-
-        while ligand_links:
-            for  res1,  res2,  blen in ligand_links:
-                for ligand in ligands:
-                    n = ''
-                    if res1 in ligand:
-                        n = ligands.index(ligand)
-                        ligand.add(res2)
-                    elif res2 in ligand:
-                        n = ligands.index(ligand)
-                        ligand.add(res1)
-                    if n != '':
-                        ligands[n] = ligand
-                        ligand_links.remove((res1,  res2,  blen))
-                        break
-                else:
-                    ligand = set()
-                    ligand.add(res1)
-                    ligand.add(res2)
-                    ligands.append(ligand)
-                    ligand_links.remove((res1,  res2,  blen))
-                    break
-
-        for lres in ligand_residues:
-            for ligand in ligands:
-                present = False
-                if lres in ligand:
-                    break
-            else:
-                ligands.append(set([lres, ]))
-
-        all_ligands_parsed = False
-        while not all_ligands_parsed:
-            all_ligands_parsed = True
-            needbreak = False
-            for ligand in ligands:
-                if needbreak:
-                    needbreak = False
-                    break
-                for lres in list(ligand):
-                    if lres in linked_ligand_res:
-                        for ligand2 in ligands:
-                            if ligand != ligand2:
-                                dbg('Checking if %s is in %s'  % (lres, ligand2))
-                                if lres in ligand2:
-                                    ligands.remove(ligand2)
-                                    n = ligands.index(ligand)
-                                    ligand.update(ligand2)
-                                    ligands[n] = ligand
-                                    all_ligands_parsed = False
-                                    needbreak = True
-                                    break
-                        else:
-                            all_ligands_parsed = True
-                    else:
-                        dbg( '%s is not in %s' %(lres, linked_ligand_res))
-                        all_ligands_parsed = True
-        return ligands
-    ligands = group_ligands(ligand_residues)
+    ligands = group_ligands(ligand_residues, links)
     ligands_res = set()
     for ligand in ligands:
         ligands_res.update(ligand)
@@ -285,58 +209,141 @@ def parse_binding_site(argtuple):
     if ligdiff:
         dbg("!!!Ligand residues without ligand:")
         dbg("\n".join(ligdiff))
-
-    def get_binding_site(ligand):
-        """
-        Get the binding site residues for the provided ligand and return them in a tuple
-        """
-        inner_binding_site = set()
-        for ligandres in ligand:
-            for atom in protein_atoms:
-                for ligandatom in ligand_res_atom_dict[ligandres]:
-                    distance = atom | ligandatom
-                    if distance <= inner_distance:
-                        inner_binding_site.add(atom.residue)
-                        classificate_residue(atom.residue)
-                        break
-            for l in ligands:
-                if l == ligand:
-                    continue
-                for lres in l:
-                    for latom in ligand_res_atom_dict[lres]:
-                        for ligandatom in ligand_res_atom_dict[ligandres]:
-                            distance = latom | ligandatom
-                            if distance <= inner_distance:
-                                inner_binding_site.add(lres)
-                                classificate_residue(lres)
-                                break
-        rte = inner_binding_site.union(ligand).difference(good_rsr)
-
-        def validate(residues):
-            if residues <= good_rsr:
-                return True
-            if residues.intersection(bad_rsr):
-                return False
-            else:
-                for residue in residues:
-                    if residue in dubious_rsr:
-                        return 'Dubious'
-                else:
-                    dbg("Unclassified residues for %s:\n" % pdbid)
-                    dbg(residues)
-                    dbg(residues.intersection(dubious_rsr))
-                    dbg(residues.intersection(bad_rsr))
-                    dbg(residues.intersection(good_rsr))
-                    dbg('\n')
-                    return('Dubious')
-            return '???'
-
-        ligandgood = validate(ligand)
-        bsgood = validate(inner_binding_site)
-        return ligand, inner_binding_site, rte, ligandgood, bsgood
-
-    ligand_bs_list = [get_binding_site(ligand) for ligand in ligands]
+    ligand_bs_list = [get_binding_site(ligand, good_rsr, bad_rsr, dubious_rsr, pdbid, protein_atoms, classificate_residue, ligands, ligand_res_atom_dict, rsr_upper, rsr_lower, rsrdict) for ligand in ligands]
     return (pdbid, ligand_bs_list, notligands)
+
+def classificate_residue(residue, rsrdict, good_rsr, dubious_rsr, bad_rsr, rsr_upper, rsr_lower):
+    rsr = float(rsrdict.get(residue, 100))
+    if rsr != 100. and rsr <= rsr_upper:
+        if rsr <= rsr_lower:
+            good_rsr.add(residue)
+        else:
+            dubious_rsr.add(residue)
+    else:
+        bad_rsr.add(residue)
+    return 0
+
+def group_ligands(ligand_residues, links):
+    """
+    Group all the ligand residues into molecules
+    """
+    ligands = []
+
+    ligand_links = []
+    linked_ligand_res = set()
+    for res1,  res2,  blen in links:
+        if res1 in ligand_residues and res2 in ligand_residues:
+            ligand_links.append((res1,  res2,  blen))
+            linked_ligand_res.add(res1)
+            linked_ligand_res.add(res2)
+
+    while ligand_links:
+        for  res1,  res2,  blen in ligand_links:
+            for ligand in ligands:
+                n = ''
+                if res1 in ligand:
+                    n = ligands.index(ligand)
+                    ligand.add(res2)
+                elif res2 in ligand:
+                    n = ligands.index(ligand)
+                    ligand.add(res1)
+                if n != '':
+                    ligands[n] = ligand
+                    ligand_links.remove((res1,  res2,  blen))
+                    break
+            else:
+                ligand = set()
+                ligand.add(res1)
+                ligand.add(res2)
+                ligands.append(ligand)
+                ligand_links.remove((res1,  res2,  blen))
+                break
+
+    for lres in ligand_residues:
+        for ligand in ligands:
+            present = False
+            if lres in ligand:
+                break
+        else:
+            ligands.append(set([lres, ]))
+
+    all_ligands_parsed = False
+    while not all_ligands_parsed:
+        all_ligands_parsed = True
+        needbreak = False
+        for ligand in ligands:
+            if needbreak:
+                needbreak = False
+                break
+            for lres in list(ligand):
+                if lres in linked_ligand_res:
+                    for ligand2 in ligands:
+                        if ligand != ligand2:
+                            dbg('Checking if %s is in %s'  % (lres, ligand2))
+                            if lres in ligand2:
+                                ligands.remove(ligand2)
+                                n = ligands.index(ligand)
+                                ligand.update(ligand2)
+                                ligands[n] = ligand
+                                all_ligands_parsed = False
+                                needbreak = True
+                                break
+                    else:
+                        all_ligands_parsed = True
+                else:
+                    dbg( '%s is not in %s' %(lres, linked_ligand_res))
+                    all_ligands_parsed = True
+    return ligands
+
+
+def get_binding_site(ligand, good_rsr, bad_rsr, dubious_rsr, pdbid, protein_atoms, classificate_residue, ligands, ligand_res_atom_dict, rsr_upper, rsr_lower, rsrdict):
+    """
+    Get the binding site residues for the provided ligand and return them in a tuple
+    """
+    inner_binding_site = set()
+    for ligandres in ligand:
+        for atom in protein_atoms:
+            for ligandatom in ligand_res_atom_dict[ligandres]:
+                distance = atom | ligandatom
+                if distance <= inner_distance:
+                    inner_binding_site.add(atom.residue)
+                    classificate_residue(atom.residue, rsrdict, good_rsr, dubious_rsr, bad_rsr, rsr_upper, rsr_lower)
+                    break
+        for l in ligands:
+            if l == ligand:
+                continue
+            for lres in l:
+                for latom in ligand_res_atom_dict[lres]:
+                    for ligandatom in ligand_res_atom_dict[ligandres]:
+                        distance = latom | ligandatom
+                        if distance <= inner_distance:
+                            inner_binding_site.add(lres)
+                            classificate_residue(lres, rsrdict, good_rsr, dubious_rsr, bad_rsr, rsr_upper, rsr_lower)
+                            break
+    rte = inner_binding_site.union(ligand).difference(good_rsr)
+    ligandgood = validate(ligand, good_rsr, bad_rsr, dubious_rsr, pdbid)
+    bsgood = validate(inner_binding_site, good_rsr, bad_rsr, dubious_rsr, pdbid)
+    return ligand, inner_binding_site, rte, ligandgood, bsgood
+
+def validate(residues, good_rsr, bad_rsr, dubious_rsr, pdbid):
+    if residues <= good_rsr:
+        return True
+    if residues.intersection(bad_rsr):
+        return False
+    else:
+        for residue in residues:
+            if residue in dubious_rsr:
+                return 'Dubious'
+        else:
+            dbg("Unclassified residues for %s:\n" % pdbid)
+            dbg(residues)
+            dbg(residues.intersection(dubious_rsr))
+            dbg(residues.intersection(bad_rsr))
+            dbg(residues.intersection(good_rsr))
+            dbg('\n')
+            return('Dubious')
+    return '???'
+
 
 def results_to_csv(results, outputfile):
     """

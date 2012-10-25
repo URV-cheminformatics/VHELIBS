@@ -15,10 +15,49 @@ cython.declare(
     , titles=list
     )
 
-cpdef int dbg(str string)
+cpdef cython.int dbg(str string)
 
 @cython.locals(sptopdb_dict=dict,temppdbdict=dict)
-cpdef dict get_sptopdb_dict()
+cdef dict get_sptopdb_dict()
+
+@cython.locals(
+pdbid=str
+,rsr_upper=cython.float
+,rsr_lower=cython.float
+,future_hetids_list=set
+,hetids_list=list
+,ligand_residues = set
+,binding_sites = set
+,good_rsr = set
+,dubious_rsr = set
+,bad_rsr = set
+,protein_atoms = set
+,ligand_all_atoms_dict = dict
+,ligand_res_atom_dict = dict
+,notligands = dict
+,seqres = set
+,links = list
+,line = str
+,label = str
+,alllinksparsed = bool
+,ligdiff=set
+,checklink = cython.int)
+cpdef tuple parse_binding_site(tuple argtuple)
+
+@cython.locals(rsr=cython.float)
+cpdef cython.int classificate_residue(residue, dict rsrdict, set good_rsr, set dubious_rsr, set bad_rsr, cython.float rsr_upper,  cython.float rsr_lower)
+
+@cython.locals(
+ligands = list
+,ligand_links = list
+,linked_ligand_res = set
+,ligand=set)
+cdef list group_ligands(set ligand_residues, list links)
+
+@cython.locals(inner_binding_site = set, rte=set)
+cdef tuple get_binding_site(set ligand, set good_rsr, set bad_rsr, set dubious_rsr, str pdbid, set protein_atoms, classificate_residue, ligands, dict ligand_res_atom_dict, cython.float rsr_upper, cython.float rsr_lower, dict rsrdict)
+
+cdef object validate(set residues, set good_rsr, set bad_rsr, set dubious_rsr, str pdbid)
 
 @cython.locals(datawritten=bool, restuplelen=cython.int, pdbid=str)
 cpdef bool results_to_csv(results, outputfile)
