@@ -89,7 +89,7 @@ TITLE =  "VHELIBS " + VHELIBS_VERSION
 sys.argv = [arg for arg in sys.argv if __file__ not in arg]
 if not len(sys.argv):
     sys.argv.append('--no-args')
-import rsr_analysis
+import rsr_analysis, PDBfiles
 ### build the parser###
 argparser = rsr_analysis.parser
 argparser.add_argument('-c','--csvfile', metavar='CSVFILE', type=unicode, default=None, required=False, help='CSV file containing results from a previous RSR analysis')
@@ -394,7 +394,7 @@ class StruVa(Runnable):
             self.bs_cbox.selectedItem = 'Dubious'
         #load in Jmol
         try:
-            self.execute(';'.join(['load "=%s"' % self.pdbid
+            self.execute(';'.join(['load "file://%s"' % PDBfiles.get_pdb_file(self.pdbid)
             ,'select all'
             ,'wireframe only'
             ,'wireframe off'
@@ -526,20 +526,11 @@ class StruVa(Runnable):
                 self.restart()
             outdir = os.path.dirname(csvfilename)
             basename = os.path.splitext(os.path.basename(csvfilename))[0]
+            #Set some global variables
+            rsr_analysis.main(values)
         else:
             self.wd.show()
-            datawritten = rsr_analysis.main(
-                                            values.pdbidfile
-                                            , pdbidslist = values.pdbids
-                                            , swissprotlist =values.swissprot
-                                            , rsr_upper=values.rsr_upper
-                                            , rsr_lower = values.rsr_lower
-                                            , distance=values.distance
-                                            , outputfile = values.outputfile
-                                            , writeexcludes = values.writeexcludes
-                                            , excludesfile = values.excludesfile
-                                            , usecache = values.use_cache
-                                            )
+            datawritten = rsr_analysis.main(values)
             self.wd.show(False)
             if values.no_view:
                 if outdir:

@@ -390,6 +390,8 @@ def main(values):
         if not os.path.isdir(cachedir):
             os.makedirs(cachedir)
         PDBfiles.CACHEDIR = cachedir
+    if not (values.pdbids or values.swissprot or values.pdbidfile):
+        return False
     if not rsr_upper > rsr_lower:
         dbg('%s is higher than %s!' % (rsr_lower, rsr_upper))
         raise ValueError
