@@ -8,4 +8,4 @@ if __name__ == '__main__':
     values = parser.parse_args()
     if not (values.pdbids or values.swissprot or values.pdbidfile):
         values = parser.parse_args(['--help'])
-    main(values.pdbidfile, pdbidslist = values.pdbids, swissprotlist =values.swissprot , rsr_upper=values.rsr_upper, rsr_lower = values.rsr_lower, distance=values.distance, outputfile = values.outputfile, writeexcludes = values.writeexcludes, excludesfile = values.excludesfile, usecache=values.use_cache)
+    main(values)

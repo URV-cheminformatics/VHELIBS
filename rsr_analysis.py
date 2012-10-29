@@ -377,8 +377,14 @@ def results_to_csv(results, outputfile):
         os.remove(outputfile)
     return datawritten
 
-def main(filepath = None, pdbidslist=[], swissprotlist = [], rsr_upper=RSR_upper, rsr_lower = RSR_lower, distance=None, outputfile='rsr_analysis.csv', writeexcludes = None, excludesfile = None, usecache = False):
-    if usecache:
+def main(values):
+    filepath =  values.pdbidfile
+    rsr_upper=values.rsr_upper
+    rsr_lower = values.rsr_lower
+    distance=values.distance
+    writeexcludes = values.writeexcludes
+    excludesfile = values.excludesfile
+    if values.use_cache:
         dbg('Using cache')
         cachedir = os.path.join(os.path.expanduser('~'), '.vhelibs_cache')
         if not os.path.isdir(cachedir):
@@ -390,16 +396,16 @@ def main(filepath = None, pdbidslist=[], swissprotlist = [], rsr_upper=RSR_upper
     if distance != None:
         global inner_distance
         inner_distance = distance**2
-    pdblist = pdbidslist
+    pdblist = values.pdbids
     if excludesfile:
         cofactors.load_lists(excludesfile)
         dbg("Loading hetids to exclude from %s" % excludesfile)
     if writeexcludes:
         cofactors.dump_lists(writeexcludes)
         dbg('List of excluded Hetids written to %s' % writeexcludes)
-    if swissprotlist:
+    if values.swissprot:
         sptopdb_dict = get_sptopdb_dict()
-        for swissprot_id in swissprotlist:
+        for swissprot_id in values.swissprot:
             for key in sptopdb_dict:
                 if swissprot_id in key:
                     pdblist = itertools.chain(pdblist, sptopdb_dict[key])
@@ -413,7 +419,7 @@ def main(filepath = None, pdbidslist=[], swissprotlist = [], rsr_upper=RSR_upper
     pool = multiprocessing.Pool(multiprocessing.cpu_count())
     results = pool.imap(parse_binding_site, argsarray)
     #results = (parse_binding_site(argstuple) for argstuple in argsarray)
-    datawritten = results_to_csv(results, outputfile)
+    datawritten = results_to_csv(results, values.outputfile)
     pool.terminate()
     pool.join()
     return datawritten
