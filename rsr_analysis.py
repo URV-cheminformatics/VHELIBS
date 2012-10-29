@@ -98,15 +98,11 @@ def parse_binding_site(argtuple):
     ligand_res_atom_dict = {}
     for hetid in hetids_list:
         ligand_all_atoms_dict[hetid] = set()
-    pdbfilepath = os.path.join(PDBfiles.CACHEDIR, pdbid.upper() + ".pdb.gz")
-    if not os.path.isdir(PDBfiles.CACHEDIR):
-        os.makedirs(PDBfiles.CACHEDIR)
     pdbdict, rsrdict = EDS_parser.get_EDS(pdbid)
     if pdbdict['IN_EDS'] != 'TRUE':
         dbg("No EDS data available for %s, it will be discarded" % pdbid)
         return  (pdbid, "No EDS data available")
-    if not os.path.isfile(pdbfilepath):
-        PDBfiles.get_pdb_file(pdbid.upper(), pdbfilepath)
+    pdbfilepath = PDBfiles.get_pdb_file(pdbid.upper())
     pdbfile = gzip.GzipFile(pdbfilepath)
     try:
         notligands = {}
