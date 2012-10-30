@@ -414,7 +414,7 @@ def main(values):
     if filepath:
         pdblistfile = open(filepath, 'rb')
         pdblist = itertools.chain(pdblist, [line.strip() for line in pdblistfile if line.strip()])
-    argsarray = ((pdbid.upper(), rsr_upper, rsr_lower) for pdbid in pdblist if pdbid)
+    argsarray = [(pdbid.upper(), rsr_upper, rsr_lower) for pdbid in pdblist if pdbid]
     PDBfiles.setglobaldicts()
     pool = multiprocessing.Pool(multiprocessing.cpu_count())
     results = pool.imap(parse_binding_site, argsarray)

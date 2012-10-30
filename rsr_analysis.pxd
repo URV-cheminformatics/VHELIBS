@@ -4,9 +4,8 @@
 #   Copyright 2012 Adrià Cereto Massagué <adrian.cereto@.urv.cat>
 #
 import cython
-from cpython cimport bool
-import argparse
-import csv
+cimport PDBfiles
+cimport cofactors
 
 cython.declare(
     RSR_upper=cython.float
@@ -15,7 +14,7 @@ cython.declare(
     , titles=list
     )
 
-cpdef cython.int dbg(str string)
+cdef cython.int dbg(str string)
 
 @cython.locals(sptopdb_dict=dict,temppdbdict=dict)
 cdef dict get_sptopdb_dict()
@@ -39,7 +38,7 @@ pdbid=str
 ,links = list
 ,line = str
 ,label = str
-,alllinksparsed = bool
+,alllinksparsed = cython.bint
 ,ligdiff=set
 ,checklink = cython.int)
 cpdef tuple parse_binding_site(tuple argtuple)
@@ -59,5 +58,7 @@ cdef tuple get_binding_site(set ligand, set good_rsr, set bad_rsr, set dubious_r
 
 cdef object validate(set residues, set good_rsr, set bad_rsr, set dubious_rsr, str pdbid)
 
-@cython.locals(datawritten=bool, restuplelen=cython.int, pdbid=str)
-cpdef bool results_to_csv(results, outputfile)
+@cython.locals(datawritten=cython.bint, restuplelen=cython.int, pdbid=str)
+cdef cython.bint results_to_csv(results, outputfile)
+
+cpdef main(values)

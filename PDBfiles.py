@@ -16,9 +16,9 @@ PDBbase = "http://www.rcsb.org/pdb/files/%s.pdb.gz"
 #On guardarem els fitxers:
 CACHEDIR = tempfile.mkdtemp()
 
-hetdict = None
+hetdict = {}
 
-def get_pdb_file(pdbcode, filename = None):
+def get_pdb_file(pdbcode, filename = ''):
     """
     Downloads a PDB file and stores it with the specified filename
     """
@@ -83,3 +83,4 @@ def setglobaldicts():
     global hetdict
     if not hetdict:
         hetdict = get_ligand_pdb_dict()
+    return 0

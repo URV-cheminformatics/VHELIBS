@@ -272,6 +272,7 @@ def dump_lists(fname = 'notligands.ini'):
     file.write('\n[Non-propagating]\n')
     file.write(metalstring)
     file.close()
+    return 0
 
 def load_lists(fname):
     new_m = {}
@@ -293,5 +294,6 @@ def load_lists(fname):
                 dirty_hetid,  dirty_desc = line.split(':')
                 d[dirty_hetid.strip()] = dirty_desc.strip()
     update_lists(new_m, new_lb)
+    return 0
 
 

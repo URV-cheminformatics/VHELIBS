@@ -14,7 +14,7 @@ import PDBfiles
 from decimal import Decimal
 
 edsurl = "http://eds.bmc.uu.se/eds/dfs/PDB2/PDB1/PDB1_stat.lis"
-residuelist = None
+residuelist = ''
 
 def get_EDS(pdbid):
     """
@@ -34,7 +34,7 @@ def get_EDS(pdbid):
             tries = 0
             url = edsurl.replace('PDB1', pdbid.lower()).replace('PDB2', pdbid[1:3].lower())
             print 'Downloading %s' % url
-            statfilelines = ''
+            statfilelines = []
             while tries <=3:
                 tries += 1
                 try:
