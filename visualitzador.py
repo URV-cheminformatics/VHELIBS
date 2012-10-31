@@ -89,7 +89,7 @@ TITLE =  "VHELIBS " + VHELIBS_VERSION
 sys.argv = [arg for arg in sys.argv if __file__ not in arg]
 if not len(sys.argv):
     sys.argv.append('--no-args')
-import rsr_analysis, PDBfiles
+import rsr_analysis, PDBfiles,  EDS_parser
 ### build the parser###
 argparser = rsr_analysis.parser
 argparser.add_argument('-c','--csvfile', metavar='CSVFILE', type=unicode, default=None, required=False, help='CSV file containing results from a previous RSR analysis')
@@ -187,7 +187,8 @@ class StruVa(Runnable):
         ,'set bondMode OR'
         ,'set syncScript ON'
         ,'set antialiasDisplay ON'
-        ,'set antialiasTranslucent ON']))
+        ,'set antialiasTranslucent ON'
+        ]))
         constraints = GridBagConstraints()
         constraints.gridwidth = 1
         constraints.gridheight =1
@@ -430,8 +431,9 @@ class StruVa(Runnable):
             if self.binding_site_IS == 0:
                 self.execute('isosurface BINDINGSITE on')
             elif not self.binding_site_IS:
-                self.execute('isosurface BINDINGSITE color %s sigma %s within %s {binding_site} "=%s" mesh dots fill translucent 0.3' %\
-                            (prefs.get('bsedmcolor', 'cyan'), prefs.get('sigma', '1.0'), prefs.get('edmdistance', '2.1'),  self.pdbid))
+                omapfile, sigma = EDS_parser.get_EDM(self.pdbid)
+                self.execute('isosurface BINDINGSITE color %s cutoff %s within %s {binding_site} "file://%s" mesh dots fill translucent 0.3' %\
+                            (prefs.get('bsedmcolor', 'cyan'), sigma*float(prefs.get('sigma', '1.0')), prefs.get('edmdistance', '2.1'),  omapfile))
             self.binding_site_IS = 1
         elif self.binding_site_IS:
             self.execute('isosurface BINDINGSITE off')
@@ -460,8 +462,9 @@ class StruVa(Runnable):
             if self.residues_to_exam_IS == 0:
                 self.execute('isosurface COORDS_TO_EXAM on')
             elif not self.residues_to_exam_IS:
-                self.execute('isosurface COORDS_TO_EXAM color %s sigma %s within %s {coords_to_exam} "=%s" mesh dots fill translucent 0.3' %\
-                        (prefs.get('reedmcolor', 'yellow'), prefs.get('sigma', '1.0'), prefs.get('edmdistance', '2.1'),  self.pdbid))
+                omapfile, sigma = EDS_parser.get_EDM(self.pdbid)
+                self.execute('isosurface COORDS_TO_EXAM color %s cutoff %s within %s {coords_to_exam} "file://%s" mesh dots fill translucent 0.3' %\
+                        (prefs.get('reedmcolor', 'yellow'), sigma*float(prefs.get('sigma', '1.0')), prefs.get('edmdistance', '2.1'),  omapfile))
             self.residues_to_exam_IS = 1
         elif self.residues_to_exam_IS:
             self.execute('isosurface COORDS_TO_EXAM off')
@@ -491,8 +494,9 @@ class StruVa(Runnable):
             if self.ligandresidues_IS == 0:
                 self.execute('isosurface LIGAND on')
             elif not self.ligandresidues_IS:
-                self.execute('isosurface LIGAND color %s sigma %s within %s {svligand} "=%s" mesh dots fill translucent 0.3' %\
-                        (prefs.get('ligedmcolor', 'red'), prefs.get('sigma', '1.0'), prefs.get('edmdistance', '2.1'),  self.pdbid))
+                omapfile, sigma = EDS_parser.get_EDM(self.pdbid)
+                self.execute('isosurface LIGAND color %s cutoff %s within %s {svligand} "file://%s" mesh dots fill translucent 0.3' %\
+                        (prefs.get('ligedmcolor', 'red'), sigma*float(prefs.get('sigma', '1.0')), prefs.get('edmdistance', '2.1'),  omapfile))
             self.ligandresidues_IS = 1
         elif self.ligandresidues_IS:
             self.execute('isosurface LIGAND off')

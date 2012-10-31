@@ -15,6 +15,61 @@ import PDBfiles
 edsurl = "http://eds.bmc.uu.se/eds/dfs/PDB2/PDB1/PDB1_stat.lis"
 residuelist = ''
 
+def get_EDM_sigma(pdbid):
+    """
+    Downloads the file containing EDM sigma
+    """
+    edmurl = edsurl.replace('_stat.lis', '.sfdat').replace('PDB1', pdbid.lower()).replace('PDB2', pdbid[1:3].lower())
+    downloaddir = os.path.join(PDBfiles.CACHEDIR, pdbid.lower())
+    if not os.path.isdir(downloaddir):
+        os.makedirs(downloaddir)
+    sfdatfile = os.path.join(downloaddir,  '%s.sfdat' % pdbid.lower())
+    tries = 0
+    while tries <=3:
+        try:
+            if os.path.isfile(sfdatfile):
+                sfdatfilestream =  open(sfdatfile)
+                sigma = float([line.split()[1] for line in sfdatfilestream if 'MAP_SIGMA' in line][0])
+                sfdatfilestream.close()
+                return sigma
+            req = urllib2.urlopen(edmurl)
+            sfdat = req.read()
+            req.close()
+            outfile = open(sfdatfile, 'wb')
+            outfile.write(sfdat)
+            outfile.close()
+        except urllib2.URLError, e:
+            print e
+            tries +=1
+    print "Unable to find the map sigma"
+    return 1
+
+
+def get_EDM(pdbid):
+    """
+    Downloads the EDM of the given pdb code
+    """
+    edmurl = edsurl.replace('_stat.lis', '.omap').replace('PDB1', pdbid.lower()).replace('PDB2', pdbid[1:3].lower())
+    downloaddir = os.path.join(PDBfiles.CACHEDIR, pdbid.lower())
+    if not os.path.isdir(downloaddir):
+        os.makedirs(downloaddir)
+    omapfile = os.path.join(downloaddir,  '%s.omap' % pdbid.lower())
+    tries = 0
+    while tries <=3:
+        try:
+            if os.path.isfile(omapfile):
+                sigma = get_EDM_sigma(pdbid)
+                return omapfile, sigma
+            req = urllib2.urlopen(edmurl)
+            omap = req.read()
+            req.close()
+            outfile = open(omapfile, 'wb')
+            outfile.write(omap)
+            outfile.close()
+        except urllib2.URLError, e:
+            print e
+            tries +=1
+
 def get_EDS(pdbid):
     """
     Extract data from EDS site for a given PDB code
