@@ -11,7 +11,6 @@ if sys.platform.startswith('java'):
 else:
     import multiprocessing
 import PDBfiles
-from decimal import Decimal
 
 edsurl = "http://eds.bmc.uu.se/eds/dfs/PDB2/PDB1/PDB1_stat.lis"
 residuelist = ''
