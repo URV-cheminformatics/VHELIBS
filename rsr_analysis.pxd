@@ -4,6 +4,7 @@
 #   Copyright 2012 Adrià Cereto Massagué <adrian.cereto@.urv.cat>
 #
 import cython
+from cpython cimport bool
 cimport PDBfiles
 cimport cofactors
 
@@ -59,6 +60,6 @@ cdef tuple get_binding_site(set ligand, set good_rsr, set bad_rsr, set dubious_r
 cdef object validate(set residues, set good_rsr, set bad_rsr, set dubious_rsr, str pdbid)
 
 @cython.locals(datawritten=cython.bint, restuplelen=cython.int, pdbid=str)
-cdef cython.bint results_to_csv(results, outputfile)
+cdef bool results_to_csv(results, outputfile)
 
 cpdef main(values)
