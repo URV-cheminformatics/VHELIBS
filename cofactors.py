@@ -91,6 +91,10 @@ metals = {
 , 'TL': 'THALLIUM (I) ION'
 , 'PD': 'PALLADIUM ION'
 , 'SO3': 'SULFITE ION'
+, 'SR': 'Strontium ion'
+, 'C1O': 'CU- O LINKAGE'
+, 'O': 'Oxygen atom'
+, 'F': 'FLUORIDE'
 }
 
 ligand_blacklist = {
@@ -137,7 +141,6 @@ ligand_blacklist = {
 , 'CO3': 'Carbonate Ion'
 , 'PLP': 'PYRIDOXAL- 5- PHOSPHATE'
 , 'ALF': 'TETRAFLUOROALUMINATE ION'
-, 'SR': 'Strontium ion'
 , 'EDO': '1,2-Ethanediol'
 , 'FS1': 'IRON/SULFUR CLUSTER'
 , 'FS3': 'Fe3-S4 Cluster'
@@ -150,7 +153,6 @@ ligand_blacklist = {
 , 'SO4': 'Sulfate Ion'
 , 'NH2': 'Amino group'
 , 'ARS': 'Arsenic'
-, 'C1O': 'CU- O LINKAGE'
 , 'NAD': 'NAD'
 , 'NAH': 'NAD'
 , 'NAI': 'NADH'
@@ -175,7 +177,6 @@ ligand_blacklist = {
 , 'DHE': 'Heme d'
 , 'OXY': 'Oxygen molecule'
 , '2HP': 'DIHYDROGENPHOSPHATE ION'
-, 'O': 'Oxygen atom'
 , 'PO3': 'PHOSPHITE ION'
 , 'OXL': 'OXALATE ION'
 , 'TRS': '2- AMINO- 2- HYDROXYMETHYL- PROPANE- 1,3- DIOL'
@@ -203,7 +204,6 @@ ligand_blacklist = {
 , 'BPV': 'Bromopyruvate'
 , 'MSE': 'Selenmethionine'
 , 'BIO': 'BIOPTERIN'
-, 'F': 'FLUORIDE'
 , 'CYN': 'CYANIDE ION'
 , 'GOL': 'Glycerol'
 , 'PO4': 'Phosphate Ion'
