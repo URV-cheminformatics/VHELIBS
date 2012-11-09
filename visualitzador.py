@@ -537,15 +537,16 @@ class StruVa(Runnable):
             datawritten = rsr_analysis.main(values)
             self.wd.show(False)
             if values.no_view:
-                if outdir:
-                    sys.stdout.moveto(outdir)
-                    sys.stderr.moveto(outdir)
                 exit(0)
+            csvfilename = values.outputfile
+            outdir = os.path.dirname(csvfilename)
+            basename = os.path.splitext(os.path.basename(csvfilename))[0]
+            rejfile = os.path.join(outdir, basename + '_rejected.txt')
+            if os.path.isfile(rejfile):
+                showMessageDialog('The reasons can be found in %s' % rejfile, "Some ligands or structures rejected")
             if datawritten:
                 showMessageDialog('Analysis data saved to %s' % values.outputfile, 'Analysis completed')
-                csvfilename = values.outputfile
-                outdir = os.path.dirname(csvfilename)
-                basename = os.path.splitext(os.path.basename(csvfilename))[0]
+                self.checkedfilename = os.path.join(outdir, basename + '_checked.csv')
             else:
                 showWarningDialog('No structures to be viewed.')
                 self.restart()
@@ -593,10 +594,9 @@ class StruVa(Runnable):
         else:
             print 'Data loaded'
         csvfile.close()
-        self.checkedfilename = os.path.join(outdir, basename + '_checked.csv')
         if not self.resultdict:
             print 'File without data! %s' % self.checkedfilename
-            showWarningDialog('No structures to be viewed.')
+            showWarningDialog('No binding sites to be viewed.')
             self.restart()
 
     def restart(self):
