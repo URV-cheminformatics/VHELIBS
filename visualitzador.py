@@ -82,7 +82,7 @@ from org.jmol.adapter.smarter import SmarterJmolAdapter
 from org.jmol.api import JmolViewer
 from org.openscience.jmol.app.jmolpanel import AppConsole
 
-VHELIBS_VERSION = "2.0b"
+VHELIBS_VERSION = "2.0"
 TITLE =  "VHELIBS " + VHELIBS_VERSION
 
 #Own stuff
