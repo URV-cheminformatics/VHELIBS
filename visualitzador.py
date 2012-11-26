@@ -518,11 +518,11 @@ class StruVa(Runnable):
                 showMessageDialog('The reasons can be found in %s' % rejfile, "Some ligands or structures rejected")
             if datawritten:
                 showMessageDialog('Analysis data saved to %s' % values.outputfile, 'Analysis completed')
-                self.checkedfilename = os.path.join(outdir, basename + '_checked.csv')
             else:
                 showWarningDialog('No structures to be viewed.')
                 self.restart()
                 return
+        self.checkedfilename = os.path.join(outdir, basename + '_checked.csv')
         #Ask about which structures to look at.
         struc_d = StructureSelectDialog(values)
         wannasee = struc_d.show()
@@ -564,7 +564,7 @@ class StruVa(Runnable):
             print 'Data loaded'
         csvfile.close()
         if not self.resultdict:
-            print 'File without data! %s' % self.checkedfilename
+            print 'File without data! %s' % values.outputfile
             showWarningDialog('No binding sites to be viewed.')
             self.restart()
 
