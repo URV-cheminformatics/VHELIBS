@@ -569,7 +569,7 @@ class StruVa(Runnable):
             self.restart()
 
     def restart(self):
-        self.__init__(SettingsDialog().getvalues())
+        self.__init__(SettingsDialog().getValues())
 
 class DialogShower(SwingWorker):
     def __init__(self, diag, viewer):
@@ -738,10 +738,12 @@ class SettingsDialog(object):
         constraints.gridwidth = 2
         csvfilett = "Load a previously generated file to review its structures"
         self.panel.add(JButton('Load previous results file',  toolTipText=csvfilett, actionPerformed=self.csvFileDialog), constraints)
-
-        self.diag = JDialog(JFrame(iconImage=vhelibsicon),size = (500, 200), title = TITLE, modal=True)
+        self.frame = JFrame(iconImage=vhelibsicon,size = (0, 0), title = TITLE)
+        self.diag = JDialog(self.frame,size = (500, 200), title = TITLE, modal=True)
         self.diag.add(self.panel)
-        self.diag.setLocationRelativeTo(None)
+        self.frame.setLocationRelativeTo(None)
+        self.diag.setLocationRelativeTo(self.frame)
+        self.frame.setUndecorated(True)
         self.diag.pack()
 
     def writeLe(self, e):
@@ -811,11 +813,11 @@ class SettingsDialog(object):
     def go(self):
         self.load_settings()
         if self.isViable():
-            self.diag.visible = 0
+            self.frame.visible = self.diag.visible = 0
 
-    def getvalues(self):
+    def getValues(self):
         if not self.isViable():
-            self.diag.visible = 1
+            self.frame.visible = self.diag.visible = 1
             if not self.isViable():
                 exit(1)
         return self.values
@@ -1139,7 +1141,7 @@ def main(args=sys.argv):
     ttm = ToolTipManager.sharedInstance()
     ttm.reshowDelay = 0
     ttm.dismissDelay = 100000
-    values = SettingsDialog(args).getvalues()
+    values = SettingsDialog(args).getValues()
     struva = StruVa(values)
     return struva
 
