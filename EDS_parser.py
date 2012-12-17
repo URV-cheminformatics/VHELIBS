@@ -13,7 +13,6 @@ else:
 import PDBfiles
 
 edsurl = "http://eds.bmc.uu.se/eds/dfs/PDB2/PDB1/PDB1_stat.lis"
-residuelist = ''
 
 def get_EDM_sigma(pdbid):
     """
@@ -74,8 +73,9 @@ def get_EDS(pdbid):
     """
     Extract data from EDS site for a given PDB code
     """
-    pdbdict={'PDB_ID':pdbid.upper(),'IN_EDS':None}
-    rsrdict = {}
+    pdbid = pdbid.lower()
+    pdbdict={pdbid:None}
+    edd_dict = {}
     downloaddir = os.path.join(PDBfiles.CACHEDIR, pdbid.lower())
     if not os.path.isdir(downloaddir):
         os.makedirs(downloaddir)
@@ -96,7 +96,7 @@ def get_EDS(pdbid):
                     statfilelines = req.readlines()
                     statfile = open(statfilepath, 'wb')
                     statfile.writelines(statfilelines)
-                    tries =999
+                    tries = 999
                 except Exception, e:
                     if tries >3:
                         print e
@@ -104,48 +104,28 @@ def get_EDS(pdbid):
                     time.sleep(1)
         if not statfilelines:
             print 'could not read stat file'
-            pdbdict['IN_EDS'] = 'FALSE'
-            return pdbdict, rsrdict
+            pdbdict[pdbid] = False
+            return pdbdict, edd_dict
         for line in statfilelines:
             if not line.startswith('!'):
-                rsr = line.split(']')[1].strip().split()[1]
+                rscc, rsr, owab, natom, s_occ = line.split(']')[1].strip().split()[:5]
                 residue = line.strip().split('[')[1].split(']')[0]
-                residue_only = residue.split()[0]
-                if not residuelist or residue_only in residuelist:
-                    rsrdict[residue] = rsr
-        pdbdict['IN_EDS'] = 'TRUE'
+                edd_dict[residue] = {"RSR":float(rsr) if rsr.strip() else 100
+                                     ,"RSCC": float(rscc) if rscc.strip() else 0
+                                     ,"OWAB": float(owab) if owab.strip() else 1000
+                                     ,"Natom":float(natom) if natom.strip() else None
+                                     ,"S_occ":float(s_occ) if s_occ.strip() else 0
+                                     }
+        pdbdict[pdbid] = True
         statfile.close()
     except urllib2.URLError, e:
         if hasattr(e, 'reason'):
-            pdbdict['IN_EDS'] = e.reason
+            pdbdict[pdbid] = e.reason
         elif hasattr(e, 'code'):
             if e.code == 404:
-                pdbdict['IN_EDS'] = 'FALSE'
+                pdbdict[pdbid] = False
             else:
-                pdbdict['IN_EDS'] = e.code
+                pdbdict[pdbid] = e.code
         else:
-            pdbdict['IN_EDS'] = unicode(e)
-    return pdbdict, rsrdict
-
-def parse_EDS(pdblist, ligandlist = []):
-    """
-    Get EDS data from a list of PDB codes
-    """
-    global residuelist
-    residuelist = ligandlist
-    pdboutdict = {}
-    macro_rsrdict = {}
-    print "Obtenint informació de l'EDS, això pot trigar una estona..."
-    pool = multiprocessing.Pool(multiprocessing.cpu_count())
-    for pdbdict,  rsrdict in pool.map(get_EDS, pdblist):
-        if pdbdict != {} and (pdbdict['IN_EDS'] == 'TRUE' or pdbdict['IN_EDS'] == 'FALSE'):
-            pdboutdict[pdbdict['PDB_ID']] = pdbdict
-        for ligand in rsrdict:
-            macro_rsrdict[pdbdict['PDB_ID'].upper() + ligand.split()[0]] = {
-            'PDB_ID':pdbdict['PDB_ID'].upper()
-            , 'HET_ID': ligand.split()[0]
-            , 'RSR':rsrdict[ligand]
-            }
-    pool.close()
-    pool.join()
-    return pdboutdict,  macro_rsrdict
+            pdbdict[pdbid] = unicode(e)
+    return pdbdict, edd_dict

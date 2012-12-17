@@ -98,8 +98,8 @@ def parse_binding_site(argtuple):
     ligand_res_atom_dict = {}
     for hetid in hetids_list:
         ligand_all_atoms_dict[hetid] = set()
-    pdbdict, rsrdict = EDS_parser.get_EDS(pdbid)
-    if pdbdict['IN_EDS'] != 'TRUE':
+    pdbdict, edd_dict = EDS_parser.get_EDS(pdbid)
+    if not pdbdict[pdbid.lower()]:
         dbg("No EDS data available for %s, it will be discarded" % pdbid)
         return  (pdbid, "No EDS data available")
     pdbfilepath = PDBfiles.get_pdb_file(pdbid.upper())
@@ -182,6 +182,11 @@ def parse_binding_site(argtuple):
                 break
         else:
             alllinksparsed = True
+
+    for res in ligand_res_atom_dict:
+        if 1 == classificate_residue(res, edd_dict, good_rsr, dubious_rsr, bad_rsr, rsr_upper, rsr_lower):
+            notligands[res] = "has multiple conformations"
+
     for nonligand in notligands:
         dbg('%s is not a ligand!' % nonligand)
         for hetlist in (future_hetids_list, hetids_list):
@@ -194,9 +199,6 @@ def parse_binding_site(argtuple):
             protein_atoms.update(ligand_all_atoms_dict.pop(nonligand[:3]))
             dbg('%s atoms added to protein' % nonligand)
 
-    for res in ligand_res_atom_dict:
-        classificate_residue(res, rsrdict, good_rsr, dubious_rsr, bad_rsr, rsr_upper, rsr_lower)
-
     ligands = group_ligands(ligand_residues, links)
     ligands_res = set()
     for ligand in ligands:
@@ -205,19 +207,28 @@ def parse_binding_site(argtuple):
     if ligdiff:
         dbg("!!!Ligand residues without ligand:")
         dbg("\n".join(ligdiff))
-    ligand_bs_list = [get_binding_site(ligand, good_rsr, bad_rsr, dubious_rsr, pdbid, protein_atoms, classificate_residue, ligands, ligand_res_atom_dict, rsr_upper, rsr_lower, rsrdict) for ligand in ligands]
+    ligand_bs_list = [get_binding_site(ligand, good_rsr, bad_rsr, dubious_rsr, pdbid, protein_atoms, ligands, ligand_res_atom_dict, rsr_upper, rsr_lower, edd_dict) for ligand in ligands]
     return (pdbid, ligand_bs_list, notligands)
 
-def classificate_residue(residue, rsrdict, good_rsr, dubious_rsr, bad_rsr, rsr_upper, rsr_lower):
-    rsr = float(rsrdict.get(residue, 100))
+def classificate_residue(residue, edd_dict, good_rsr, dubious_rsr, bad_rsr, rsr_upper, rsr_lower):
+    if residue not in edd_dict:
+        bad_rsr.add(residue)
+        return 0
+    Natom = edd_dict[residue]['Natom']
+    S_occ = edd_dict[residue]['S_occ']
+    if S_occ/Natom != 1.0:
+        return 1
+    rsr = edd_dict[residue]['RSR']
     if rsr != 100. and rsr <= rsr_upper:
         if rsr <= rsr_lower:
             good_rsr.add(residue)
+            return 0
         else:
             dubious_rsr.add(residue)
+            return 0
     else:
         bad_rsr.add(residue)
-    return 0
+        return 0
 
 def group_ligands(ligand_residues, links):
     """
@@ -292,7 +303,7 @@ def group_ligands(ligand_residues, links):
     return ligands
 
 
-def get_binding_site(ligand, good_rsr, bad_rsr, dubious_rsr, pdbid, protein_atoms, classificate_residue, ligands, ligand_res_atom_dict, rsr_upper, rsr_lower, rsrdict):
+def get_binding_site(ligand, good_rsr, bad_rsr, dubious_rsr, pdbid, protein_atoms, ligands, ligand_res_atom_dict, rsr_upper, rsr_lower, edd_dict):
     """
     Get the binding site residues for the provided ligand and return them in a tuple
     """
@@ -303,7 +314,7 @@ def get_binding_site(ligand, good_rsr, bad_rsr, dubious_rsr, pdbid, protein_atom
                 distance = atom | ligandatom
                 if distance <= inner_distance:
                     inner_binding_site.add(atom.residue)
-                    classificate_residue(atom.residue, rsrdict, good_rsr, dubious_rsr, bad_rsr, rsr_upper, rsr_lower)
+                    classificate_residue(atom.residue, edd_dict, good_rsr, dubious_rsr, bad_rsr, rsr_upper, rsr_lower)
                     break
         for l in ligands:
             if l == ligand:
@@ -314,7 +325,7 @@ def get_binding_site(ligand, good_rsr, bad_rsr, dubious_rsr, pdbid, protein_atom
                         distance = latom | ligandatom
                         if distance <= inner_distance:
                             inner_binding_site.add(lres)
-                            classificate_residue(lres, rsrdict, good_rsr, dubious_rsr, bad_rsr, rsr_upper, rsr_lower)
+                            classificate_residue(lres, edd_dict, good_rsr, dubious_rsr, bad_rsr, rsr_upper, rsr_lower)
                             break
     rte = inner_binding_site.union(ligand).difference(good_rsr)
     ligandgood = validate(ligand, good_rsr, bad_rsr, dubious_rsr, pdbid)
@@ -339,7 +350,6 @@ def validate(residues, good_rsr, bad_rsr, dubious_rsr, pdbid):
             dbg('\n')
             return('Dubious')
     return '???'
-
 
 def results_to_csv(results, outputfile):
     """
@@ -425,3 +435,7 @@ def main(values):
     if filepath:
         pdblistfile.close()
     return datawritten
+
+if __name__ == "__main__":
+    r = parse_binding_site(('1aj7', 0.3, 0.1))
+    print r

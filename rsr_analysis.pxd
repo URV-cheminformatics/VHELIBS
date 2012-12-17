@@ -7,6 +7,7 @@ import cython
 from cpython cimport bool
 cimport PDBfiles
 cimport cofactors
+cimport EDS_parser
 
 cython.declare(
     RSR_upper=cython.float
@@ -44,8 +45,16 @@ pdbid=str
 ,checklink = cython.int)
 cpdef tuple parse_binding_site(tuple argtuple)
 
-@cython.locals(rsr=cython.float)
-cpdef cython.int classificate_residue(residue, dict rsrdict, set good_rsr, set dubious_rsr, set bad_rsr, cython.float rsr_upper,  cython.float rsr_lower)
+@cython.locals(rsr=cython.float, Natom=cython.float, S_occ=cython.float)
+cdef cython.int classificate_residue(
+    residue
+    , dict edd_dict
+    , set good_rsr
+    , set dubious_rsr
+    , set bad_rsr
+    , cython.float rsr_upper
+    ,  cython.float rsr_lower
+    )
 
 @cython.locals(
 ligands = list
@@ -55,7 +64,7 @@ ligands = list
 cdef list group_ligands(set ligand_residues, list links)
 
 @cython.locals(inner_binding_site = set, rte=set)
-cdef tuple get_binding_site(set ligand, set good_rsr, set bad_rsr, set dubious_rsr, str pdbid, set protein_atoms, classificate_residue, ligands, dict ligand_res_atom_dict, cython.float rsr_upper, cython.float rsr_lower, dict rsrdict)
+cdef tuple get_binding_site(set ligand, set good_rsr, set bad_rsr, set dubious_rsr, str pdbid, set protein_atoms, ligands, dict ligand_res_atom_dict, cython.float rsr_upper, cython.float rsr_lower, dict edd_dict)
 
 cdef object validate(set residues, set good_rsr, set bad_rsr, set dubious_rsr, str pdbid)
 

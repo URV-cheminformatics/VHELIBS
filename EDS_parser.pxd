@@ -1,8 +1,20 @@
 import cython
 
-cython.declare(edsurl=str, residuelist=str)
+cython.declare(edsurl=str)
 
-@cython.locals(pdbdict=dict, rsrdict=dict, downloaddir=str, statfilepath=str, statfilelines=list, tries=cython.int, line=str, rsr=str, residue=str)
-cpdef tuple get_EDS(str pdbid)
-
-cpdef tuple parse_EDS(pdblist, ligandlist=*)
+@cython.locals(
+    pdbdict=dict
+    , edd_dict=dict
+    , downloaddir=str
+    , statfilepath=str
+    , statfilelines=list
+    , tries=cython.int
+    , line=str
+    , rscc=str
+    , rsr=str
+    , owab=str
+    , natom=str
+    , s_occ=str
+    , residue=str
+    )
+cdef tuple get_EDS(str pdbid)
