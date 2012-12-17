@@ -23,6 +23,10 @@ except:
 import PDBfiles, EDS_parser
 import cofactors
 
+CHECK_OWAB = False
+OWAB_max = 50
+CHECK_RESOLUTION = False
+RESOLUTION_max = 3.0
 RSR_upper = 0.4
 RSR_lower = 0.24
 inner_distance = 4.5**2
@@ -35,6 +39,7 @@ parser.add_argument('-i','--pdbids', nargs='+', default=[], type=str, metavar='P
 parser.add_argument('-s','--swissprot', nargs='+', default=[], type=str, metavar='SP_AN [or SP_NAME]', help='list of Swiss-Prot protein names or accession numbers')
 parser.add_argument('-u','--rsr_upper', type=float, default=RSR_upper, metavar='FLOAT', help='set maximum RSR value for each residue (residues with a higher RSR will be discarded)')
 parser.add_argument('-l','--rsr_lower', type=float, default=RSR_lower, metavar='FLOAT', help='set minimum RSR value for each residue (residues with a lower RSR value will be directly considered right)')
+parser.add_argument('-b','--owab_max', type=float, default=None, metavar='FLOAT', help='set maximum OWAB (Occupancy-weighted B-factor) per residue')
 parser.add_argument('-d','--distance', type=float, default=4.5, metavar='Å', help='consider part of the binding sites all the residues nearer than this to the ligand (in Å)')
 parser.add_argument('-f','--pdbidfile', metavar='PATH', type=unicode, default=None, required=False, help='text file containing a list of PDB ids, one per line')
 parser.add_argument('-o','--outputfile', metavar='PATH', type=unicode, default='rsr_analysis.csv', required=False, help='output file name')
@@ -211,24 +216,32 @@ def parse_binding_site(argtuple):
     return (pdbid, ligand_bs_list, notligands)
 
 def classificate_residue(residue, edd_dict, good_rsr, dubious_rsr, bad_rsr, rsr_upper, rsr_lower):
+    score = 0
     if residue not in edd_dict:
         bad_rsr.add(residue)
         return 0
+    if CHECK_OWAB:
+        owab = Natom = edd_dict[residue]['OWAB']
+        if not 1 < owab < OWAB_max:
+            score -=1
     Natom = edd_dict[residue]['Natom']
     S_occ = edd_dict[residue]['S_occ']
     if S_occ/Natom != 1.0:
+        bad_rsr.add(residue)
         return 1
     rsr = edd_dict[residue]['RSR']
-    if rsr != 100. and rsr <= rsr_upper:
+    if rsr <= rsr_upper:
         if rsr <= rsr_lower:
-            good_rsr.add(residue)
-            return 0
-        else:
-            dubious_rsr.add(residue)
-            return 0
+            score +=1
     else:
+        score -= 1
+    if score < 0:
         bad_rsr.add(residue)
-        return 0
+    elif score > 0:
+        good_rsr.add(residue)
+    else:
+        dubious_rsr.add(residue)
+    return 0
 
 def group_ligands(ligand_residues, links):
     """
@@ -388,12 +401,16 @@ def results_to_csv(results, outputfile):
     return datawritten
 
 def main(values):
+    global CHECK_OWAB, OWAB_max
     filepath =  values.pdbidfile
     rsr_upper=values.rsr_upper
     rsr_lower = values.rsr_lower
     distance=values.distance
     writeexcludes = values.writeexcludes
     excludesfile = values.excludesfile
+    if not values.owab_max is None:
+        CHECK_OWAB = True
+        OWAB_max = values.owab_max
     if values.use_cache:
         dbg('Using cache')
         cachedir = os.path.join(os.path.expanduser('~'), '.vhelibs_cache')

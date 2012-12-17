@@ -14,6 +14,10 @@ cython.declare(
     , RSR_lower=cython.float
     , inner_distance=cython.float
     , titles=list
+    , CHECK_OWAB=bool
+    , CHECK_RESOLUTION=bool
+    , OWAB_max = cython.float
+    , RESOLUTION_max = cython.float
     )
 
 cdef cython.int dbg(str string)
@@ -45,7 +49,12 @@ pdbid=str
 ,checklink = cython.int)
 cpdef tuple parse_binding_site(tuple argtuple)
 
-@cython.locals(rsr=cython.float, Natom=cython.float, S_occ=cython.float)
+@cython.locals(rsr=cython.float
+    , Natom=cython.float
+    , S_occ=cython.float
+    , owab=cython.float
+    , score=cython.int
+    )
 cdef cython.int classificate_residue(
     residue
     , dict edd_dict
