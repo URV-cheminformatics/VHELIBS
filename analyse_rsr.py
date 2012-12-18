@@ -3,9 +3,9 @@
 #
 #   Copyright 2012 Adrià Cereto Massagué <adrian.cereto@.urv.cat>
 #
-from rsr_analysis import parser, main
+import rsr_analysis
 if __name__ == '__main__':
-    values = parser.parse_args()
+    values = rsr_analysis.parser.parse_args()
     if not (values.pdbids or values.swissprot or values.pdbidfile):
-        values = parser.parse_args(['--help'])
-    main(values)
+        values = rsr_analysis.parser.parse_args(['--help'])
+    rsr_analysis.main(values)

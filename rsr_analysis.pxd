@@ -45,15 +45,18 @@ pdbid=str
 ,line = str
 ,label = str
 ,alllinksparsed = cython.bint
-,ligdiff=set
+,ligdiff = set
+,resolution = cython.float
 ,checklink = cython.int)
 cpdef tuple parse_binding_site(tuple argtuple)
 
-@cython.locals(rsr=cython.float
-    , Natom=cython.float
-    , S_occ=cython.float
-    , owab=cython.float
-    , score=cython.int
+@cython.locals(rsr = cython.float
+    , Natom = cython.float
+    , S_occ = cython.float
+    , owab = cython.float
+    , resolution = cython.float
+    , score = cython.int
+    , residue_dict = dict
     )
 cdef cython.int classificate_residue(
     residue

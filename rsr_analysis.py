@@ -39,10 +39,11 @@ parser.add_argument('-i','--pdbids', nargs='+', default=[], type=str, metavar='P
 parser.add_argument('-s','--swissprot', nargs='+', default=[], type=str, metavar='SP_AN [or SP_NAME]', help='list of Swiss-Prot protein names or accession numbers')
 parser.add_argument('-u','--rsr_upper', type=float, default=RSR_upper, metavar='FLOAT', help='set maximum RSR value for each residue (residues with a higher RSR will be discarded)')
 parser.add_argument('-l','--rsr_lower', type=float, default=RSR_lower, metavar='FLOAT', help='set minimum RSR value for each residue (residues with a lower RSR value will be directly considered right)')
-parser.add_argument('-b','--owab_max', type=float, default=None, metavar='FLOAT', help='set maximum OWAB (Occupancy-weighted B-factor) per residue')
+parser.add_argument('-b','--max_owab', type=float, default=None, metavar='FLOAT', help='set maximum OWAB (Occupancy-weighted B-factor) per residue')
+parser.add_argument('-r','--max_resolution', type=float, default=None, metavar='FLOAT', help='set maximum resolution (in Å) below which to consider Good models')
 parser.add_argument('-d','--distance', type=float, default=4.5, metavar='Å', help='consider part of the binding sites all the residues nearer than this to the ligand (in Å)')
 parser.add_argument('-f','--pdbidfile', metavar='PATH', type=unicode, default=None, required=False, help='text file containing a list of PDB ids, one per line')
-parser.add_argument('-o','--outputfile', metavar='PATH', type=unicode, default='rsr_analysis.csv', required=False, help='output file name')
+parser.add_argument('-o','--outputfile', metavar='PATH', type=unicode, default='vhelibs_analysis.csv', required=False, help='output file name')
 parser.add_argument('-w','--writeexcludes', metavar='PATH', type=unicode, default=None, required=False, help='Write current excluded HET ids to a file')
 parser.add_argument('-e','--excludesfile', metavar='PATH', type=unicode, default=None, required=False, help='Override excluded HET ids with the ones provided in this file')
 parser.add_argument('-C','--use-cache', required=False, action='store_true', help="Use cached EDS data if available for the analysis, otherwise cache it.")
@@ -89,6 +90,7 @@ def parse_binding_site(argtuple):
     """
     pdbid, rsr_upper, rsr_lower = argtuple
     future_hetids_list = set()
+    resolution = 0 if CHECK_RESOLUTION else 1714
     try:
         hetids_list = PDBfiles.hetdict[pdbid.lower()]
     except KeyError:
@@ -143,6 +145,13 @@ def parse_binding_site(argtuple):
                 dist = line[73:78].strip()
                 if dist:
                     links.append((line[17:27],  line[47:57], float(dist))) #distance
+            elif resolution == 0 and label == 'REMARK':
+                if line[9] == '2' and len(line) > 10:
+                    try:
+                        resolution = float(line[23:30])
+                        edd_dict['Resolution'] = resolution
+                    except ValueError:
+                        return  (pdbid, "resolution not found")
     except IOError, error:
         dbg(pdbfilepath)
         dbg(error)
@@ -190,7 +199,7 @@ def parse_binding_site(argtuple):
 
     for res in ligand_res_atom_dict:
         if 1 == classificate_residue(res, edd_dict, good_rsr, dubious_rsr, bad_rsr, rsr_upper, rsr_lower):
-            notligands[res] = "has multiple conformations"
+            notligands[res] = "probably has multiple conformations (average occupancy < 1)"
 
     for nonligand in notligands:
         dbg('%s is not a ligand!' % nonligand)
@@ -217,19 +226,24 @@ def parse_binding_site(argtuple):
 
 def classificate_residue(residue, edd_dict, good_rsr, dubious_rsr, bad_rsr, rsr_upper, rsr_lower):
     score = 0
+    residue_dict = edd_dict[residue]
     if residue not in edd_dict:
         bad_rsr.add(residue)
         return 0
     if CHECK_OWAB:
-        owab = Natom = edd_dict[residue]['OWAB']
+        owab = Natom = residue_dict['OWAB']
         if not 1 < owab < OWAB_max:
             score -=1
-    Natom = edd_dict[residue]['Natom']
-    S_occ = edd_dict[residue]['S_occ']
+    Natom = residue_dict['Natom']
+    S_occ = residue_dict['S_occ']
     if S_occ/Natom != 1.0:
         bad_rsr.add(residue)
         return 1
-    rsr = edd_dict[residue]['RSR']
+    rsr = residue_dict['RSR']
+    resolution = edd_dict.get('Resolution', 0)
+    if resolution:
+        if resolution > RESOLUTION_max:
+            score -= 1
     if rsr <= rsr_upper:
         if rsr <= rsr_lower:
             score +=1
@@ -401,16 +415,19 @@ def results_to_csv(results, outputfile):
     return datawritten
 
 def main(values):
-    global CHECK_OWAB, OWAB_max
+    global CHECK_OWAB, OWAB_max, CHECK_RESOLUTION, RESOLUTION_max
     filepath =  values.pdbidfile
     rsr_upper=values.rsr_upper
     rsr_lower = values.rsr_lower
     distance=values.distance
     writeexcludes = values.writeexcludes
     excludesfile = values.excludesfile
-    if not values.owab_max is None:
+    if not values.max_owab is None:
         CHECK_OWAB = True
-        OWAB_max = values.owab_max
+        OWAB_max = values.max_owab
+    if not values.max_resolution is None:
+        CHECK_RESOLUTION = True
+        RESOLUTION_max = values.max_resolution
     if values.use_cache:
         dbg('Using cache')
         cachedir = os.path.join(os.path.expanduser('~'), '.vhelibs_cache')
@@ -454,5 +471,5 @@ def main(values):
     return datawritten
 
 if __name__ == "__main__":
-    r = parse_binding_site(('1aj7', 0.3, 0.1))
+    r = parse_binding_site(('3dzu', 0.4, 0.24))
     print r
