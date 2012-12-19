@@ -1020,7 +1020,7 @@ class DisplaySettingsDialog(object):
         constraints.gridy = 6
         constraints.gridx = 1
         constraints.gridwidth = 2
-        self.panel.add(JButton('Save', actionPerformed=self.saveprefs), constraints)
+        self.panel.add(JButton('Apply', actionPerformed=self.saveprefs), constraints)
         constraints.gridwidth = 1
         constraints.gridx = 3
         self.panel.add(JButton('Defaults', actionPerformed=self.loaddefaults), constraints)

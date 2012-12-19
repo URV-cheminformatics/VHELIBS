@@ -108,9 +108,9 @@ def get_EDS(pdbid):
             return pdbdict, edd_dict
         for line in statfilelines:
             if not line.startswith('!'):
-                residue = line[9:18]
+                residue = line[8:18]
                 rscc = line[21:26]
-                rsr = line[27:23]
+                rsr = line[27:33]
                 owab = line[35:40]
                 natom = line[41:46]
                 s_occ = line[47:52]
