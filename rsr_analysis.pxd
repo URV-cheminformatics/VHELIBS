@@ -18,6 +18,7 @@ cython.declare(
     , CHECK_RESOLUTION=bool
     , OWAB_max = cython.float
     , RESOLUTION_max = cython.float
+    , RSCC_min = cython.float
     )
 
 cdef cython.int dbg(str string)

@@ -29,6 +29,7 @@ CHECK_RESOLUTION = False
 RESOLUTION_max = 3.0
 RSR_upper = 0.4
 RSR_lower = 0.24
+RSCC_min = 0
 inner_distance = 4.5**2
 titles = ['PDB ID', "Coordinates to exam", "Ligand Residues", "Binding Site Residues", "Good Ligand", "Good Binding Site"]
 
@@ -40,6 +41,7 @@ parser.add_argument('-s','--swissprot', nargs='+', default=[], type=str, metavar
 parser.add_argument('-u','--rsr_upper', type=float, default=RSR_upper, metavar='FLOAT', help='set maximum RSR value for each residue (residues with a higher RSR will be discarded)')
 parser.add_argument('-l','--rsr_lower', type=float, default=RSR_lower, metavar='FLOAT', help='set minimum RSR value for each residue (residues with a lower RSR value will be directly considered right)')
 parser.add_argument('-b','--max_owab', type=float, default=None, metavar='FLOAT', help='set maximum OWAB (Occupancy-weighted B-factor) per residue')
+parser.add_argument('-R','--min_rscc', type=float, default=0, metavar='FLOAT', help='set minimum RSCC per residue')
 parser.add_argument('-r','--max_resolution', type=float, default=None, metavar='FLOAT', help='set maximum resolution (in Å) below which to consider Good models')
 parser.add_argument('-d','--distance', type=float, default=4.5, metavar='Å', help='consider part of the binding sites all the residues nearer than this to the ligand (in Å)')
 parser.add_argument('-f','--pdbidfile', metavar='PATH', type=unicode, default=None, required=False, help='text file containing a list of PDB ids, one per line')
@@ -230,6 +232,8 @@ def classificate_residue(residue, edd_dict, good_rsr, dubious_rsr, bad_rsr, rsr_
     if not residue_dict:
         bad_rsr.add(residue)
         return 0
+    if RSCC_min > residue_dict['RSCC']:
+        score -= 1
     if CHECK_OWAB:
         owab = Natom = residue_dict['OWAB']
         if not 1 < owab < OWAB_max:
@@ -415,7 +419,7 @@ def results_to_csv(results, outputfile):
     return datawritten
 
 def main(values):
-    global CHECK_OWAB, OWAB_max, CHECK_RESOLUTION, RESOLUTION_max
+    global CHECK_OWAB, OWAB_max, CHECK_RESOLUTION, RESOLUTION_max, RSCC_min
     filepath =  values.pdbidfile
     rsr_upper=values.rsr_upper
     rsr_lower = values.rsr_lower
@@ -425,6 +429,8 @@ def main(values):
     if not values.max_owab is None:
         CHECK_OWAB = True
         OWAB_max = values.max_owab
+    if not values.min_rscc is None:
+        RSCC_min = values.min_rscc
     if not values.max_resolution is None:
         CHECK_RESOLUTION = True
         RESOLUTION_max = values.max_resolution
