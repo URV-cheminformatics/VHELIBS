@@ -226,8 +226,8 @@ def parse_binding_site(argtuple):
 
 def classificate_residue(residue, edd_dict, good_rsr, dubious_rsr, bad_rsr, rsr_upper, rsr_lower):
     score = 0
-    residue_dict = edd_dict[residue]
-    if residue not in edd_dict:
+    residue_dict = edd_dict.get(residue, None)
+    if not residue_dict:
         bad_rsr.add(residue)
         return 0
     if CHECK_OWAB:
