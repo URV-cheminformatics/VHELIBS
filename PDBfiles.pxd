@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+#
+#   Copyright 2012 Adrià Cereto Massagué <adrian.cereto@.urv.cat>
+#
 import cython
 
 cython.declare(PDBbase=str)
