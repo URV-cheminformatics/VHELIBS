@@ -428,7 +428,7 @@ class StruVa(Runnable):
         ,'select(coords_to_exam)'
         ,'wireframe %s' % prefs.get('rewfv', '0.1')
         ,'spacefill %s' % prefs.get('resfv', '0.2')
-        ,'color %s' % prefs.get('recolor', 'cpk')
+        ,'color %s' % prefs.get('recolor', 'temperature')
         ,'select none']))
         if prefs.get('coordstoexam_edm', True):
             if self.residues_to_exam_IS == 0:
@@ -653,25 +653,65 @@ class StructureSelectDialog(object):
 
 
 class SettingsDialog(object):
+    profiles = {'Default':{
+                            'distance':math.sqrt(rsr_analysis.inner_distance)
+                            , 'rsr_lower':rsr_analysis.RSR_lower
+                            , 'rsr_upper':rsr_analysis.RSR_upper
+                            , 'max_owab':rsr_analysis.OWAB_max
+                            , 'min_rscc':rsr_analysis.RSCC_min
+                            , 'max_resolution':rsr_analysis.RESOLUTION_max
+                            , 'tolerance':rsr_analysis.TOLERANCE
+                            , 'use_owab': True
+                            , 'use_res': True
+                            }
+                    ,'Iridium':{
+                            'distance':5
+                            , 'rsr_lower':0.1
+                            , 'rsr_upper':0.3
+                            , 'max_owab':50
+                            , 'min_rscc':0.9
+                            , 'max_resolution':5
+                            , 'tolerance':rsr_analysis.TOLERANCE
+                            , 'use_owab': False
+                            , 'use_res': False
+                            }
+                    ,'Custom':{}
+                    }
     def __init__(self, args=['--no-args']):
         self.values = argparser.parse_args(args)
         self.panel = JPanel(GridBagLayout())
 
         if not self.values.distance:
-            self.values.distance = math.sqrt(rsr_analysis.inner_distance)
+            self.values.distance = self.profiles['Default']['distance']
         self.distance  = JTextField(str(self.values.distance))
 
         if not self.values.outputfile:
-            self.values.outputfile = 'rsr_analysis.csv'
+            self.values.outputfile = 'vhelibs_analysis.csv'
         self.outputfile = JTextField(str(self.values.outputfile))
 
-        if not self.values.rsr_lower:
-            self.values.rsr_lower = rsr_analysis.RSR_lower
+        if self.values.rsr_lower is None:
+            self.values.rsr_lower = self.profiles['Default']['rsr_lower']
         self.rsr_lower = JTextField(str(self.values.rsr_lower))
 
         if not self.values.rsr_upper:
-            self.values.rsr_upper = rsr_analysis.RSR_upper
+            self.values.rsr_upper = self.profiles['Default']['rsr_upper']
         self.rsr_upper = JTextField(str(self.values.rsr_upper))
+
+        if not self.values.max_owab:
+            self.values.max_owab = self.profiles['Default']['max_owab']
+        self.max_owab = JTextField(str(self.values.max_owab))
+
+        if not self.values.min_rscc:
+            self.values.min_rscc = self.profiles['Default']['min_rscc']
+        self.min_rscc = JTextField(str(self.values.min_rscc))
+
+        if not self.values.max_resolution:
+            self.values.max_resolution = self.profiles['Default']['max_resolution']
+        self.max_resolution = JTextField(str(self.values.max_resolution))
+
+        if not self.values.tolerance:
+            self.values.tolerance = self.profiles['Default']['tolerance']
+        self.tolerance = JTextField(str(self.values.tolerance))
 
         constraints = GridBagConstraints()
         constraints.weightx = 0.5
@@ -685,6 +725,17 @@ class SettingsDialog(object):
         infolabel = JLabel('Set options and select the structures to be checked')
         self.panel.add(infolabel, constraints)
         constraints.gridwidth = 1
+
+        constraints.gridy += 1
+        tooltip = 'cb'
+        self.panel.add(JLabel(u'Select a predefined profile', toolTipText=tooltip), constraints)
+        self.distance.toolTipText=tooltip
+        constraints.gridx += 1
+        self.profilecbb = JComboBox(self.profiles.keys())
+        self.profilecbb.selectedItem = 'Custom'
+        self.profilecbb.addActionListener(make_listen(self.load_profile))
+        self.panel.add(self.profilecbb, constraints)
+        constraints.gridx -= 1
 
         constraints.gridy += 1
         distancetooltip = 'Residues with at least one atom within this distance from any atom of the ligand will be considered as part of the binding site'
@@ -709,6 +760,42 @@ class SettingsDialog(object):
         self.rsr_lower.toolTipText=lrsrtooltip
         self.panel.add(self.rsr_lower, constraints)
         constraints.gridx -= 1
+
+        ##############
+        constraints.gridy += 1
+        tooltip="Lowest good RSCC"
+        self.panel.add(JLabel('Lowest good RSCC', toolTipText=tooltip), constraints)
+        constraints.gridx += 1
+        self.min_rscc.toolTipText=tooltip
+        self.panel.add(self.min_rscc, constraints)
+        constraints.gridx -= 1
+
+        constraints.gridy += 1
+        tooltip="Maxmimum good occupancy-weighted B-factor (OWAB)"
+        self.owab_cb = JCheckBox('OWAB', toolTipText=tooltip, selected=(self.profiles['Default']['max_owab'] != self.values.max_owab) or self.profiles['Default']['use_owab'])
+        self.panel.add(self.owab_cb, constraints)
+        constraints.gridx += 1
+        self.max_owab.toolTipText=tooltip
+        self.panel.add(self.max_owab, constraints)
+        constraints.gridx -= 1
+
+        constraints.gridy += 1
+        tooltip="Maximum good resolution value"
+        self.res_cb = JCheckBox("Resolution limit", toolTipText=tooltip, selected=(self.profiles['Default']['max_resolution'] != self.values.max_resolution) or self.profiles['Default']['use_res'])
+        self.panel.add(self.res_cb, constraints)
+        constraints.gridx += 1
+        self.max_resolution.toolTipText=tooltip
+        self.panel.add(self.max_resolution, constraints)
+        constraints.gridx -= 1
+
+        constraints.gridy += 1
+        tooltip="Tolerance"
+        self.panel.add(JLabel('Tolerance', toolTipText=tooltip), constraints)
+        constraints.gridx += 1
+        self.tolerance.toolTipText=tooltip
+        self.panel.add(self.tolerance, constraints)
+        constraints.gridx -= 1
+        ##############
 
         constraints.gridy += 1
         outtt="Select or enter the name of the output file and where to save it."
@@ -745,6 +832,20 @@ class SettingsDialog(object):
         self.diag.setLocationRelativeTo(self.frame)
         self.frame.setUndecorated(True)
         self.diag.pack()
+
+
+    def load_profile(self,e=None, profilename='Default'):
+        if e and e.actionCommand != u'comboBoxChanged': return
+        if e:
+            profilename = self.profilecbb.selectedItem
+        profile = self.profiles[profilename]
+        for k,  v in profile.items():
+            if k == 'use_owab':
+                self.owab_cb.selected = v
+            elif k == 'use_res':
+                self.res_cb.selected = v
+            else:
+                self.__dict__[k].text = str(v)
 
     def writeLe(self, e):
         lefn = str(showOpenDialog(SimpleFileFilter('.ini', None, 'INI files'), prefkey='loadedFiles', prefs=prefs,multiselect=False))
@@ -806,6 +907,16 @@ class SettingsDialog(object):
         self.values.rsr_lower = float(self.rsr_lower.text)
         self.values.rsr_upper = float(self.rsr_upper.text)
         self.values.outputfile = self.outputfile.text
+        self.values.min_rscc = float(self.min_rscc.text)
+        if self.owab_cb.selected:
+            self.values.max_owab = float(self.max_owab.text)
+        else:
+            self.values.max_owab = None
+        if self.res_cb.selected:
+            self.values.max_resolution = float(self.max_resolution.text)
+        else:
+            self.values.max_resolution = None
+        self.values.tolerance = int(self.tolerance.text)
 
     def isViable(self):
         return bool(self.values.csvfile or self.values.pdbidfile or self.values.pdbids or self.values.swissprot)
@@ -1042,7 +1153,7 @@ class DisplaySettingsDialog(object):
 
         self.rewfv.text = prefs.get('rewfv', '0.1')
         self.resfv.text = prefs.get('resfv', '0.2')
-        self.recolor.text = prefs.get('recolor', 'cpk')
+        self.recolor.text = prefs.get('recolor', 'temperature')
         self.reedmcolor.text = prefs.get('reedmcolor', 'yellow')
 
         self.edmdistance.text = prefs.get('edmdistance', '2.1')

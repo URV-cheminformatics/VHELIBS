@@ -3,7 +3,7 @@
 #
 #   Copyright 2011 - 2012 Adrià Cereto Massagué <adrian.cereto@.urv.cat>
 #
-import os, gzip, sys, urllib2, csv, itertools
+import os, gzip, sys, urllib2, csv, itertools, math
 try:
     if sys.platform.startswith('java'):
         #Do appropiate things for jython
@@ -26,7 +26,7 @@ import cofactors
 CHECK_OWAB = False
 OWAB_max = 50
 CHECK_RESOLUTION = False
-RESOLUTION_max = 3.0
+RESOLUTION_max = 3.5
 RSR_upper = 0.4
 RSR_lower = 0.24
 RSCC_min = 0
@@ -42,10 +42,10 @@ parser.add_argument('-s','--swissprot', nargs='+', default=[], type=str, metavar
 parser.add_argument('-u','--rsr_upper', type=float, default=RSR_upper, metavar='FLOAT', help='set maximum RSR value for each residue (residues with a higher RSR will be discarded)')
 parser.add_argument('-l','--rsr_lower', type=float, default=RSR_lower, metavar='FLOAT', help='set minimum RSR value for each residue (residues with a lower RSR value will be directly considered right)')
 parser.add_argument('-b','--max_owab', type=float, default=None, metavar='FLOAT', help='set maximum OWAB (Occupancy-weighted B-factor) per residue')
-parser.add_argument('-R','--min_rscc', type=float, default=0, metavar='FLOAT', help='set minimum RSCC per residue')
+parser.add_argument('-R','--min_rscc', type=float, default=RSCC_min, metavar='FLOAT', help='set minimum RSCC per residue')
 parser.add_argument('-r','--max_resolution', type=float, default=None, metavar='FLOAT', help='set maximum resolution (in Å) below which to consider Good models')
-parser.add_argument('-T','--tolerance', type=int, default=1, metavar='INT', help='set maximum number of non-met criteria of Dubious structures')
-parser.add_argument('-d','--distance', type=float, default=4.5, metavar='Å', help='consider part of the binding sites all the residues nearer than this to the ligand (in Å)')
+parser.add_argument('-T','--tolerance', type=int, default=TOLERANCE, metavar='INT', help='set maximum number of non-met criteria of Dubious structures')
+parser.add_argument('-d','--distance', type=float, default=math.sqrt(inner_distance), metavar='Å', help='consider part of the binding sites all the residues nearer than this to the ligand (in Å)')
 parser.add_argument('-f','--pdbidfile', metavar='PATH', type=unicode, default=None, required=False, help='text file containing a list of PDB ids, one per line')
 parser.add_argument('-o','--outputfile', metavar='PATH', type=unicode, default='vhelibs_analysis.csv', required=False, help='output file name')
 parser.add_argument('-w','--writeexcludes', metavar='PATH', type=unicode, default=None, required=False, help='Write current excluded HET ids to a file')
