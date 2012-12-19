@@ -30,6 +30,7 @@ RESOLUTION_max = 3.0
 RSR_upper = 0.4
 RSR_lower = 0.24
 RSCC_min = 0
+TOLERANCE = 1
 inner_distance = 4.5**2
 titles = ['PDB ID', "Coordinates to exam", "Ligand Residues", "Binding Site Residues", "Good Ligand", "Good Binding Site"]
 
@@ -43,6 +44,7 @@ parser.add_argument('-l','--rsr_lower', type=float, default=RSR_lower, metavar='
 parser.add_argument('-b','--max_owab', type=float, default=None, metavar='FLOAT', help='set maximum OWAB (Occupancy-weighted B-factor) per residue')
 parser.add_argument('-R','--min_rscc', type=float, default=0, metavar='FLOAT', help='set minimum RSCC per residue')
 parser.add_argument('-r','--max_resolution', type=float, default=None, metavar='FLOAT', help='set maximum resolution (in Å) below which to consider Good models')
+parser.add_argument('-T','--tolerance', type=int, default=1, metavar='INT', help='set maximum number of non-met criteria of Dubious structures')
 parser.add_argument('-d','--distance', type=float, default=4.5, metavar='Å', help='consider part of the binding sites all the residues nearer than this to the ligand (in Å)')
 parser.add_argument('-f','--pdbidfile', metavar='PATH', type=unicode, default=None, required=False, help='text file containing a list of PDB ids, one per line')
 parser.add_argument('-o','--outputfile', metavar='PATH', type=unicode, default='vhelibs_analysis.csv', required=False, help='output file name')
@@ -253,10 +255,11 @@ def classificate_residue(residue, edd_dict, good_rsr, dubious_rsr, bad_rsr, rsr_
             score +=1
     else:
         score -= 1
-    if score < 0:
-        bad_rsr.add(residue)
-    elif score > 0:
+
+    if score > 0:
         good_rsr.add(residue)
+    elif score <= -TOLERANCE:
+        bad_rsr.add(residue)
     else:
         dubious_rsr.add(residue)
     return 0
@@ -419,13 +422,14 @@ def results_to_csv(results, outputfile):
     return datawritten
 
 def main(values):
-    global CHECK_OWAB, OWAB_max, CHECK_RESOLUTION, RESOLUTION_max, RSCC_min
+    global CHECK_OWAB, OWAB_max, CHECK_RESOLUTION, RESOLUTION_max, RSCC_min, TOLERANCE
     filepath =  values.pdbidfile
     rsr_upper=values.rsr_upper
     rsr_lower = values.rsr_lower
     distance=values.distance
     writeexcludes = values.writeexcludes
     excludesfile = values.excludesfile
+    TOLERANCE = values.tolerance
     if not values.max_owab is None:
         CHECK_OWAB = True
         OWAB_max = values.max_owab
