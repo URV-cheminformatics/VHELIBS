@@ -106,14 +106,15 @@ class StruVa(Runnable):
     viewer = None
     def __init__(self, values):
         self.values = values
-        self.actionsDict = {}
         self.wd = WaitDialog()
         if self.values:
             try:
                 self.loadCSV()
                 if not self.viewer:
                     SwingUtilities.invokeAndWait(self)
-                    self.start()
+                else:
+                    self.run()
+                self.start()
             except Exception, e:
                 self.e = e
                 print e
@@ -122,9 +123,10 @@ class StruVa(Runnable):
     def run(self):
         if self.values:
             self.setupUi()
-            self.setVisible(True)
+            self.frame.setVisible(True)
 
     def setupUi(self):
+        self.actionsDict = {}
         self.frame = JFrame(TITLE, iconImage=vhelibsicon, defaultCloseOperation = JFrame.EXIT_ON_CLOSE, size = (700, 410))
         jmolPanel = JmolPanel(preferredSize = (500, 500))
         self.viewer = jmolPanel.viewer
@@ -256,7 +258,6 @@ class StruVa(Runnable):
         panel2.add(self.buttonPanel, BorderLayout.NORTH)
         self.panel = panel
         self.frame.pack()
-        self.setVisible = self.frame.setVisible
         self.optionsdiag = DisplaySettingsDialog(self)
         self.aboutdiag = AboutDialog(self)
 
@@ -569,6 +570,9 @@ class StruVa(Runnable):
             self.restart()
 
     def restart(self):
+        if self.frame:
+            self.frame.setVisible(False)
+            self.frame = None
         self.__init__(SettingsDialog().getValues())
 
 class DialogShower(SwingWorker):
