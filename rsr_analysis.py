@@ -90,9 +90,10 @@ def get_sptopdb_dict():
 
 def parse_binding_site(argtuple):
     """
-    argtuple = (pdbid, rsr_upper, rsr_lower)
+    argtuple = (pdbid, )
     """
-    pdbid, rsr_upper, rsr_lower = argtuple
+    pdbid = argtuple[0]
+    rsr_upper, rsr_lower = RSR_upper, RSR_lower
     future_hetids_list = set()
     resolution = 0 if CHECK_RESOLUTION else 1714
     try:
@@ -423,9 +424,14 @@ def results_to_csv(results, outputfile):
 
 def main(values):
     global CHECK_OWAB, OWAB_max, CHECK_RESOLUTION, RESOLUTION_max, RSCC_min, TOLERANCE
+    global RSR_upper, RSR_lower
     filepath =  values.pdbidfile
-    rsr_upper=values.rsr_upper
-    rsr_lower = values.rsr_lower
+    if not values.rsr_upper > values.rsr_lower:
+        dbg('%s is higher than %s!' % (values.rsr_lower, values.rsr_upper))
+        raise ValueError
+    else:
+        RSR_upper = values.rsr_upper
+        RSR_lower = values.rsr_lower
     distance=values.distance
     writeexcludes = values.writeexcludes
     excludesfile = values.excludesfile
@@ -446,9 +452,6 @@ def main(values):
         PDBfiles.CACHEDIR = cachedir
     if not (values.pdbids or values.swissprot or values.pdbidfile):
         return False
-    if not rsr_upper > rsr_lower:
-        dbg('%s is higher than %s!' % (rsr_lower, rsr_upper))
-        raise ValueError
     if distance != None:
         global inner_distance
         inner_distance = distance**2
@@ -468,7 +471,8 @@ def main(values):
     if filepath:
         pdblistfile = open(filepath, 'rb')
         pdblist = itertools.chain(pdblist, [line.strip() for line in pdblistfile if line.strip()])
-    argsarray = [(pdbid.upper(), rsr_upper, rsr_lower) for pdbid in pdblist if pdbid]
+    #get_custom_report
+    argsarray = [(pdbid.upper(), ) for pdbid in pdblist if pdbid]
     PDBfiles.setglobaldicts()
     pool = multiprocessing.Pool(multiprocessing.cpu_count())
     results = pool.imap(parse_binding_site, argsarray)
