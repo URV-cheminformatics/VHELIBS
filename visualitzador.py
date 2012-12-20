@@ -1154,8 +1154,8 @@ class DisplaySettingsDialog(object):
         self.diag.pack()
 
     def loadprefs(self):
-        self.ligwfv.text = prefs.get('ligwfv', '0.1')
-        self.ligsfv.text = prefs.get('ligsfv', '0.2')
+        self.ligwfv.text = prefs.get('ligwfv', '0.2')
+        self.ligsfv.text = prefs.get('ligsfv', '0.4')
         self.ligcolor.text = prefs.get('ligcolor', 'magenta')
         self.ligedmcolor.text = prefs.get('ligedmcolor', 'red')
 
@@ -1164,8 +1164,8 @@ class DisplaySettingsDialog(object):
         self.bscolor.text = prefs.get('bscolor', 'white')
         self.bsedmcolor.text = prefs.get('bsedmcolor', 'cyan')
 
-        self.rewfv.text = prefs.get('rewfv', '0.1')
-        self.resfv.text = prefs.get('resfv', '0.2')
+        self.rewfv.text = prefs.get('rewfv', '0.2')
+        self.resfv.text = prefs.get('resfv', '0.4')
         self.recolor.text = prefs.get('recolor', 'temperature')
         self.reedmcolor.text = prefs.get('reedmcolor', 'yellow')
 
