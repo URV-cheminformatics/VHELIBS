@@ -115,12 +115,7 @@ def parse_binding_site(argtuple):
     """
     pdbid = argtuple[0]
     rsr_upper, rsr_lower = RSR_upper, RSR_lower
-    future_hetids_list = set()
     resolution = 0 if CHECK_RESOLUTION else 1714
-    try:
-        hetids_list = PDBfiles.hetdict[pdbid.lower()]
-    except KeyError:
-        hetids_list =[]
     ligand_residues = set()
     binding_sites = set()
     good_rsr = set()
@@ -129,8 +124,6 @@ def parse_binding_site(argtuple):
     protein_atoms = set()
     ligand_all_atoms_dict = {}
     ligand_res_atom_dict = {}
-    for hetid in hetids_list:
-        ligand_all_atoms_dict[hetid] = set()
     pdbdict, edd_dict = EDS_parser.get_EDS(pdbid)
     if not pdbdict[pdbid.lower()]:
         dbg("No EDS data available for %s, it will be discarded" % pdbid)
@@ -153,20 +146,18 @@ def parse_binding_site(argtuple):
                 elif label == 'HETATM':
                     if atom.hetid == 'HOH':
                         continue #Skip waters
-                    if not hetids_list or atom.hetid in hetids_list:
-                        if (atom.hetid in cofactors.ligand_blacklist) or (atom.hetid in cofactors.metals):
-                            protein_atoms.add(atom)
-                            seqres.add(atom.residue)
-                            notligands[atom.residue] = "Blacklisted ligand"
-                            continue
-                        ligand_residues.add(atom.residue)
-                        if not hetids_list and atom.hetid not in ligand_all_atoms_dict:
-                            future_hetids_list.add(atom.hetid)
-                            ligand_all_atoms_dict[atom.hetid] = set()
-                        ligand_all_atoms_dict[atom.hetid].add(atom)
-                        if not atom.residue in ligand_res_atom_dict:
-                            ligand_res_atom_dict[atom.residue] = set()
-                        ligand_res_atom_dict[atom.residue].add(atom)
+                    if (atom.hetid in cofactors.ligand_blacklist) or (atom.hetid in cofactors.metals):
+                        protein_atoms.add(atom)
+                        seqres.add(atom.residue)
+                        notligands[atom.residue] = "Blacklisted ligand"
+                        continue
+                    ligand_residues.add(atom.residue)
+                    if atom.hetid not in ligand_all_atoms_dict:
+                        ligand_all_atoms_dict[atom.hetid] = set()
+                    ligand_all_atoms_dict[atom.hetid].add(atom)
+                    if not atom.residue in ligand_res_atom_dict:
+                        ligand_res_atom_dict[atom.residue] = set()
+                    ligand_res_atom_dict[atom.residue].add(atom)
             elif label == 'LINK':
                 dist = line[73:78].strip()
                 if dist:
@@ -229,9 +220,6 @@ def parse_binding_site(argtuple):
 
     for nonligand in notligands:
         dbg('%s is not a ligand!' % nonligand)
-        for hetlist in (future_hetids_list, hetids_list):
-            if nonligand[:3] in hetlist:
-                hetlist.remove(nonligand[:3])
         if nonligand in ligand_residues:
             ligand_residues.remove(nonligand)
             dbg('%s removed from ligand residues' % nonligand)
@@ -494,7 +482,6 @@ def main(values):
         pdblist = itertools.chain(pdblist, [line.strip() for line in pdblistfile if line.strip()])
     #get_custom_report
     argsarray = [(pdbid.upper(), ) for pdbid in pdblist if pdbid]
-    PDBfiles.setglobaldicts()
     pool = multiprocessing.Pool(multiprocessing.cpu_count())
     results = pool.imap(parse_binding_site, argsarray)
     #results = (parse_binding_site(argstuple) for argstuple in argsarray)

@@ -30,8 +30,6 @@ cdef dict get_sptopdb_dict()
 pdbid=str
 ,rsr_upper=cython.float
 ,rsr_lower=cython.float
-,future_hetids_list=set
-,hetids_list=list
 ,ligand_residues = set
 ,binding_sites = set
 ,good_rsr = set
