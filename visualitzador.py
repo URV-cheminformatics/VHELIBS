@@ -806,6 +806,14 @@ class SettingsDialog(object):
         constraints.gridx -= 1
 
         constraints.gridy += 1
+        constraints.gridwidth = 2
+        tooltip="Data will be saved to and loaded from %s" % os.path.join(os.path.expanduser('~'), '.vhelibs_cache')
+        self.use_cache = JCheckBox("Do not download already downloaded files", toolTipText=tooltip, selected=(self.profiles['Default']['max_resolution'] != self.values.max_resolution) or self.profiles['Default']['use_res'])
+        self.use_cache.toolTipText=tooltip
+        self.panel.add(self.use_cache, constraints)
+        constraints.gridwidth = 1
+
+        constraints.gridy += 1
         pdbtt="Parse structures from their PDB codes, either by entering their codes or by providing a file containing them"
         self.panel.add(JButton('Use PDB codes', toolTipText=pdbtt, actionPerformed=self.loadStructsFrom), constraints)
         constraints.gridx += 1
@@ -908,6 +916,7 @@ class SettingsDialog(object):
         self.values.rsr_upper = float(self.rsr_upper.text)
         self.values.outputfile = self.outputfile.text
         self.values.min_rscc = float(self.min_rscc.text)
+        self.values.use_cache = self.use_cache.selected
         if self.owab_cb.selected:
             self.values.max_owab = float(self.max_owab.text)
         else:
