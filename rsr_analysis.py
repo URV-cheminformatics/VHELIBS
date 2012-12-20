@@ -57,6 +57,27 @@ def dbg(string):
     print(string)
     return 0
 
+SERVICELOCATION="http://www.rcsb.org/pdb/rest/customReport"
+QUERY_TPL = "?pdbids=%s&customReportColumns=rObserved,rAll,rWork,rFree&service=wsfile&format=csv"
+
+def get_custom_report(pdbids_list):
+    urlstring = SERVICELOCATION + QUERY_TPL % ','.join(pdbids_list)
+    urlhandler = urllib2.urlopen(urlstring)
+    if urlhandler.code != 200:
+        print handler.msg
+        raise IOException(urlhandler.msg)
+    reader = csv.reader(urlhandler)
+    result = {}
+    header = reader.next()
+    rowlen = len(header)
+    for row in reader:
+        rowdict = {}
+        for n in xrange(1, rowlen):
+            rowdict[header[n]] = row[n]
+        result[row[0]] = rowdict
+    urlhandler.close()
+    return result
+
 def get_sptopdb_dict():
     """
     Returns a dictionary containing the pdb entries for each Swiss-Prot entry
