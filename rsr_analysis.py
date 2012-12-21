@@ -130,8 +130,9 @@ def parse_binding_site(argtuple):
     ligand_all_atoms_dict = {}
     ligand_res_atom_dict = {}
     pdbdict, edd_dict = EDS_parser.get_EDS(pdbid)
-    for key, value in argtuple[1].items():
-        edd_dict[key] = value
+    edd_dict['rFree'] = argtuple[1].get('rFree', 0)
+#    for key, value in argtuple[1].items():
+#        edd_dict[key] = value
     if not pdbdict[pdbid.lower()]:
         dbg("No EDS data available for %s, it will be discarded" % pdbid)
         return  (pdbid, "No EDS data available")
@@ -498,7 +499,7 @@ def main(values):
         pdblist = itertools.chain(pdblist, [line.strip() for line in pdblistfile if line.strip()])
     #get_custom_report
     pdbids_extra_data_dict = get_custom_report(list(pdblist))
-    argsarray = [(pdbid, pdbids_extra_data_dict[pdbid.upper()]) for pdbid in pdblist if pdbid]
+    argsarray = [(pdbid, pdbids_extra_data_dict.get(pdbid.upper(), {})) for pdbid in pdblist if pdbid]
     pool = multiprocessing.Pool(multiprocessing.cpu_count())
     results = pool.imap(parse_binding_site, argsarray)
     #results = (parse_binding_site(argstuple) for argstuple in argsarray)
