@@ -665,8 +665,11 @@ class SettingsDialog(object):
                             , 'min_rscc':rsr_analysis.RSCC_min
                             , 'max_resolution':rsr_analysis.RESOLUTION_max
                             , 'tolerance':rsr_analysis.TOLERANCE
+                            , 'min_occupancy':rsr_analysis.OCCUPANCY_min
+                            , 'min_rfree':rsr_analysis.RFREE_min
                             , 'use_owab': True
                             , 'use_res': True
+                            , 'outputfile':  'vhelibs_analysis_default.csv'
                             }
                     ,'Iridium':{
                             'distance':5
@@ -676,46 +679,27 @@ class SettingsDialog(object):
                             , 'min_rscc':0.9
                             , 'max_resolution':5
                             , 'tolerance':rsr_analysis.TOLERANCE
+                            , 'min_occupancy':1.0
+                            , 'min_rfree':0 #FIXME:
                             , 'use_owab': False
                             , 'use_res': False
+                            , 'outputfile':  'vhelibs_analysis_iridium.csv'
                             }
-                    ,'Custom':{}
+                    ,'Custom':{'outputfile':  'vhelibs_analysis_custom.csv'}
                     }
     def __init__(self, args=['--no-args']):
         self.values = argparser.parse_args(args)
         self.panel = JPanel(GridBagLayout())
 
-        if not self.values.distance:
-            self.values.distance = self.profiles['Default']['distance']
-        self.distance  = JTextField(str(self.values.distance))
-
-        if not self.values.outputfile:
-            self.values.outputfile = 'vhelibs_analysis.csv'
-        self.outputfile = JTextField(str(self.values.outputfile))
-
-        if self.values.rsr_lower is None:
-            self.values.rsr_lower = self.profiles['Default']['rsr_lower']
-        self.rsr_lower = JTextField(str(self.values.rsr_lower))
-
-        if not self.values.rsr_upper:
-            self.values.rsr_upper = self.profiles['Default']['rsr_upper']
-        self.rsr_upper = JTextField(str(self.values.rsr_upper))
-
-        if not self.values.max_owab:
-            self.values.max_owab = self.profiles['Default']['max_owab']
-        self.max_owab = JTextField(str(self.values.max_owab))
-
-        if not self.values.min_rscc:
-            self.values.min_rscc = self.profiles['Default']['min_rscc']
-        self.min_rscc = JTextField(str(self.values.min_rscc))
-
-        if not self.values.max_resolution:
-            self.values.max_resolution = self.profiles['Default']['max_resolution']
-        self.max_resolution = JTextField(str(self.values.max_resolution))
-
-        if not self.values.tolerance:
-            self.values.tolerance = self.profiles['Default']['tolerance']
-        self.tolerance = JTextField(str(self.values.tolerance))
+        for k in self.profiles['Default']:
+            if k == 'use_owab':
+                continue
+            elif k == 'use_res':
+                continue
+            else:
+                if not self.values.__dict__[k]:
+                    self.values.__dict__[k] = self.profiles['Default'][k]
+                self.__dict__[k] = JTextField(str(self.values.__dict__[k]))
 
         constraints = GridBagConstraints()
         constraints.weightx = 0.5
@@ -775,6 +759,14 @@ class SettingsDialog(object):
         constraints.gridx -= 1
 
         constraints.gridy += 1
+        tooltip="Minimum average occupancy per residue"
+        self.panel.add(JLabel('Average Occupancy', toolTipText=tooltip), constraints)
+        constraints.gridx += 1
+        self.min_occupancy.toolTipText=tooltip
+        self.panel.add(self.min_occupancy, constraints)
+        constraints.gridx -= 1
+
+        constraints.gridy += 1
         tooltip="Maxmimum good occupancy-weighted B-factor (OWAB)"
         self.owab_cb = JCheckBox('OWAB', toolTipText=tooltip, selected=(self.profiles['Default']['max_owab'] != self.values.max_owab) or self.profiles['Default']['use_owab'])
         self.panel.add(self.owab_cb, constraints)
@@ -790,6 +782,14 @@ class SettingsDialog(object):
         constraints.gridx += 1
         self.max_resolution.toolTipText=tooltip
         self.panel.add(self.max_resolution, constraints)
+        constraints.gridx -= 1
+
+        constraints.gridy += 1
+        tooltip="Minimum R-free value"
+        self.panel.add(JLabel('Minimum R-free value', toolTipText=tooltip), constraints)
+        constraints.gridx += 1
+        self.min_rfree.toolTipText=tooltip
+        self.panel.add(self.min_rfree, constraints)
         constraints.gridx -= 1
 
         constraints.gridy += 1
@@ -920,6 +920,8 @@ class SettingsDialog(object):
         self.values.rsr_upper = float(self.rsr_upper.text)
         self.values.outputfile = self.outputfile.text
         self.values.min_rscc = float(self.min_rscc.text)
+        self.values.min_rfree = float(self.min_rfree.text)
+        self.values.min_occupancy = float(self.min_occupancy.text)
         self.values.use_cache = self.use_cache.selected
         if self.owab_cb.selected:
             self.values.max_owab = float(self.max_owab.text)
