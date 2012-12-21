@@ -30,6 +30,7 @@ RESOLUTION_max = 3.5
 RSR_upper = 0.4
 RSR_lower = 0.24
 RSCC_min = 0
+RFREE_min = 0
 TOLERANCE = 1
 inner_distance = 4.5**2
 titles = ['PDB ID', "Coordinates to exam", "Ligand Residues", "Binding Site Residues", "Good Ligand", "Good Binding Site"]
@@ -43,6 +44,7 @@ parser.add_argument('-u','--rsr_upper', type=float, default=RSR_upper, metavar='
 parser.add_argument('-l','--rsr_lower', type=float, default=RSR_lower, metavar='FLOAT', help='set minimum RSR value for each residue (residues with a lower RSR value will be directly considered right)')
 parser.add_argument('-b','--max_owab', type=float, default=None, metavar='FLOAT', help='set maximum OWAB (Occupancy-weighted B-factor) per residue')
 parser.add_argument('-R','--min_rscc', type=float, default=RSCC_min, metavar='FLOAT', help='set minimum RSCC per residue')
+parser.add_argument('-F','--min_rfree', type=float, default=RFREE_min, metavar='FLOAT', help='set minimum R-free for the structure')
 parser.add_argument('-r','--max_resolution', type=float, default=None, metavar='FLOAT', help='set maximum resolution (in Å) below which to consider Good models')
 parser.add_argument('-T','--tolerance', type=int, default=TOLERANCE, metavar='INT', help='set maximum number of non-met criteria of Dubious structures')
 parser.add_argument('-d','--distance', type=float, default=math.sqrt(inner_distance), metavar='Å', help='consider part of the binding sites all the residues nearer than this to the ligand (in Å)')
@@ -50,7 +52,7 @@ parser.add_argument('-f','--pdbidfile', metavar='PATH', type=unicode, default=No
 parser.add_argument('-o','--outputfile', metavar='PATH', type=unicode, default='vhelibs_analysis.csv', required=False, help='output file name')
 parser.add_argument('-w','--writeexcludes', metavar='PATH', type=unicode, default=None, required=False, help='Write current excluded HET ids to a file')
 parser.add_argument('-e','--excludesfile', metavar='PATH', type=unicode, default=None, required=False, help='Override excluded HET ids with the ones provided in this file')
-parser.add_argument('-C','--use-cache', required=False, action='store_true', help="Use cached EDS data if available for the analysis, otherwise cache it.")
+parser.add_argument('-C','--use-cache', required=False, action='store_true', help="Use cached EDS and PDB data if available for the analysis, otherwise cache it.")
 #######################
 
 def dbg(string):
@@ -58,7 +60,7 @@ def dbg(string):
     return 0
 
 SERVICELOCATION="http://www.rcsb.org/pdb/rest/customReport"
-QUERY_TPL = "?pdbids=%s&customReportColumns=rObserved,rAll,rWork,rFree&service=wsfile&format=csv"
+QUERY_TPL = "?pdbids=%s&customReportColumns=rFree&service=wsfile&format=csv"
 
 def get_custom_report(pdbids_list):
     urlstring = SERVICELOCATION + QUERY_TPL % ','.join(pdbids_list)
@@ -73,7 +75,8 @@ def get_custom_report(pdbids_list):
     for row in reader:
         rowdict = {}
         for n in xrange(1, rowlen):
-            rowdict[header[n]] = row[n]
+            value = row[n]
+            rowdict[header[n]] = float(value) if value else 0
         result[row[0]] = rowdict
     urlhandler.close()
     return result
@@ -125,6 +128,8 @@ def parse_binding_site(argtuple):
     ligand_all_atoms_dict = {}
     ligand_res_atom_dict = {}
     pdbdict, edd_dict = EDS_parser.get_EDS(pdbid)
+    for key, value in argtuple[1].items():
+        edd_dict[key] = value
     if not pdbdict[pdbid.lower()]:
         dbg("No EDS data available for %s, it will be discarded" % pdbid)
         return  (pdbid, "No EDS data available")
@@ -244,7 +249,8 @@ def classificate_residue(residue, edd_dict, good_rsr, dubious_rsr, bad_rsr, rsr_
     if not residue_dict:
         bad_rsr.add(residue)
         return 0
-    if RSCC_min > residue_dict['RSCC']:
+    rscc = residue_dict['RSCC']
+    if RSCC_min > rscc:
         score -= 1
     if CHECK_OWAB:
         owab = Natom = residue_dict['OWAB']
@@ -256,16 +262,17 @@ def classificate_residue(residue, edd_dict, good_rsr, dubious_rsr, bad_rsr, rsr_
         bad_rsr.add(residue)
         return 1
     rsr = residue_dict['RSR']
+    rFree = edd_dict['rFree']
+    if rFree < RFREE_min:
+        score -= 1
     resolution = edd_dict.get('Resolution', 0)
-    if resolution:
-        if resolution > RESOLUTION_max:
-            score -= 1
+    if resolution > RESOLUTION_max:
+        score -= 1
     if rsr <= rsr_upper:
         if rsr <= rsr_lower:
             score +=1
     else:
         score -= 1
-
     if score > 0:
         good_rsr.add(residue)
     elif score <= -TOLERANCE:
@@ -433,7 +440,7 @@ def results_to_csv(results, outputfile):
 
 def main(values):
     global CHECK_OWAB, OWAB_max, CHECK_RESOLUTION, RESOLUTION_max, RSCC_min, TOLERANCE
-    global RSR_upper, RSR_lower
+    global RSR_upper, RSR_lower, RFREE_min
     filepath =  values.pdbidfile
     if not values.rsr_upper > values.rsr_lower:
         dbg('%s is higher than %s!' % (values.rsr_lower, values.rsr_upper))
@@ -450,6 +457,8 @@ def main(values):
         OWAB_max = values.max_owab
     if not values.min_rscc is None:
         RSCC_min = values.min_rscc
+    if not values.min_rfree is None:
+        RFREE_min = values.min_rfree
     if not values.max_resolution is None:
         CHECK_RESOLUTION = True
         RESOLUTION_max = values.max_resolution
@@ -481,7 +490,8 @@ def main(values):
         pdblistfile = open(filepath, 'rb')
         pdblist = itertools.chain(pdblist, [line.strip() for line in pdblistfile if line.strip()])
     #get_custom_report
-    argsarray = [(pdbid.upper(), ) for pdbid in pdblist if pdbid]
+    pdbids_extra_data_dict = get_custom_report(list(pdblist))
+    argsarray = [(pdbid, pdbids_extra_data_dict[pdbid.upper()]) for pdbid in pdblist if pdbid]
     pool = multiprocessing.Pool(multiprocessing.cpu_count())
     results = pool.imap(parse_binding_site, argsarray)
     #results = (parse_binding_site(argstuple) for argstuple in argsarray)

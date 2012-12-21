@@ -18,6 +18,7 @@ cython.declare(
     , OWAB_max = cython.float
     , RESOLUTION_max = cython.float
     , RSCC_min = cython.float
+    , RFREE_min = cython.float
     , TOLERANCE = cython.int
     )
 
@@ -53,6 +54,8 @@ cpdef tuple parse_binding_site(tuple argtuple)
     , Natom = cython.float
     , S_occ = cython.float
     , owab = cython.float
+    , rscc = cython.float
+    , rFree = cython.float
     , resolution = cython.float
     , score = cython.int
     , residue_dict = dict
