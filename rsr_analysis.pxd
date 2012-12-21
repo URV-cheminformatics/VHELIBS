@@ -19,6 +19,7 @@ cython.declare(
     , RESOLUTION_max = cython.float
     , RSCC_min = cython.float
     , RFREE_min = cython.float
+    , OCCUPANCY_min = cython.float
     , TOLERANCE = cython.int
     )
 
@@ -57,6 +58,7 @@ cpdef tuple parse_binding_site(tuple argtuple)
     , rscc = cython.float
     , rFree = cython.float
     , resolution = cython.float
+    , occ = cython.float
     , score = cython.int
     , residue_dict = dict
     )

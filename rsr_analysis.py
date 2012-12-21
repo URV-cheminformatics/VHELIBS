@@ -31,6 +31,7 @@ RSR_upper = 0.4
 RSR_lower = 0.24
 RSCC_min = 0
 RFREE_min = 0
+OCCUPANCY_min = 1.0
 TOLERANCE = 1
 inner_distance = 4.5**2
 titles = ['PDB ID', "Coordinates to exam", "Ligand Residues", "Binding Site Residues", "Good Ligand", "Good Binding Site"]
@@ -44,6 +45,7 @@ parser.add_argument('-u','--rsr_upper', type=float, default=RSR_upper, metavar='
 parser.add_argument('-l','--rsr_lower', type=float, default=RSR_lower, metavar='FLOAT', help='set minimum RSR value for each residue (residues with a lower RSR value will be directly considered right)')
 parser.add_argument('-b','--max_owab', type=float, default=None, metavar='FLOAT', help='set maximum OWAB (Occupancy-weighted B-factor) per residue')
 parser.add_argument('-R','--min_rscc', type=float, default=RSCC_min, metavar='FLOAT', help='set minimum RSCC per residue')
+parser.add_argument('-O','--min_occupancy', type=float, default=OCCUPANCY_min, metavar='FLOAT', help='set minimum average occupancy per residue')
 parser.add_argument('-F','--min_rfree', type=float, default=RFREE_min, metavar='FLOAT', help='set minimum R-free for the structure')
 parser.add_argument('-r','--max_resolution', type=float, default=None, metavar='FLOAT', help='set maximum resolution (in Å) below which to consider Good models')
 parser.add_argument('-T','--tolerance', type=int, default=TOLERANCE, metavar='INT', help='set maximum number of non-met criteria of Dubious structures')
@@ -220,8 +222,8 @@ def parse_binding_site(argtuple):
             alllinksparsed = True
 
     for res in ligand_res_atom_dict:
-        if 1 == classificate_residue(res, edd_dict, good_rsr, dubious_rsr, bad_rsr):
-            notligands[res] = "probably has multiple conformations (average occupancy < 1)"
+        if 1337 == classificate_residue(res, edd_dict, good_rsr, dubious_rsr, bad_rsr):
+            notligands[res] = "Occupancy above 1"
 
     for nonligand in notligands:
         dbg('%s is not a ligand!' % nonligand)
@@ -258,9 +260,12 @@ def classificate_residue(residue, edd_dict, good_rsr, dubious_rsr, bad_rsr):
             score -=1
     Natom = residue_dict['Natom']
     S_occ = residue_dict['S_occ']
-    if S_occ/Natom != 1.0:
+    occ = S_occ/Natom
+    if occ > 1:
         bad_rsr.add(residue)
-        return 1
+        return 1337
+    elif occ < OCCUPANCY_min:
+        score -=1
     rsr = residue_dict['RSR']
     rFree = edd_dict['rFree']
     if rFree < RFREE_min:
@@ -440,7 +445,7 @@ def results_to_csv(results, outputfile):
 
 def main(values):
     global CHECK_OWAB, OWAB_max, CHECK_RESOLUTION, RESOLUTION_max, RSCC_min, TOLERANCE
-    global RSR_upper, RSR_lower, RFREE_min
+    global RSR_upper, RSR_lower, RFREE_min, OCCUPANCY_min
     filepath =  values.pdbidfile
     if not values.rsr_upper > values.rsr_lower:
         dbg('%s is higher than %s!' % (values.rsr_lower, values.rsr_upper))
@@ -455,6 +460,8 @@ def main(values):
     if not values.max_owab is None:
         CHECK_OWAB = True
         OWAB_max = values.max_owab
+    if not values.min_occupancy is None:
+        OCCUPANCY_min = values.min_occupancy
     if not values.min_rscc is None:
         RSCC_min = values.min_rscc
     if not values.min_rfree is None:
