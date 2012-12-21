@@ -66,8 +66,6 @@ cdef cython.int classificate_residue(
     , set good_rsr
     , set dubious_rsr
     , set bad_rsr
-    , cython.float rsr_upper
-    ,  cython.float rsr_lower
     )
 
 @cython.locals(

@@ -220,7 +220,7 @@ def parse_binding_site(argtuple):
             alllinksparsed = True
 
     for res in ligand_res_atom_dict:
-        if 1 == classificate_residue(res, edd_dict, good_rsr, dubious_rsr, bad_rsr, rsr_upper, rsr_lower):
+        if 1 == classificate_residue(res, edd_dict, good_rsr, dubious_rsr, bad_rsr):
             notligands[res] = "probably has multiple conformations (average occupancy < 1)"
 
     for nonligand in notligands:
@@ -243,7 +243,7 @@ def parse_binding_site(argtuple):
     ligand_bs_list = [get_binding_site(ligand, good_rsr, bad_rsr, dubious_rsr, pdbid, protein_atoms, ligands, ligand_res_atom_dict, rsr_upper, rsr_lower, edd_dict) for ligand in ligands]
     return (pdbid, ligand_bs_list, notligands)
 
-def classificate_residue(residue, edd_dict, good_rsr, dubious_rsr, bad_rsr, rsr_upper, rsr_lower):
+def classificate_residue(residue, edd_dict, good_rsr, dubious_rsr, bad_rsr):
     score = 0
     residue_dict = edd_dict.get(residue, None)
     if not residue_dict:
@@ -268,8 +268,8 @@ def classificate_residue(residue, edd_dict, good_rsr, dubious_rsr, bad_rsr, rsr_
     resolution = edd_dict.get('Resolution', 0)
     if resolution > RESOLUTION_max:
         score -= 1
-    if rsr <= rsr_upper:
-        if rsr <= rsr_lower:
+    if rsr <= RSR_upper:
+        if rsr <= RSR_lower:
             score +=1
     else:
         score -= 1
@@ -365,7 +365,7 @@ def get_binding_site(ligand, good_rsr, bad_rsr, dubious_rsr, pdbid, protein_atom
                 distance = atom | ligandatom
                 if distance <= inner_distance:
                     inner_binding_site.add(atom.residue)
-                    classificate_residue(atom.residue, edd_dict, good_rsr, dubious_rsr, bad_rsr, rsr_upper, rsr_lower)
+                    classificate_residue(atom.residue, edd_dict, good_rsr, dubious_rsr, bad_rsr)
                     break
         for l in ligands:
             if l == ligand:
@@ -376,7 +376,7 @@ def get_binding_site(ligand, good_rsr, bad_rsr, dubious_rsr, pdbid, protein_atom
                         distance = latom | ligandatom
                         if distance <= inner_distance:
                             inner_binding_site.add(lres)
-                            classificate_residue(lres, edd_dict, good_rsr, dubious_rsr, bad_rsr, rsr_upper, rsr_lower)
+                            classificate_residue(lres, edd_dict, good_rsr, dubious_rsr, bad_rsr)
                             break
     rte = inner_binding_site.union(ligand).difference(good_rsr)
     ligandgood = validate(ligand, good_rsr, bad_rsr, dubious_rsr, pdbid)
