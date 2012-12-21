@@ -17,6 +17,10 @@ import math
 import time
 from textwrap import dedent
 from sys import exit
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 #Java stuff
 import java
 from java.net import URL, URI
@@ -724,7 +728,15 @@ class SettingsDialog(object):
         self.profilecbb.addActionListener(make_listen(self.load_profile))
         self.panel.add(self.profilecbb, constraints)
         constraints.gridx -= 1
-
+        ##############
+        constraints.gridy += 1
+        tooltip=""
+        self.panel.add(JButton('Export profile', toolTipText=tooltip, actionPerformed=self.export_current_profile), constraints)
+        constraints.gridx += 1
+        tooltip=""
+        self.panel.add(JButton('Import profile', toolTipText=tooltip, actionPerformed=self.import_profile), constraints)
+        constraints.gridx -= 1
+        ##############
         constraints.gridy += 1
         distancetooltip = 'Residues with at least one atom within this distance from any atom of the ligand will be considered as part of the binding site'
         self.panel.add(JLabel(u'Radius (in Å)', toolTipText=distancetooltip), constraints)
@@ -845,6 +857,23 @@ class SettingsDialog(object):
         self.frame.setUndecorated(True)
         self.diag.pack()
 
+
+
+    def export_current_profile(self, event=None):
+        profile = self.profiles[self.profilecbb.selectedItem]
+        filename = str(showOpenDialog(SimpleFileFilter('.vp', None, 'VHELIBS profile files'), prefkey='loadedFiles', prefs=prefs,multiselect=False))
+        if filename:
+            file = open(filename, 'wb')
+            pickle.dump(profile, file, 2)
+            file.close()
+
+    def import_profile(self, event = None):
+        filename = str(showOpenDialog(SimpleFileFilter('.vp', None, 'VHELIBS profile files'), prefkey='loadedFiles', prefs=prefs,multiselect=False))
+        if filename:
+            file = open(filename, 'rb')
+            self.profiles['Custom'] = pickle.load(file)
+            file.close()
+            self.profilecbb.selectedItem = 'Custom'
 
     def load_profile(self,e=None, profilename='Default'):
         if e and e.actionCommand != u'comboBoxChanged': return
