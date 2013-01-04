@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-#   Copyright 2010 - 2012 Adrià Cereto Massagué <adrian.cereto@.urv.cat>
+#   Copyright 2010 - 2013 Adrià Cereto Massagué <adrian.cereto@.urv.cat>
 #
 """
 Handle and download PDB files
@@ -15,8 +15,6 @@ from cofactors import ligand_blacklist
 PDBbase = "http://www.rcsb.org/pdb/files/%s.pdb.gz"
 #On guardarem els fitxers:
 CACHEDIR = tempfile.mkdtemp()
-
-hetdict = {}
 
 def get_pdb_file(pdbcode, filename = ''):
     """
@@ -54,33 +52,3 @@ def get_pdb_file(pdbcode, filename = ''):
 
 ########################################################
 
-def get_ligand_pdb_dict(blacklist = False):
-    """Returns a pdb code - ligands dictionary"""
-    outdict={}
-    destfile = os.path.join(CACHEDIR, 'cc-to-pdb.tdd')
-    if os.path.isfile(destfile):
-        handler = open(destfile, 'r')
-        writer = None
-    else:
-        writer = open(destfile, 'w')
-        print(u'Downloading PDBID-HETID dictionary...'),
-        dicturl = "http://ligand-expo.rcsb.org/dictionaries/cc-to-pdb.tdd"
-        handler = urllib2.urlopen(dicturl)
-    for line in handler:
-        if writer:
-            writer.write(line)
-        ligand,  pdb_codes = line.strip().split("\t")
-        if not blacklist or ligand not in ligand_blacklist:
-            for pdb_code in pdb_codes.split():
-                if pdb_code not in outdict:
-                    outdict[pdb_code] = [ligand, ]
-                else:
-                    outdict[pdb_code].append(ligand)
-    handler.close()
-    return outdict
-
-def setglobaldicts():
-    global hetdict
-    if not hetdict:
-        hetdict = get_ligand_pdb_dict()
-    return 0

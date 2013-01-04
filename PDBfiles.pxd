@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-#   Copyright 2012 Adrià Cereto Massagué <adrian.cereto@.urv.cat>
+#   Copyright 2012-2013 Adrià Cereto Massagué <adrian.cereto@.urv.cat>
 #
 import cython
 
@@ -11,5 +11,3 @@ cdef str get_pdb_file(str pdbcode, str filename=*)
 
 @cython.locals( outdict=dict, destfile=str, dicturl=str, line=str, ligand=str,  pdb_codes=str, pdb_code=str)
 cdef dict get_ligand_pdb_dict(blacklist=*)
-
-cpdef cython.int setglobaldicts()
