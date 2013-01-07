@@ -1,7 +1,7 @@
 #/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-#   Copyright 2011 - 2012 Adrià Cereto Massagué <adrian.cereto@.urv.cat>
+#   Copyright 2011 - 2013 Adrià Cereto Massagué <adrian.cereto@.urv.cat>
 #
 import os, gzip, sys, urllib2, csv, itertools, math
 try:
