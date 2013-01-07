@@ -20,9 +20,10 @@ except:
     #Fallback to pure python
     from PdbAtom import PdbAtom
 
-import PDBfiles, EDS_parser
+import PDBfiles, EDS_parser, pdb_redo
 import cofactors
 
+PDB_REDO = False
 CHECK_OWAB = False
 OWAB_max = 50
 CHECK_RESOLUTION = False
@@ -55,6 +56,7 @@ parser.add_argument('-o','--outputfile', metavar='PATH', type=unicode, default='
 parser.add_argument('-w','--writeexcludes', metavar='PATH', type=unicode, default=None, required=False, help='Write current excluded HET ids to a file')
 parser.add_argument('-e','--excludesfile', metavar='PATH', type=unicode, default=None, required=False, help='Override excluded HET ids with the ones provided in this file')
 parser.add_argument('-C','--use-cache', required=False, action='store_true', help="Use cached EDS and PDB data if available for the analysis, otherwise cache it.")
+parser.add_argument('-P','--use-pdb-redo', required=False, action='store_true', help="Use models from PDB_REDO instead of PDB.")
 #######################
 
 def dbg(string):
@@ -130,14 +132,23 @@ def parse_binding_site(argtuple):
     ligand_all_atoms_dict = {}
     ligand_res_atom_dict = {}
     pdbdict, edd_dict = EDS_parser.get_EDS(pdbid)
-    edd_dict['rFree'] = argtuple[1].get('rFree', 0)
-#    for key, value in argtuple[1].items():
-#        edd_dict[key] = value
     if not pdbdict[pdbid.lower()]:
         dbg("No EDS data available for %s, it will be discarded" % pdbid)
         return  (pdbid, "No EDS data available")
-    pdbfilepath = PDBfiles.get_pdb_file(pdbid.upper())
-    pdbfile = gzip.GzipFile(pdbfilepath)
+    if PDB_REDO:
+        edd_dict = pdb_redo.get_ED_data(pdbid)
+        edd_dict['rFree'] = float(argtuple[1].get('RFFIN', '0'))
+        resolution = float(argtuple[1].get('RESOLUTION', '0'))
+        edd_dict['Resolution'] = resolution
+    else:
+        edd_dict['rFree'] = argtuple[1].get('rFree', 0)
+#    for key, value in argtuple[1].items():
+#        edd_dict[key] = value
+    pdbfilepath = PDBfiles.get_pdb_file(pdbid.upper(), pdb_redo=PDB_REDO)
+    if pdbfilepath.endswith('.gz'):
+        pdbfile = gzip.GzipFile(pdbfilepath)
+    else:
+        pdbfile = open(pdbfilepath, 'r')
     try:
         notligands = {}
         seqres = set()
@@ -271,9 +282,10 @@ def classificate_residue(residue, edd_dict, good_rsr, dubious_rsr, bad_rsr):
     rFree = edd_dict['rFree']
     if rFree < RFREE_min:
         score -= 1
-    resolution = edd_dict.get('Resolution', 0)
-    if resolution > RESOLUTION_max:
-        score -= 1
+    if CHECK_RESOLUTION:
+        resolution = edd_dict.get('Resolution', 0)
+        if resolution > RESOLUTION_max:
+            score -= 1
     if rsr <= RSR_upper:
         if rsr <= RSR_lower:
             score +=1
@@ -446,8 +458,10 @@ def results_to_csv(results, outputfile):
 
 def main(values):
     global CHECK_OWAB, OWAB_max, CHECK_RESOLUTION, RESOLUTION_max, RSCC_min, TOLERANCE
-    global RSR_upper, RSR_lower, RFREE_min, OCCUPANCY_min
+    global RSR_upper, RSR_lower, RFREE_min, OCCUPANCY_min, PDB_REDO
     filepath =  values.pdbidfile
+    if values.use_pdb_redo:
+        PDB_REDO = True
     if not values.rsr_upper > values.rsr_lower:
         dbg('%s is higher than %s!' % (values.rsr_lower, values.rsr_upper))
         raise ValueError
@@ -496,9 +510,13 @@ def main(values):
                     pdblist = itertools.chain(pdblist, sptopdb_dict[key])
     if filepath:
         pdblistfile = open(filepath, 'rb')
-        pdblist = itertools.chain(pdblist, [line.strip() for line in pdblistfile if line.strip()])
+        pdblist = itertools.chain(pdblist, [line.strip() for line in pdblistfile.read().replace(',', '\n').replace('\t', '\n').split() if line.strip()])
+        pdblistfile.close()
     #get_custom_report
-    pdbids_extra_data_dict = get_custom_report(list(pdblist))
+    if not PDB_REDO:
+        pdbids_extra_data_dict = get_custom_report(list(pdblist))
+    else:
+        pdbids_extra_data_dict = pdb_redo.get_pdbredo_data(list(pdblist))
     argsarray = [(pdbid, pdbids_extra_data_dict.get(pdbid.upper(), {})) for pdbid in pdblist if pdbid]
     pool = multiprocessing.Pool(multiprocessing.cpu_count())
     results = pool.imap(parse_binding_site, argsarray)
@@ -506,8 +524,6 @@ def main(values):
     datawritten = results_to_csv(results, values.outputfile)
     pool.terminate()
     pool.join()
-    if filepath:
-        pdblistfile.close()
     return datawritten
 
 if __name__ == "__main__":

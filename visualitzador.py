@@ -372,7 +372,7 @@ class StruVa(Runnable):
             self.bs_cbox.selectedItem = 'Dubious'
         #load in Jmol
         try:
-            self.execute(';'.join(['load "file://%s"' % PDBfiles.get_pdb_file(self.pdbid)
+            self.execute(';'.join(['load "file://%s"' % PDBfiles.get_pdb_file(self.pdbid, pdb_redo=rsr_analysis.PDB_REDO)
             ,'select all'
             ,'wireframe only'
             ,'wireframe off'

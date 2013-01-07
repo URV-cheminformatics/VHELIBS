@@ -29,6 +29,7 @@ def get_pdb_file(pdbcode, filename = '', pdb_redo = False):
         if not filename:
             filename = os.path.join(CACHEDIR, pdbcode.upper() + ".pdb.gz")
     else:
+        pdbcode = pdbcode.lower()
         url = PDBREDObase.replace('MIDDLE', pdbcode[1:3]).replace('PDBID', pdbcode)
         if not filename:
             filename = os.path.join(CACHEDIR, pdbcode.upper() + ".pdb")
