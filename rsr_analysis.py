@@ -122,7 +122,6 @@ def parse_binding_site(argtuple):
     """
     pdbid = argtuple[0]
     rsr_upper, rsr_lower = RSR_upper, RSR_lower
-    resolution = 0 if CHECK_RESOLUTION else 1714
     ligand_residues = set()
     binding_sites = set()
     good_rsr = set()
@@ -131,17 +130,20 @@ def parse_binding_site(argtuple):
     protein_atoms = set()
     ligand_all_atoms_dict = {}
     ligand_res_atom_dict = {}
-    pdbdict, edd_dict = EDS_parser.get_EDS(pdbid)
-    if not pdbdict[pdbid.lower()]:
-        dbg("No EDS data available for %s, it will be discarded" % pdbid)
-        return  (pdbid, "No EDS data available")
     if PDB_REDO:
         edd_dict = pdb_redo.get_ED_data(pdbid)
+        if not edd_dict:
+            return  (pdbid, "Not in PDB_REDO")
         edd_dict['rFree'] = float(argtuple[1].get('RFFIN', '0'))
         resolution = float(argtuple[1].get('RESOLUTION', '0'))
         edd_dict['Resolution'] = resolution
     else:
+        pdbdict, edd_dict = EDS_parser.get_EDS(pdbid)
+        if not pdbdict[pdbid.lower()]:
+            dbg("No EDS data available for %s, it will be discarded" % pdbid)
+            return  (pdbid, "No EDS data available")
         edd_dict['rFree'] = argtuple[1].get('rFree', 0)
+        resolution = 0 if CHECK_RESOLUTION else 1714
 #    for key, value in argtuple[1].items():
 #        edd_dict[key] = value
     pdbfilepath = PDBfiles.get_pdb_file(pdbid.upper(), pdb_redo=PDB_REDO)
@@ -178,8 +180,11 @@ def parse_binding_site(argtuple):
                         ligand_res_atom_dict[atom.residue] = set()
                     ligand_res_atom_dict[atom.residue].add(atom)
             elif label == 'LINK':
-                dist = line[73:78].strip()
-                if dist:
+                try:
+                    dist = float(line[73:78].strip())
+                except ValueError:
+                    dbg("bogus link distance")
+                    dist = 1 #FIXME: bogus distances
                     links.append((line[17:27],  line[47:57], float(dist))) #distance
             elif resolution == 0 and label == 'REMARK':
                 if line[9] == '2' and len(line) > 10:
@@ -245,7 +250,9 @@ def parse_binding_site(argtuple):
         if nonligand[:3] in ligand_all_atoms_dict:
             protein_atoms.update(ligand_all_atoms_dict.pop(nonligand[:3]))
             dbg('%s atoms added to protein' % nonligand)
-
+    if not ligand_residues:
+        dbg('%s has no ligands!' % pdbid)
+        return (pdbid, "no ligands found")
     ligands = group_ligands(ligand_residues, links)
     ligands_res = set()
     for ligand in ligands:
@@ -460,8 +467,12 @@ def main(values):
     global CHECK_OWAB, OWAB_max, CHECK_RESOLUTION, RESOLUTION_max, RSCC_min, TOLERANCE
     global RSR_upper, RSR_lower, RFREE_min, OCCUPANCY_min, PDB_REDO
     filepath =  values.pdbidfile
+    if not values.max_owab is None:
+        CHECK_OWAB = True
+        OWAB_max = values.max_owab
     if values.use_pdb_redo:
         PDB_REDO = True
+        CHECK_OWAB = False
     if not values.rsr_upper > values.rsr_lower:
         dbg('%s is higher than %s!' % (values.rsr_lower, values.rsr_upper))
         raise ValueError
@@ -472,9 +483,6 @@ def main(values):
     writeexcludes = values.writeexcludes
     excludesfile = values.excludesfile
     TOLERANCE = values.tolerance
-    if not values.max_owab is None:
-        CHECK_OWAB = True
-        OWAB_max = values.max_owab
     if not values.min_occupancy is None:
         OCCUPANCY_min = values.min_occupancy
     if not values.min_rscc is None:

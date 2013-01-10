@@ -13,7 +13,8 @@ else:
 from cofactors import ligand_blacklist
 
 PDBbase = "http://www.rcsb.org/pdb/files/%s.pdb.gz"
-PDBREDObase = "http://www.cmbi.ru.nl/pdb_redo/MIDDLE/PDBID/PDBID_besttls.pdb"
+#PDBREDObase_conservative = "http://www.cmbi.ru.nl/pdb_redo/MIDDLE/PDBID/PDBID_besttls.pdb"
+PDBREDObase_full = "http://www.cmbi.ru.nl/pdb_redo/MIDDLE/PDBID/PDBID_final.pdb"
 #On guardarem els fitxers:
 CACHEDIR = tempfile.mkdtemp()
 
@@ -30,9 +31,9 @@ def get_pdb_file(pdbcode, filename = '', pdb_redo = False):
             filename = os.path.join(CACHEDIR, pdbcode.upper() + ".pdb.gz")
     else:
         pdbcode = pdbcode.lower()
-        url = PDBREDObase.replace('MIDDLE', pdbcode[1:3]).replace('PDBID', pdbcode)
+        url = PDBREDObase_full.replace('MIDDLE', pdbcode[1:3]).replace('PDBID', pdbcode)
         if not filename:
-            filename = os.path.join(CACHEDIR, pdbcode.upper() + ".pdb")
+            filename = os.path.join(CACHEDIR, os.path.basename(url))
     if os.path.isfile(filename):
         return filename
     tries = 0
