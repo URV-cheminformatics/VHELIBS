@@ -11,6 +11,8 @@ class PdbAtom(object):
         self.residue = record[17:27]
         self.hetid = self.residue[:3].strip()
         self.xyz = (float(record[30:38]), float(record[38:46]), float(record[46:54]))
+        self.occupancy = float(record[54:60])
+        self.variant = record[16]
     def __or__(self, other):
         """
         Return squared distance

@@ -18,7 +18,7 @@ PDBREDObase_full = "http://www.cmbi.ru.nl/pdb_redo/MIDDLE/PDBID/PDBID_final.pdb"
 #On guardarem els fitxers:
 CACHEDIR = tempfile.mkdtemp()
 
-def get_pdb_file(pdbcode, filename = '', pdb_redo = False):
+def get_pdb_file(pdbcode, pdb_redo = False):
     """
     Downloads a PDB file and stores it with the specified filename
     """
@@ -27,13 +27,11 @@ def get_pdb_file(pdbcode, filename = '', pdb_redo = False):
         os.makedirs(CACHEDIR)
     if not pdb_redo:
         url = PDBbase % pdbcode
-        if not filename:
-            filename = os.path.join(CACHEDIR, pdbcode.upper() + ".pdb.gz")
+        filename = os.path.join(CACHEDIR, pdbcode.upper() + ".pdb.gz")
     else:
         pdbcode = pdbcode.lower()
         url = PDBREDObase_full.replace('MIDDLE', pdbcode[1:3]).replace('PDBID', pdbcode)
-        if not filename:
-            filename = os.path.join(CACHEDIR, os.path.basename(url))
+        filename = os.path.join(CACHEDIR, os.path.basename(url))
     if os.path.isfile(filename):
         return filename
     tries = 0

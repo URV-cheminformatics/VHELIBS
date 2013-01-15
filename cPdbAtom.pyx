@@ -8,6 +8,8 @@ cdef class PdbAtom(object):
     """
     cdef public str residue
     cdef public str hetid
+    cdef public float occupancy
+    cdef public str variant
     cdef float[3] xyz
     def __init__(PdbAtom self, str record):
         """
@@ -18,6 +20,8 @@ cdef class PdbAtom(object):
         self.xyz[0] = float(record[30:38])
         self.xyz[1] = float(record[38:46])
         self.xyz[2] = float(record[46:54])
+        self.occupancy = float(record[54:60])
+        self.variant = record[16]
     def __or__(PdbAtom self, PdbAtom other):
         """
         Return squared distance

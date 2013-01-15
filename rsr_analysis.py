@@ -70,8 +70,8 @@ def get_custom_report(pdbids_list):
     urlstring = SERVICELOCATION + QUERY_TPL % ','.join(pdbids_list)
     urlhandler = urllib2.urlopen(urlstring)
     if urlhandler.code != 200:
-        print handler.msg
-        raise IOException(urlhandler.msg)
+        print urlhandler.msg
+        raise IOError(urlhandler.msg)
     reader = csv.reader(urlhandler)
     result = {}
     header = reader.next()
@@ -146,7 +146,7 @@ def parse_binding_site(argtuple):
         resolution = 0 if CHECK_RESOLUTION else 1714
 #    for key, value in argtuple[1].items():
 #        edd_dict[key] = value
-    pdbfilepath = PDBfiles.get_pdb_file(pdbid.upper(), pdb_redo=PDB_REDO)
+    pdbfilepath = PDBfiles.get_pdb_file(pdbid.upper(), PDB_REDO)
     if pdbfilepath.endswith('.gz'):
         pdbfile = gzip.GzipFile(pdbfilepath)
     else:

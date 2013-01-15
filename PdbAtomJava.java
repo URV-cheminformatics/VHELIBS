@@ -3,6 +3,8 @@ public class PdbAtomJava{
     //Represents an atom from a PDB file
     public String residue;
     public String hetid;
+    public String variant;
+    public float occupancy;
     public float[] xyz;
     public PdbAtomJava(String record){
         //Needs an ATOM or HETATM record
@@ -13,6 +15,8 @@ public class PdbAtomJava{
         xyz[0] = Float.parseFloat( record.substring(30,38));
         xyz[1] = Float.parseFloat( record.substring(38,46));
         xyz[2] = Float.parseFloat( record.substring(46,54));
+        occupancy = Float.parseFloat( record.substring(54,60));
+        variant = record.substring(16,17);
     }
     public double __or__(PdbAtomJava other){
         //Return squared distance
