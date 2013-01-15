@@ -66,6 +66,9 @@ def dbg(string):
 SERVICELOCATION="http://www.rcsb.org/pdb/rest/customReport"
 QUERY_TPL = "?pdbids=%s&customReportColumns=rFree&service=wsfile&format=csv"
 
+def average_occ(residue_atoms):
+    return sum([atom.occupancy for atom in residue_atoms])/len(residue_atoms)
+
 def get_custom_report(pdbids_list):
     urlstring = SERVICELOCATION + QUERY_TPL % ','.join(pdbids_list)
     urlhandler = urllib2.urlopen(urlstring)
@@ -185,7 +188,7 @@ def parse_binding_site(argtuple):
                 except ValueError:
                     dbg("bogus link distance")
                     dist = 1 #FIXME: bogus distances
-                    links.append((line[17:27],  line[47:57], float(dist))) #distance
+                links.append((line[17:27],  line[47:57], float(dist))) #distance
             elif resolution == 0 and label == 'REMARK':
                 if line[9] == '2' and len(line) > 10:
                     try:
@@ -238,10 +241,6 @@ def parse_binding_site(argtuple):
         else:
             alllinksparsed = True
 
-    for res in ligand_res_atom_dict:
-        if 1337 == classificate_residue(res, edd_dict, good_rsr, dubious_rsr, bad_rsr):
-            notligands[res] = "Occupancy above 1"
-
     for nonligand in notligands:
         dbg('%s is not a ligand!' % nonligand)
         if nonligand in ligand_residues:
@@ -255,12 +254,16 @@ def parse_binding_site(argtuple):
         return (pdbid, "no ligands found")
     ligands = group_ligands(ligand_residues, links)
     ligands_res = set()
+#    for ligand in ligands:
+#        ligands_res.update(ligand)
+#    ligdiff = ligand_residues.difference(ligands_res)
+#    if ligdiff:
+#        dbg("!!!Ligand residues without ligand:")
+#        dbg("\n".join(ligdiff))
     for ligand in ligands:
-        ligands_res.update(ligand)
-    ligdiff = ligand_residues.difference(ligands_res)
-    if ligdiff:
-        dbg("!!!Ligand residues without ligand:")
-        dbg("\n".join(ligdiff))
+        for res in ligand:
+            if 1337 == classificate_residue(res, edd_dict, good_rsr, dubious_rsr, bad_rsr):
+                notligands[res] = "Occupancy above 1"
     ligand_bs_list = [get_binding_site(ligand, good_rsr, bad_rsr, dubious_rsr, pdbid, protein_atoms, ligands, ligand_res_atom_dict, rsr_upper, rsr_lower, edd_dict) for ligand in ligands]
     return (pdbid, ligand_bs_list, notligands)
 
@@ -390,7 +393,6 @@ def get_binding_site(ligand, good_rsr, bad_rsr, dubious_rsr, pdbid, protein_atom
                 distance = atom | ligandatom
                 if distance <= inner_distance:
                     inner_binding_site.add(atom.residue)
-                    classificate_residue(atom.residue, edd_dict, good_rsr, dubious_rsr, bad_rsr)
                     break
         for l in ligands:
             if l == ligand:
@@ -401,8 +403,10 @@ def get_binding_site(ligand, good_rsr, bad_rsr, dubious_rsr, pdbid, protein_atom
                         distance = latom | ligandatom
                         if distance <= inner_distance:
                             inner_binding_site.add(lres)
-                            classificate_residue(lres, edd_dict, good_rsr, dubious_rsr, bad_rsr)
+                            #classificate_residue(lres, edd_dict, good_rsr, dubious_rsr, bad_rsr)
                             break
+    for res in inner_binding_site:
+        classificate_residue(res, edd_dict, good_rsr, dubious_rsr, bad_rsr)
     rte = inner_binding_site.union(ligand).difference(good_rsr)
     ligandgood = validate(ligand, good_rsr, bad_rsr, dubious_rsr, pdbid)
     bsgood = validate(inner_binding_site, good_rsr, bad_rsr, dubious_rsr, pdbid)
