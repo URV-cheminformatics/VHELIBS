@@ -406,8 +406,14 @@ def get_binding_site(ligand, good_rsr, bad_rsr, dubious_rsr, pdbid, res_atom_dic
                             break
     for res in inner_binding_site:
         residue_dict = edd_dict.get(res, None)
-        if residue_dict:
-            residue_dict['occupancy'] = average_occ(res_atom_dict[res])
+        resatoms = res_atom_dict.get(res, None)
+        if residue_dict and resatoms:
+            if resatoms:
+                residue_dict['occupancy'] = average_occ(resatoms)
+            else:
+                dbg("No data available for %s!" % res)
+                print res in ligand_res_atom_dict
+                residue_dict['occupancy'] = 0
         classificate_residue(res, edd_dict, good_rsr, dubious_rsr, bad_rsr)
     rte = inner_binding_site.union(ligand).difference(good_rsr)
     ligandgood = validate(ligand, good_rsr, bad_rsr, dubious_rsr, pdbid)
