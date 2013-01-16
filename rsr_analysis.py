@@ -130,8 +130,7 @@ def parse_binding_site(argtuple):
     good_rsr = set()
     dubious_rsr = set()
     bad_rsr = set()
-    protein_atoms = set()
-    ligand_all_atoms_dict = {}
+    protein_atoms = set() #FIXME: residue atom dict, like ligands
     ligand_res_atom_dict = {}
     if PDB_REDO:
         edd_dict = pdb_redo.get_ED_data(pdbid)
@@ -176,9 +175,6 @@ def parse_binding_site(argtuple):
                         notligands[atom.residue] = "Blacklisted ligand"
                         continue
                     ligand_residues.add(atom.residue)
-                    if atom.hetid not in ligand_all_atoms_dict:
-                        ligand_all_atoms_dict[atom.hetid] = set()
-                    ligand_all_atoms_dict[atom.hetid].add(atom)
                     if not atom.residue in ligand_res_atom_dict:
                         ligand_res_atom_dict[atom.residue] = set()
                     ligand_res_atom_dict[atom.residue].add(atom)
@@ -246,8 +242,8 @@ def parse_binding_site(argtuple):
         if nonligand in ligand_residues:
             ligand_residues.remove(nonligand)
             dbg('%s removed from ligand residues' % nonligand)
-        if nonligand[:3] in ligand_all_atoms_dict:
-            protein_atoms.update(ligand_all_atoms_dict.pop(nonligand[:3]))
+        if nonligand in ligand_res_atom_dict:
+            protein_atoms.update(ligand_res_atom_dict.pop(nonligand))
             dbg('%s atoms added to protein' % nonligand)
     if not ligand_residues:
         dbg('%s has no ligands!' % pdbid)
@@ -262,6 +258,9 @@ def parse_binding_site(argtuple):
 #        dbg("\n".join(ligdiff))
     for ligand in ligands:
         for res in ligand:
+            residue_dict = edd_dict.get(res, None)
+            if residue_dict:
+                residue_dict['occupancy'] = average_occ(ligand_res_atom_dict[res])
             if 1337 == classificate_residue(res, edd_dict, good_rsr, dubious_rsr, bad_rsr):
                 notligands[res] = "Occupancy above 1"
     ligand_bs_list = [get_binding_site(ligand, good_rsr, bad_rsr, dubious_rsr, pdbid, protein_atoms, ligands, ligand_res_atom_dict, rsr_upper, rsr_lower, edd_dict) for ligand in ligands]
@@ -277,12 +276,10 @@ def classificate_residue(residue, edd_dict, good_rsr, dubious_rsr, bad_rsr):
     if RSCC_min > rscc:
         score -= 1
     if CHECK_OWAB:
-        owab = Natom = residue_dict['OWAB']
+        owab = residue_dict['OWAB']
         if not 1 < owab < OWAB_max:
             score -=1
-    Natom = residue_dict['Natom']
-    S_occ = residue_dict['S_occ']
-    occ = S_occ/Natom
+    occ = residue_dict['occupancy']
     if occ > 1:
         bad_rsr.add(residue)
         return 1337
@@ -406,6 +403,10 @@ def get_binding_site(ligand, good_rsr, bad_rsr, dubious_rsr, pdbid, protein_atom
                             #classificate_residue(lres, edd_dict, good_rsr, dubious_rsr, bad_rsr)
                             break
     for res in inner_binding_site:
+        residue_dict = edd_dict.get(res, None)
+        if residue_dict:
+            #residue_dict['occupancy'] = average_occ(ligand_res_atom_dict[res])
+            residue_dict['occupancy'] = 1 #FIXME: residue occupancy
         classificate_residue(res, edd_dict, good_rsr, dubious_rsr, bad_rsr)
     rte = inner_binding_site.union(ligand).difference(good_rsr)
     ligandgood = validate(ligand, good_rsr, bad_rsr, dubious_rsr, pdbid)

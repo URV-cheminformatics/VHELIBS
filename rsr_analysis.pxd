@@ -38,7 +38,6 @@ pdbid=str
 ,dubious_rsr = set
 ,bad_rsr = set
 ,protein_atoms = set
-,ligand_all_atoms_dict = dict
 ,ligand_res_atom_dict = dict
 ,notligands = dict
 ,seqres = set
