@@ -112,13 +112,13 @@ def get_EDS(pdbid):
                 rscc = line[21:26]
                 rsr = line[27:33]
                 owab = line[35:40]
-                natom = line[41:46]
-                s_occ = line[47:52]
+#                natom = line[41:46]
+#                s_occ = line[47:52]
                 edd_dict[residue] = {"RSR":float(rsr) if rsr.strip() else 100
                                      ,"RSCC": float(rscc) if rscc.strip() else 0
                                      ,"OWAB": float(owab) if owab.strip() else 1000
-                                     ,"Natom":float(natom) if natom.strip() else None
-                                     ,"S_occ":float(s_occ) if s_occ.strip() else 0
+#                                     ,"Natom":float(natom) if natom.strip() else None
+#                                     ,"S_occ":float(s_occ) if s_occ.strip() else 0
                                      }
         pdbdict[pdbid] = True
         statfile.close()

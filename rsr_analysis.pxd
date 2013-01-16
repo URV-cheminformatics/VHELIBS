@@ -37,10 +37,9 @@ pdbid=str
 ,good_rsr = set
 ,dubious_rsr = set
 ,bad_rsr = set
-,protein_atoms = set
+,residue_dict = dict
 ,ligand_res_atom_dict = dict
 ,notligands = dict
-,seqres = set
 ,links = list
 ,line = str
 ,label = str
@@ -77,7 +76,7 @@ ligands = list
 cdef list group_ligands(set ligand_residues, list links)
 
 @cython.locals(inner_binding_site = set, rte=set)
-cdef tuple get_binding_site(set ligand, set good_rsr, set bad_rsr, set dubious_rsr, str pdbid, set protein_atoms, ligands, dict ligand_res_atom_dict, cython.float rsr_upper, cython.float rsr_lower, dict edd_dict)
+cdef tuple get_binding_site(set ligand, set good_rsr, set bad_rsr, set dubious_rsr, str pdbid, dict residue_dict, ligands, dict ligand_res_atom_dict, cython.float rsr_upper, cython.float rsr_lower, dict edd_dict)
 
 cdef object validate(set residues, set good_rsr, set bad_rsr, set dubious_rsr, str pdbid)
 
