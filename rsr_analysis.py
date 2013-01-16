@@ -185,8 +185,8 @@ def parse_binding_site(argtuple):
                 try:
                     dist = float(line[73:78].strip())
                 except ValueError:
-                    dbg("bogus link distance")
-                    dist = 1 #FIXME: bogus distances
+                    dbg("bogus LINK distance")
+                    dist = 1714 #Distance will be calculated when looking for the binding site
                 links.append((line[17:27],  line[47:57], float(dist))) #distance
             elif resolution == 0 and label == 'REMARK':
                 if line[9] == '2' and len(line) > 10:
@@ -264,7 +264,26 @@ def parse_binding_site(argtuple):
                 residue_dict['occupancy'] = average_occ(ligand_res_atom_dict[res])
             if 1337 == classificate_residue(res, edd_dict, good_rsr, dubious_rsr, bad_rsr):
                 notligands[res] = "Occupancy above 1"
-    ligand_bs_list = [get_binding_site(ligand, good_rsr, bad_rsr, dubious_rsr, pdbid, res_atom_dict, ligands, ligand_res_atom_dict, rsr_upper, rsr_lower, edd_dict) for ligand in ligands]
+
+    binding_sites_found = False
+    while not binding_sites_found:
+        ligand_bs_list = []
+        for ligand in ligands:
+            bs = get_binding_site(ligand, good_rsr, bad_rsr, dubious_rsr, pdbid, res_atom_dict, ligands, ligand_res_atom_dict, rsr_upper, rsr_lower, edd_dict)
+            if len(bs) == 1:
+                notligands[ligand] = bs[0]
+                dbg('%s is not a ligand!' % ligand)
+                if ligand in ligand_residues:
+                    ligand_residues.remove(ligand)
+                    dbg('%s removed from ligand residues' % ligand)
+                if ligand in ligand_res_atom_dict:
+                    res_atom_dict[ligand] = ligand_res_atom_dict.pop(ligand)
+                    dbg('%s atoms added to protein' % ligand)
+                break
+            ligand_bs_list.append(bs)
+        else:
+            break
+    dbg("done")
     return (pdbid, ligand_bs_list, notligands)
 
 def classificate_residue(residue, edd_dict, good_rsr, dubious_rsr, bad_rsr):
@@ -391,6 +410,13 @@ def get_binding_site(ligand, good_rsr, bad_rsr, dubious_rsr, pdbid, res_atom_dic
                 for ligandatom in ligand_res_atom_dict[ligandres]:
                     distance = atom | ligandatom
                     if distance <= inner_distance:
+                        if distance < 2.1:
+                            hetid = ligand[:3].strip()
+                            if hetid in cofactors.ligand_blacklist:
+                                reason = ("Covalently bound to a blacklisted ligand", )
+                            elif hetid in cofactors.metals:
+                                reason = ("Covalently bound to the sequence", )
+                            return reason
                         inner_binding_site.add(atom.residue)
                         break
         for l in ligands:
