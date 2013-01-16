@@ -524,13 +524,15 @@ def main(values):
                     pdblist = itertools.chain(pdblist, sptopdb_dict[key])
     if filepath:
         pdblistfile = open(filepath, 'rb')
-        pdblist = itertools.chain(pdblist, [line.strip() for line in pdblistfile.read().replace(',', '\n').replace('\t', '\n').split() if line.strip()])
+        pdb_ids_from_file = [line.strip() for line in pdblistfile.read().replace(',', '\n').replace('\t', '\n').split() if line.strip()]
+        pdblist = itertools.chain(pdblist, pdb_ids_from_file)
         pdblistfile.close()
+    pdblist = list(pdblist)
     #get_custom_report
     if not PDB_REDO:
-        pdbids_extra_data_dict = get_custom_report(list(pdblist))
+        pdbids_extra_data_dict = get_custom_report(pdblist)
     else:
-        pdbids_extra_data_dict = pdb_redo.get_pdbredo_data(list(pdblist))
+        pdbids_extra_data_dict = pdb_redo.get_pdbredo_data(pdblist)
     argsarray = [(pdbid, pdbids_extra_data_dict.get(pdbid.upper(), {})) for pdbid in pdblist if pdbid]
     pool = multiprocessing.Pool(multiprocessing.cpu_count())
     results = pool.imap(parse_binding_site, argsarray)
