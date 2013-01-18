@@ -25,6 +25,8 @@ cython.declare(
 
 cdef cython.int dbg(str string)
 
+cdef cython.float average_occ(set residue_atoms)
+
 @cython.locals(sptopdb_dict=dict,temppdbdict=dict)
 cdef dict get_sptopdb_dict()
 
@@ -33,7 +35,6 @@ pdbid=str
 ,rsr_upper=cython.float
 ,rsr_lower=cython.float
 ,ligand_residues = set
-,binding_sites = set
 ,good_rsr = set
 ,dubious_rsr = set
 ,bad_rsr = set
@@ -44,14 +45,15 @@ pdbid=str
 ,line = str
 ,label = str
 ,alllinksparsed = cython.bint
+,binding_sites_found = cython.bint
 ,ligdiff = set
 ,resolution = cython.float
 ,checklink = cython.int)
 cpdef tuple parse_binding_site(tuple argtuple)
 
 @cython.locals(rsr = cython.float
-    , Natom = cython.float
-    , S_occ = cython.float
+#    , Natom = cython.float
+#    , S_occ = cython.float
     , owab = cython.float
     , rscc = cython.float
     , rFree = cython.float
@@ -61,7 +63,7 @@ cpdef tuple parse_binding_site(tuple argtuple)
     , residue_dict = dict
     )
 cdef cython.int classificate_residue(
-    residue
+    str residue
     , dict edd_dict
     , set good_rsr
     , set dubious_rsr
@@ -75,7 +77,7 @@ ligands = list
 ,ligand=set)
 cdef list group_ligands(set ligand_residues, list links)
 
-@cython.locals(inner_binding_site = set, rte=set)
+@cython.locals(inner_binding_site = set, rte=set, reason=tuple)
 cdef tuple get_binding_site(set ligand, set good_rsr, set bad_rsr, set dubious_rsr, str pdbid, dict residue_dict, ligands, dict ligand_res_atom_dict, cython.float rsr_upper, cython.float rsr_lower, dict edd_dict)
 
 cdef object validate(set residues, set good_rsr, set bad_rsr, set dubious_rsr, str pdbid)

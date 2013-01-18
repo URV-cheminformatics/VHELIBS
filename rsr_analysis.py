@@ -6,12 +6,14 @@
 import os, gzip, sys, urllib2, csv, itertools, math
 try:
     if sys.platform.startswith('java'):
+        import java
         #Do appropiate things for jython
         import multithreading as multiprocessing
         #Load optimized java version
         import PdbAtomJava as PdbAtom
         from sys import exit
     else:
+        java = None
         #CPython
         import multiprocessing
         #Use cython optimized version
@@ -126,7 +128,6 @@ def parse_binding_site(argtuple):
     pdbid = argtuple[0]
     rsr_upper, rsr_lower = RSR_upper, RSR_lower
     ligand_residues = set()
-    binding_sites = set()
     good_rsr = set()
     dubious_rsr = set()
     bad_rsr = set()
@@ -135,6 +136,8 @@ def parse_binding_site(argtuple):
     notligands = {}
     links = []
     if PDB_REDO:
+        if not argtuple[1]:
+            return  (pdbid, "Not in PDB_REDO")
         edd_dict = pdb_redo.get_ED_data(pdbid)
         if not edd_dict:
             return  (pdbid, "Not in PDB_REDO")
@@ -411,12 +414,13 @@ def get_binding_site(ligand, good_rsr, bad_rsr, dubious_rsr, pdbid, res_atom_dic
                     distance = atom | ligandatom
                     if distance <= inner_distance:
                         if distance < 2.1:
-                            hetid = ligand[:3].strip()
+                            hetid = ligandres[:3].strip()
                             if hetid in cofactors.ligand_blacklist:
                                 reason = ("Covalently bound to a blacklisted ligand", )
+                                return reason
                             elif hetid in cofactors.metals:
                                 reason = ("Covalently bound to the sequence", )
-                            return reason
+                                return reason
                         inner_binding_site.add(atom.residue)
                         break
         for l in ligands:
