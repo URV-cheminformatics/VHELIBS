@@ -12,6 +12,7 @@ import PDBfiles
 
 PDB_REDO_ed_data_url_tmpl = "http://www.cmbi.ru.nl/pdb_redo/MIDDLE/PDBID/PDBID_final.eds"
 ALLDATA_URL = "http://www.cmbi.ru.nl/pdb_redo/others/alldata.txt"
+CACHE_EXPIRED = True
 
 def get_ED_data(pdbid):
     """
@@ -23,7 +24,7 @@ def get_ED_data(pdbid):
         os.makedirs(downloaddir)
     url = PDB_REDO_ed_data_url_tmpl.replace('MIDDLE', pdbid[1:3]).replace('PDBID', pdbid)
     filename = os.path.join(downloaddir, os.path.basename(url))
-    if not os.path.isfile(filename): #Download
+    if CACHE_EXPIRED or not os.path.isfile(filename): #Download
         print "Downloading %s" % url
         tries = 3
         while tries > 0:
@@ -66,13 +67,12 @@ def get_ED_data(pdbid):
         #ngrid = row[4]
         edd_dict[residue] = {"RSR":float(rsr) if rsr.strip() else 100
                              ,"RSCC": float(rscc) if rscc.strip() else 0
-                             ,"Natom":1 #TODO: get average occupancy from somewhere
-                             ,"S_occ":1
                              }
     edfile.close()
     return edd_dict
 
 def get_pdbredo_data(pdbids=[]):
+    global CACHE_EXPIRED
     alldatapath = os.path.join(PDBfiles.CACHEDIR, os.path.basename(ALLDATA_URL))
     #if not os.path.isfile(alldatapath): #Download
     tries = 3
@@ -105,8 +105,10 @@ def get_pdbredo_data(pdbids=[]):
                     newdate = datetime.datetime.strptime(line.split('+')[0], "Created on %a, %d %b %Y %H:%M:%S ")
                     if newdate <= olddate:
                         print "%s is up to date (%s)" % (alldatapath, olddate.__str__())
+                        CACHE_EXPIRED = False
                         break
                     else:
+                        CACHE_EXPIRED = True
                         download = True
                         alldata = open(alldatapath, 'w')
                         alldata.write(firstlines)

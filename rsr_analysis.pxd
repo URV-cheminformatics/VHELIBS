@@ -7,6 +7,7 @@ from cpython cimport bool
 cimport PDBfiles
 cimport cofactors
 cimport EDS_parser
+cimport pdb_redo
 
 cython.declare(
     RSR_upper=cython.float
