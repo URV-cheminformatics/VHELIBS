@@ -83,7 +83,7 @@ def get_custom_report(pdbids_list):
     rowlen = len(header)
     for row in reader:
         rowdict = {}
-        if rowdict[1] == "X-RAY DIFFRACTION":
+        if row[1] == "X-RAY DIFFRACTION":
             rowdict['rFree'] = float(row[2]) if row[2] else 0
         result[row[0]] = rowdict
     urlhandler.close()
@@ -568,7 +568,17 @@ def main(values):
     pdblist = list(pdblist)
     #get_custom_report
     if not PDB_REDO:
-        pdbids_extra_data_dict = get_custom_report(pdblist)
+        npdbs = len(pdblist)
+        maxn = 1595
+        if npdbs > maxn:
+            pdbids_extra_data_dict = {}
+            steps = npdbs / maxn
+            remnant = npdbs % maxn
+            p = multiprocessing.Pool()
+            for d in p.imap(get_custom_report, (pdblist[i:i+maxn] for i in xrange(0, npdbs, maxn))):
+                pdbids_extra_data_dict.update(d)
+        else:
+            pdbids_extra_data_dict = get_custom_report(pdblist)
     else:
         pdbids_extra_data_dict = pdb_redo.get_pdbredo_data(pdblist)
     argsarray = [(pdbid, pdbids_extra_data_dict.get(pdbid.upper(), {})) for pdbid in pdblist if pdbid]
