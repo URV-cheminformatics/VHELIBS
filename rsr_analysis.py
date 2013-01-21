@@ -579,7 +579,7 @@ def main(values):
             steps = npdbs / maxn
             remnant = npdbs % maxn
             p = multiprocessing.Pool()
-            for d in p.imap(get_custom_report, (pdblist[i:i+maxn] for i in xrange(0, npdbs, maxn))):
+            for d in p.imap(get_custom_report, [pdblist[i:i+maxn] for i in xrange(0, npdbs, maxn)]):
                 pdbids_extra_data_dict.update(d)
         else:
             pdbids_extra_data_dict = get_custom_report(pdblist)
