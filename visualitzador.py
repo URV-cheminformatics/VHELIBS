@@ -797,7 +797,7 @@ class SettingsDialog(object):
 
         constraints.gridy += 1
         tooltip="Maxmimum good occupancy-weighted B-factor (OWAB)"
-        self.owab_cb = JCheckBox('OWAB', toolTipText=tooltip, selected=(self.profiles['Default']['max_owab'] != self.values.max_owab) or self.profiles['Default']['use_owab'])
+        self.owab_cb = JCheckBox('OWAB', toolTipText=tooltip, selected=(self.profiles['Default']['max_owab'] != self.values.max_owab) or self.profiles['Default']['use_owab'], actionPerformed=self._check_pdbredo_owab)
         self.panel.add(self.owab_cb, constraints)
         constraints.gridx += 1
         self.max_owab.toolTipText=tooltip
@@ -842,7 +842,7 @@ class SettingsDialog(object):
         constraints.gridy += 1
         constraints.gridwidth = 2
         tooltip="Models will be loaded from PDB_REDO instead of the PDB"
-        self.use_pdb_redo = JCheckBox("Use models from PDB_REDO", toolTipText=tooltip, selected=self.profiles['Default']['use_pdb_redo'])
+        self.use_pdb_redo = JCheckBox("Use models from PDB_REDO", toolTipText=tooltip, selected=self.profiles['Default']['use_pdb_redo'], actionPerformed=self._check_pdbredo_owab)
         self.use_pdb_redo.toolTipText=tooltip
         self.panel.add(self.use_pdb_redo, constraints)
         constraints.gridwidth = 1
@@ -884,7 +884,15 @@ class SettingsDialog(object):
         self.frame.setUndecorated(True)
         self.diag.pack()
 
-
+    def _check_pdbredo_owab(self, event):
+        """
+        No OWAB data for PDB_REDO
+        """
+        if self.owab_cb.selected and self.use_pdb_redo.selected:
+            if event.source is self.owab_cb:
+                self.use_pdb_redo.selected = False
+            else:
+                self.owab_cb.selected = False
 
     def export_current_profile(self, event=None):
         profile = self.profiles[self.profilecbb.selectedItem]
