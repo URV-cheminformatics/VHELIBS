@@ -684,8 +684,9 @@ class SettingsDialog(object):
                             , 'tolerance':rsr_analysis.TOLERANCE
                             , 'min_occupancy':rsr_analysis.OCCUPANCY_min
                             , 'min_rfree':rsr_analysis.RFREE_min
-                            , 'use_owab': True
-                            , 'use_res': True
+                            , 'use_owab': rsr_analysis.CHECK_OWAB
+                            , 'use_res': rsr_analysis.CHECK_RESOLUTION
+                            , 'use_pdb_redo': rsr_analysis.PDB_REDO
                             , 'outputfile':  'vhelibs_analysis_default.csv'
                             }
                     ,'Iridium':{
@@ -701,6 +702,7 @@ class SettingsDialog(object):
                             , 'use_owab': False
                             , 'use_res': False
                             , 'outputfile':  'vhelibs_analysis_iridium.csv'
+                            , 'use_pdb_redo': False
                             }
                     ,'Custom':{'outputfile':  'vhelibs_analysis_custom.csv'}
                     }
@@ -712,6 +714,8 @@ class SettingsDialog(object):
             if k == 'use_owab':
                 continue
             elif k == 'use_res':
+                continue
+            elif k == 'use_pdb_redo':
                 continue
             else:
                 if not self.values.__dict__[k]:
@@ -834,6 +838,16 @@ class SettingsDialog(object):
         self.panel.add(self.outputfile, constraints)
         constraints.gridx -= 1
 
+        ##############
+        constraints.gridy += 1
+        constraints.gridwidth = 2
+        tooltip="Models will be loaded from PDB_REDO instead of the PDB"
+        self.use_pdb_redo = JCheckBox("Use models from PDB_REDO", toolTipText=tooltip, selected=self.profiles['Default']['use_pdb_redo'])
+        self.use_pdb_redo.toolTipText=tooltip
+        self.panel.add(self.use_pdb_redo, constraints)
+        constraints.gridwidth = 1
+        ##############
+
         constraints.gridy += 1
         constraints.gridwidth = 2
         tooltip="Data will be saved to and loaded from %s" % os.path.join(os.path.expanduser('~'), '.vhelibs_cache')
@@ -898,6 +912,8 @@ class SettingsDialog(object):
                 self.owab_cb.selected = v
             elif k == 'use_res':
                 self.res_cb.selected = v
+            elif k == 'use_pdb_redo':
+                self.use_pdb_redo.selected = v
             else:
                 self.__dict__[k].text = str(v)
 
@@ -965,6 +981,7 @@ class SettingsDialog(object):
         self.values.min_rfree = float(self.min_rfree.text)
         self.values.min_occupancy = float(self.min_occupancy.text)
         self.values.use_cache = self.use_cache.selected
+        self.values.use_pdb_redo = self.use_pdb_redo.selected
         if self.owab_cb.selected:
             self.values.max_owab = float(self.max_owab.text)
         else:
