@@ -327,6 +327,7 @@ class StruVa(Runnable):
 
     def showDisplaySettings(self, event):
         self.optionsdiag.show(not self.optionsdiag.diag.visible)
+        self.optionsdiag.diag.pack()
 
     def displayAbout(self, event):
         self.aboutdiag.show()
@@ -1122,6 +1123,7 @@ class DisplaySettingsDialog(object):
     keys = ('ligwfv', 'ligsfv', 'ligcolor', 'ligedmcolor', 'bswfv', 'bssfv', 'bscolor', 'bsedmcolor', 'rewfv', 'resfv', 'recolor', 'reedmcolor', 'edmdistance', 'sigma')
     def __init__(self, parent):
         self.parent = parent
+        minimum_size = (100, 20)
         self.frame =  JFrame(iconImage=vhelibsicon)
         self.panel = JPanel(GridBagLayout())
         constraints = GridBagConstraints()
@@ -1134,19 +1136,19 @@ class DisplaySettingsDialog(object):
         self.panel.add(JLabel('Ligand'), constraints)
 
         constraints.gridy = 1
-        self.ligwfv = JTextField()
+        self.ligwfv = JTextField(minimumSize=minimum_size, preferredSize=minimum_size)
         self.panel.add(self.ligwfv, constraints)
 
         constraints.gridy = 2
-        self.ligsfv = JTextField()
+        self.ligsfv = JTextField(minimumSize=minimum_size, preferredSize=minimum_size)
         self.panel.add(self.ligsfv, constraints)
 
         constraints.gridy = 3
-        self.ligcolor = JTextField()
+        self.ligcolor = JTextField(minimumSize=minimum_size, preferredSize=minimum_size)
         self.panel.add(self.ligcolor, constraints)
 
         constraints.gridy = 4
-        self.ligedmcolor = JTextField()
+        self.ligedmcolor = JTextField(minimumSize=minimum_size, preferredSize=minimum_size)
         self.panel.add(self.ligedmcolor, constraints)
 
         constraints.gridy = 0
@@ -1154,19 +1156,19 @@ class DisplaySettingsDialog(object):
         self.panel.add(JLabel('Binding Site'), constraints)
 
         constraints.gridy = 1
-        self.bswfv = JTextField()
+        self.bswfv = JTextField(minimumSize=minimum_size, preferredSize=minimum_size)
         self.panel.add(self.bswfv, constraints)
 
         constraints.gridy = 2
-        self.bssfv = JTextField()
+        self.bssfv = JTextField(minimumSize=minimum_size, preferredSize=minimum_size)
         self.panel.add(self.bssfv, constraints)
 
         constraints.gridy = 3
-        self.bscolor = JTextField()
+        self.bscolor = JTextField(minimumSize=minimum_size, preferredSize=minimum_size)
         self.panel.add(self.bscolor, constraints)
 
         constraints.gridy = 4
-        self.bsedmcolor = JTextField()
+        self.bsedmcolor = JTextField(minimumSize=minimum_size, preferredSize=minimum_size)
         self.panel.add(self.bsedmcolor, constraints)
 
         constraints.gridy = 0
@@ -1174,19 +1176,19 @@ class DisplaySettingsDialog(object):
         self.panel.add(JLabel('Coordinates to exam'), constraints)
 
         constraints.gridy = 1
-        self.rewfv = JTextField()
+        self.rewfv = JTextField(minimumSize=minimum_size, preferredSize=minimum_size)
         self.panel.add(self.rewfv, constraints)
 
         constraints.gridy = 2
-        self.resfv = JTextField()
+        self.resfv = JTextField(minimumSize=minimum_size, preferredSize=minimum_size)
         self.panel.add(self.resfv, constraints)
 
         constraints.gridy = 3
-        self.recolor = JTextField()
+        self.recolor = JTextField(minimumSize=minimum_size, preferredSize=minimum_size)
         self.panel.add(self.recolor, constraints)
 
         constraints.gridy = 4
-        self.reedmcolor = JTextField()
+        self.reedmcolor = JTextField(minimumSize=minimum_size, preferredSize=minimum_size)
         self.panel.add(self.reedmcolor, constraints)
 
         constraints.gridx = 0
@@ -1202,12 +1204,12 @@ class DisplaySettingsDialog(object):
         constraints.insets = Insets(15,3,3,3)
         self.panel.add(JLabel(u'EDM Radius (in Å)', toolTipText="Distance within which the Electron Density Map will be showed"), constraints)
         constraints.gridx = 1
-        self.edmdistance = JTextField()
+        self.edmdistance = JTextField(minimumSize=minimum_size, preferredSize=minimum_size)
         self.panel.add(self.edmdistance, constraints)
         constraints.gridx = 2
         self.panel.add(JLabel('EDM sigma', toolTipText="Contour level of the Electron Density Map"), constraints)
         constraints.gridx = 3
-        self.sigma = JTextField()
+        self.sigma = JTextField(minimumSize=minimum_size, preferredSize=minimum_size)
         self.panel.add(self.sigma, constraints)
         constraints.insets = Insets(3,3,3,3)
         constraints.gridy = 6
