@@ -37,7 +37,7 @@ RFREE_min = 0
 OCCUPANCY_min = 1.0
 TOLERANCE = 1
 inner_distance = 4.5**2
-titles = ['PDB ID', "Coordinates to exam", "Ligand Residues", "Binding Site Residues", "Good Ligand", "Good Binding Site"]
+titles = ['PDB ID', "Coordinates to exam", "Ligand Residues", "Binding Site Residues", "Good Ligand", "Good Binding Site", "Model source"]
 
 ###Create the argument parser###
 import argparse
@@ -498,7 +498,11 @@ def results_to_csv(results, outputfile):
                 if not ligandresidues:
                     dbg('%s has no actual ligands, it will be discarded' % pdbid)
                 else:
-                    csvfile.writerow([id, ';'.join(residues_to_exam), ';'.join(ligandresidues),';'.join(binding_site), ligandgood, bsgood])
+                    if PDB_REDO:
+                        source = 'PDB_REDO'
+                    else:
+                        source = 'PDB'
+                    csvfile.writerow([id, ';'.join(residues_to_exam), ';'.join(ligandresidues),';'.join(binding_site), ligandgood, bsgood, source])
                     outfile.flush()
                     datawritten = bool(outputfile)
     outfile.close()

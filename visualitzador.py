@@ -84,6 +84,14 @@ def prefbool(string):
     else:
         raise TypeError(string + ' cannot be booleaned!')
 
+def load_model(pdbid, source):
+    if source == 'PDB_REDO':
+        return PDBfiles.get_pdb_file(pdbid, True)
+    if source != 'PDB':
+        print "WARNING: Unknown model source: %s"% source
+        print "Loading from the PDB instead"
+    return PDBfiles.get_pdb_file(pdbid, False)
+
 ###Define useful classes###
 class Console(AppConsole):
     def __init__(self, viewer, panel):
@@ -296,18 +304,18 @@ class StruVa(Runnable):
             bs_valid = self.bs_cbox.selectedItem.lower()
             ligand_valid = self.lig_cbox.selectedItem.lower()
             if bs_valid == 'good':
-                self.resultdict[self.key][-1] = True
+                self.resultdict[self.key][4] = True
             elif bs_valid == 'bad':
-                self.resultdict[self.key][-1] = False
+                self.resultdict[self.key][4] = False
             else:
-                self.resultdict[self.key][-1] = bs_valid
+                self.resultdict[self.key][4] = bs_valid
 
             if ligand_valid == 'good':
-                self.resultdict[self.key][-2] = True
+                self.resultdict[self.key][3] = True
             elif ligand_valid == 'bad':
-                self.resultdict[self.key][-2] = False
+                self.resultdict[self.key][3] = False
             else:
-                self.resultdict[self.key][-2] = ligand_valid
+                self.resultdict[self.key][3] = ligand_valid
             self.updateOutFile()
             self.structs_cbox.removeItem(self.key)
             if not self.resultdict:
@@ -356,7 +364,7 @@ class StruVa(Runnable):
         #Clean up
         self.execute('delete')
         #Load relevant data
-        self.ligandresidues, self.residues_to_exam, self.binding_site,  self.ligandgood, self.bsgood = self.resultdict[self.key]
+        self.ligandresidues, self.residues_to_exam, self.binding_site,  self.ligandgood, self.bsgood, self.source = self.resultdict[self.key]
         self.ligandresidues_IS = self.residues_to_exam_IS = self.binding_site_IS = None
         if self.ligandgood.lower() == 'true':
             self.lig_cbox.selectedItem = 'Good'
@@ -372,7 +380,7 @@ class StruVa(Runnable):
             self.bs_cbox.selectedItem = 'Dubious'
         #load in Jmol
         try:
-            self.execute(';'.join(['load "file://%s"' % PDBfiles.get_pdb_file(self.pdbid, rsr_analysis.PDB_REDO)
+            self.execute(';'.join(['load "file://%s"' % load_model(self.pdbid, self.source)
             ,'select all'
             ,'wireframe only'
             ,'wireframe off'
@@ -486,8 +494,8 @@ class StruVa(Runnable):
         self.savedkeys[self.key] = self.resultdict.pop(self.key)
         for d in self.savedkeys, self.resultdict:
             for key in d:
-                ligandresidues, residues_to_exam, binding_site, ligandgood, bsgood = d[key]
-                csvfile.writerow([key.split('|')[0], ';'.join(residues_to_exam), ';'.join(ligandresidues),';'.join(binding_site), ligandgood, bsgood])
+                ligandresidues, residues_to_exam, binding_site, ligandgood, bsgood, source = d[key]
+                csvfile.writerow([key.split('|')[0], ';'.join(residues_to_exam), ';'.join(ligandresidues),';'.join(binding_site), ligandgood, bsgood, source])
         outfile.close()
 
     def start(self):
@@ -546,25 +554,30 @@ class StruVa(Runnable):
         print('Loading data from %s...' % csvfilename)
         csvfile = open(csvfilename, 'rb')
         reader = csv.reader(csvfile, 'excel')
+        header = reader.next()
+        has_source = len(header) > 6
         for fields in reader:
-            id, residues_to_exam_string, ligandresidues_string, binding_site_string, ligandgood, bsgood = fields
-            if id != 'PDB ID':
-                bsgood = bsgood.lower()
-                ligandgood = ligandgood.lower()
-                cont = True
-                if not(\
-                    (check_good_bs and bsgood == 'true') or\
-                    (check_bad_bs and bsgood == 'false') or\
-                    (check_dubious_bs and bsgood == 'dubious') or\
-                    (check_good_ligand and ligandgood == 'true') or\
-                    (check_bad_ligand and ligandgood == 'false') or\
-                    (check_dubious_ligand and ligandgood == 'dubious')
-                ):
-                    continue
-                residues_to_exam = residues_to_exam_string.split(';')
-                ligandresidues = ligandresidues_string.split(';')
-                binding_site = binding_site_string.split(';')
-                self.resultdict[id + '|' +ligandresidues[0]] = [ligandresidues, residues_to_exam, binding_site, ligandgood, bsgood]
+            id, residues_to_exam_string, ligandresidues_string, binding_site_string, ligandgood, bsgood = fields[:6]
+            if has_source:
+                source = fields[6]
+            else:
+                source = 'PDB'
+            bsgood = bsgood.lower()
+            ligandgood = ligandgood.lower()
+            cont = True
+            if not(\
+                (check_good_bs and bsgood == 'true') or\
+                (check_bad_bs and bsgood == 'false') or\
+                (check_dubious_bs and bsgood == 'dubious') or\
+                (check_good_ligand and ligandgood == 'true') or\
+                (check_bad_ligand and ligandgood == 'false') or\
+                (check_dubious_ligand and ligandgood == 'dubious')
+            ):
+                continue
+            residues_to_exam = residues_to_exam_string.split(';')
+            ligandresidues = ligandresidues_string.split(';')
+            binding_site = binding_site_string.split(';')
+            self.resultdict[id + '|' +ligandresidues[0]] = [ligandresidues, residues_to_exam, binding_site, ligandgood, bsgood, source]
         else:
             print 'Data loaded'
         csvfile.close()
