@@ -66,7 +66,7 @@ def dbg(string):
     return 0
 
 SERVICELOCATION="http://www.rcsb.org/pdb/rest/customReport"
-QUERY_TPL = "?pdbids=%s&customReportColumns=rFree&service=wsfile&format=csv"
+QUERY_TPL = "?pdbids=%s&customReportColumns=experimentalTechnique,rFree&service=wsfile&format=csv"
 
 def average_occ(residue_atoms):
     return sum([atom.occupancy for atom in residue_atoms])/len(residue_atoms)
@@ -83,9 +83,8 @@ def get_custom_report(pdbids_list):
     rowlen = len(header)
     for row in reader:
         rowdict = {}
-        for n in xrange(1, rowlen):
-            value = row[n]
-            rowdict[header[n]] = float(value) if value else 0
+        if rowdict[1] == "X-RAY DIFFRACTION":
+            rowdict['rFree'] = float(row[2]) if row[2] else 0
         result[row[0]] = rowdict
     urlhandler.close()
     return result
@@ -145,6 +144,9 @@ def parse_binding_site(argtuple):
         resolution = float(argtuple[1].get('RESOLUTION', '0'))
         edd_dict['Resolution'] = resolution
     else:
+        if not argtuple[1]:
+            dbg("Model not obtained by X-ray crystallography")
+            return  (pdbid, "Model not obtained by X-ray crystallography")
         pdbdict, edd_dict = EDS_parser.get_EDS(pdbid)
         if not pdbdict[pdbid.lower()]:
             dbg("No EDS data available for %s, it will be discarded" % pdbid)
