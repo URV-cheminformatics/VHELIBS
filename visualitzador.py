@@ -896,20 +896,43 @@ class SettingsDialog(object):
                 self.owab_cb.selected = False
 
     def export_current_profile(self, event=None):
+        filename = str(showOpenDialog(SimpleFileFilter('.tsv', None, 'VHELIBS profile files'), prefkey='loadedFiles', prefs=prefs,multiselect=False))
+        if not filename or filename == 'None':
+            return
+        if not filename.endswith('.tsv'):
+            filename += '.tsv'
         profile = self.profiles[self.profilecbb.selectedItem]
-        filename = str(showOpenDialog(SimpleFileFilter('.vp', None, 'VHELIBS profile files'), prefkey='loadedFiles', prefs=prefs,multiselect=False))
-        if filename:
-            file = open(filename, 'wb')
-            pickle.dump(profile, file, 2)
-            file.close()
+        for key in self.profiles['Default'].keys():
+            if key not in profile:
+                if key == 'use_owab':
+                    profile[key] = self.owab_cb.selected
+                elif key == 'use_res':
+                    profile[key] = self.res_cb.selected
+                elif key == 'use_pdb_redo':
+                    profile[key] = self.use_pdb_redo.selected
+                else:
+                    profile[key] = self.__dict__[key].text
+        file = open(filename, 'wb')
+        csvwriter = csv.writer(file, delimiter="\t")
+        for k, v in profile.items():
+            csvwriter.writerow([k, v])
+        file.close()
 
     def import_profile(self, event = None):
-        filename = str(showOpenDialog(SimpleFileFilter('.vp', None, 'VHELIBS profile files'), prefkey='loadedFiles', prefs=prefs,multiselect=False))
+        filename = str(showOpenDialog(SimpleFileFilter('.tsv', None, 'VHELIBS profile files'), prefkey='loadedFiles', prefs=prefs,multiselect=False))
         if filename:
             file = open(filename, 'rb')
-            self.profiles['Custom'] = pickle.load(file)
+            profilename = os.path.splitext(os.path.basename(filename))[0]
+            self.profiles[profilename] = {}
+            for k, v in csv.reader(file, delimiter="\t"):
+                if v == 'False':
+                    v = False
+                elif v == 'True':
+                    v = True
+                self.profiles[profilename][k] = v
             file.close()
-            self.profilecbb.selectedItem = 'Custom'
+            self.profilecbb.addItem(profilename)
+            self.profilecbb.selectedItem = profilename
 
     def load_profile(self,e=None, profilename='Default'):
         if e and e.actionCommand != u'comboBoxChanged': return
