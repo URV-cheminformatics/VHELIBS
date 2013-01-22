@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 #
-#   Copyright 2011-2012 Adrià Cereto Massagué <adrian.cereto@.urv.cat>
+#   Copyright 2011-2013 Adrià Cereto Massagué <adrian.cereto@.urv.cat>
 #
 #   Ligand blacklist
 #
+import csv
 
 metals = {
 '3CO': 'Cobalt'
@@ -253,24 +254,17 @@ def update_lists(new_m = metals, new_lb = ligand_blacklist):
     global ligand_blacklist
     ligand_blacklist = new_lb
 
-def dump_lists(fname = 'notligands.ini'):
+def dump_lists(fname = 'notligands'):
+    if not fname.endswith('.csv'):
+        fname += '.csv'
     file = open(fname, 'w')
-    metalstring = ''
-    metalhetids = metals.keys()
-    metalhetids.sort()
-    for hetid in metalhetids:
-        if hetid:
-            metalstring += hetid + ' : ' + metals[hetid] + '\n'
-    lblstring = ''
-    lblhetids = ligand_blacklist.keys()
-    lblhetids.sort()
-    for hetid in lblhetids:
-        if hetid:
-            lblstring += hetid + ' : ' + ligand_blacklist[hetid] + '\n'
-    file.write('[Blacklist]\n')
-    file.write(lblstring)
-    file.write('\n[Non-propagating]\n')
-    file.write(metalstring)
+    csvwriter = csv.writer(file)
+    csvwriter.writerow(['[Blacklist]', ])
+    for k, v in ligand_blacklist.items():
+        csvwriter.writerow([k, v])
+    csvwriter.writerow(['[Non-propagating]', ])
+    for k, v in metals.items():
+        csvwriter.writerow([k, v])
     file.close()
     return 0
 
@@ -278,21 +272,16 @@ def load_lists(fname):
     new_m = {}
     new_lb = {}
     file = open(fname, 'r')
-    lines = file.readlines()
-    file.close()
     d = None
-    for line in lines:
-        if line.lower().startswith('[blacklist]'):
-            d = new_lb
-            continue
-        elif line.lower().startswith('[non-propagating]'):
-            d = new_m
-            continue
-        if d != None:
-            line = line.strip()
-            if ':' in line and len(line) >= 3:
-                dirty_hetid,  dirty_desc = line.split(':')
-                d[dirty_hetid.strip()] = dirty_desc.strip()
+    for row in csv.reader(file):
+        if row:
+            if row[0] == '[Blacklist]':
+                d = new_lb
+            elif row[0] == '[Non-propagating]':
+                d = new_m
+            else:
+                d[row[0]] = row[1]
+    file.close()
     update_lists(new_m, new_lb)
     return 0
 

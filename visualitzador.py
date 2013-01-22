@@ -58,7 +58,7 @@ from org.jmol.adapter.smarter import SmarterJmolAdapter
 from org.jmol.api import JmolViewer
 from org.openscience.jmol.app.jmolpanel import AppConsole
 
-VHELIBS_VERSION = "2.0"
+VHELIBS_VERSION = "2.0b"
 TITLE =  "VHELIBS " + VHELIBS_VERSION
 
 #Own stuff
@@ -950,7 +950,7 @@ class SettingsDialog(object):
                 self.__dict__[k].text = str(v)
 
     def writeLe(self, e):
-        lefn = str(showOpenDialog(SimpleFileFilter('.ini', None, 'INI files'), prefkey='loadedFiles', prefs=prefs,multiselect=False))
+        lefn = str(showOpenDialog(SimpleFileFilter('.csv', None, 'CSV files'), prefkey='loadedFiles', prefs=prefs,multiselect=False))
         try:
             print 'Saved to', lefn
             rsr_analysis.cofactors.dump_lists(lefn)
@@ -958,7 +958,7 @@ class SettingsDialog(object):
             showErrorDialog(e)
 
     def readLe(self, e):
-        lefn = str(showOpenDialog(SimpleFileFilter('.ini', None, 'INI files'), prefkey='loadedFiles', prefs=prefs,multiselect=False))
+        lefn = str(showOpenDialog(SimpleFileFilter('.csv', None, 'CSV files'), prefkey='loadedFiles', prefs=prefs,multiselect=False))
         try:
             print "Loading from", lefn
             rsr_analysis.cofactors.load_lists(lefn)
