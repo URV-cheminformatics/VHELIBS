@@ -920,7 +920,7 @@ class SettingsDialog(object):
 
     def import_profile(self, event = None):
         filename = str(showOpenDialog(SimpleFileFilter('.tsv', None, 'VHELIBS profile files'), prefkey='loadedFiles', prefs=prefs,multiselect=False))
-        if filename:
+        if filename or filename != 'None':
             file = open(filename, 'rb')
             profilename = os.path.splitext(os.path.basename(filename))[0]
             self.profiles[profilename] = {}
