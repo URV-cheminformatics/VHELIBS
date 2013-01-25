@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-#   Copyright 2012 Adrià Cereto Massagué <adrian.cereto@.urv.cat>
+#   Copyright 2012, 2013 Adrià Cereto Massagué <adrian.cereto@.urv.cat>
 #
 
 #Python stuff
@@ -58,7 +58,7 @@ from org.jmol.adapter.smarter import SmarterJmolAdapter
 from org.jmol.api import JmolViewer
 from org.openscience.jmol.app.jmolpanel import AppConsole
 
-VHELIBS_VERSION = "2.0b"
+VHELIBS_VERSION = "3.0b"
 TITLE =  "VHELIBS " + VHELIBS_VERSION
 
 #Own stuff
