@@ -823,7 +823,7 @@ class SettingsDialog(object):
         constraints.gridx -= 1
 
         constraints.gridy += 1
-        tooltip="Tolerance"
+        tooltip="<html><body>Maximum number of unsatisfied conditions for a dubious residue or ligand.<br> If the number of unsatisfied conditions is higher than the tolerance,<br>the residue or ligand will be clasified as bad"
         self.panel.add(JLabel('Tolerance', toolTipText=tooltip), constraints)
         constraints.gridx += 1
         self.tolerance.toolTipText=tooltip
