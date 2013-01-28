@@ -381,7 +381,7 @@ class StruVa(Runnable):
             self.bs_cbox.selectedItem = 'Dubious'
         #load in Jmol
         try:
-            self.execute(';'.join(['load "file://%s"' % load_model(self.pdbid, self.source)
+            self.execute(';'.join(['load "%s"' % load_model(self.pdbid, self.source).replace(os.sep, '/')
             ,'select all'
             ,'wireframe only'
             ,'wireframe off'
@@ -418,8 +418,8 @@ class StruVa(Runnable):
                 self.execute('isosurface BINDINGSITE on')
             elif not self.binding_site_IS:
                 omapfile, sigma = EDS_parser.get_EDM(self.pdbid)
-                self.execute('isosurface BINDINGSITE color %s cutoff %s within %s {binding_site} "file://%s" mesh dots fill translucent 0.3' %\
-                            (prefs.get('bsedmcolor', 'cyan'), sigma*float(prefs.get('sigma', '1.0')), prefs.get('edmdistance', '2.1'),  omapfile))
+                self.execute('isosurface BINDINGSITE color %s cutoff %s within %s {binding_site} "%s" mesh dots fill translucent 0.3' %\
+                            (prefs.get('bsedmcolor', 'cyan'), sigma*float(prefs.get('sigma', '1.0')), prefs.get('edmdistance', '2.1'),  omapfile.replace(os.sep, '/')))
             self.binding_site_IS = 1
         elif self.binding_site_IS:
             self.execute('isosurface BINDINGSITE off')
@@ -449,8 +449,8 @@ class StruVa(Runnable):
                 self.execute('isosurface COORDS_TO_EXAM on')
             elif not self.residues_to_exam_IS:
                 omapfile, sigma = EDS_parser.get_EDM(self.pdbid)
-                self.execute('isosurface COORDS_TO_EXAM color %s cutoff %s within %s {coords_to_exam} "file://%s" mesh dots fill translucent 0.3' %\
-                        (prefs.get('reedmcolor', 'yellow'), sigma*float(prefs.get('sigma', '1.0')), prefs.get('edmdistance', '2.1'),  omapfile))
+                self.execute('isosurface COORDS_TO_EXAM color %s cutoff %s within %s {coords_to_exam} "%s" mesh dots fill translucent 0.3' %\
+                        (prefs.get('reedmcolor', 'yellow'), sigma*float(prefs.get('sigma', '1.0')), prefs.get('edmdistance', '2.1'),  omapfile.replace(os.sep, '/')))
             self.residues_to_exam_IS = 1
         elif self.residues_to_exam_IS:
             self.execute('isosurface COORDS_TO_EXAM off')
@@ -481,8 +481,8 @@ class StruVa(Runnable):
                 self.execute('isosurface LIGAND on')
             elif not self.ligandresidues_IS:
                 omapfile, sigma = EDS_parser.get_EDM(self.pdbid)
-                self.execute('isosurface LIGAND color %s cutoff %s within %s {svligand} "file://%s" mesh dots fill translucent 0.3' %\
-                        (prefs.get('ligedmcolor', 'red'), sigma*float(prefs.get('sigma', '1.0')), prefs.get('edmdistance', '2.1'),  omapfile))
+                self.execute('isosurface LIGAND color %s cutoff %s within %s {svligand} "%s" mesh dots fill translucent 0.3' %\
+                        (prefs.get('ligedmcolor', 'red'), sigma*float(prefs.get('sigma', '1.0')), prefs.get('edmdistance', '2.1'),  omapfile.replace(os.sep, '/')))
             self.ligandresidues_IS = 1
         elif self.ligandresidues_IS:
             self.execute('isosurface LIGAND off')
