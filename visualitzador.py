@@ -920,7 +920,7 @@ class SettingsDialog(object):
 
     def import_profile(self, event = None):
         filename = str(showOpenDialog(SimpleFileFilter('.tsv', None, 'VHELIBS profile files'), prefkey='loadedFiles', prefs=prefs,multiselect=False))
-        if filename or filename != 'None':
+        if filename and filename != 'None':
             file = open(filename, 'rb')
             profilename = os.path.splitext(os.path.basename(filename))[0]
             self.profiles[profilename] = {}
@@ -951,25 +951,28 @@ class SettingsDialog(object):
 
     def writeLe(self, e):
         lefn = str(showOpenDialog(SimpleFileFilter('.csv', None, 'CSV files'), prefkey='loadedFiles', prefs=prefs,multiselect=False))
-        try:
-            print 'Saved to', lefn
-            rsr_analysis.cofactors.dump_lists(lefn)
-        except Exception, e:
-            showErrorDialog(e)
+        if lefn and lefn != 'None' and os.path.isfile(lefn):
+            try:
+                print 'Saved to', lefn
+                rsr_analysis.cofactors.dump_lists(lefn)
+            except Exception, e:
+                showErrorDialog(e)
 
     def readLe(self, e):
         lefn = str(showOpenDialog(SimpleFileFilter('.csv', None, 'CSV files'), prefkey='loadedFiles', prefs=prefs,multiselect=False))
-        try:
-            print "Loading from", lefn
-            rsr_analysis.cofactors.load_lists(lefn)
-        except Exception, e:
-            showErrorDialog(e)
+        if lefn and lefn != 'None' and os.path.isfile(lefn):
+            try:
+                print "Loading from", lefn
+                rsr_analysis.cofactors.load_lists(lefn)
+            except Exception, e:
+                showErrorDialog(e)
 
     def selectOutFileName(self, event):
         outfn = str(showOpenDialog(SimpleFileFilter('.csv', None, 'CSV files'), prefkey='loadedFiles', prefs=prefs,multiselect=False))
-        if not outfn.endswith('.csv'):
-            outfn += '.csv'
-        self.outputfile.text = outfn
+        if outfn and outfn != 'None':
+            if not outfn.endswith('.csv'):
+                outfn += '.csv'
+            self.outputfile.text = outfn
 
     def loadStructsFrom(self, event):
         idstring = None
@@ -988,6 +991,8 @@ class SettingsDialog(object):
             file = str(showOpenDialog(None,multiselect=False))
             if not file or not os.path.isfile(file):
                 showErrorDialog('%s is not a readable file' % file)
+                return
+            elif file == 'None':
                 return
             idstring = ' '.join([line.strip() for line in open(file, 'rb')])
         else:
