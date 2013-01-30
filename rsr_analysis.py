@@ -569,7 +569,7 @@ def main(values):
         pdb_ids_from_file = [line.strip() for line in pdblistfile.read().replace(',', '\n').replace('\t', '\n').split() if line.strip()]
         pdblist = itertools.chain(pdblist, pdb_ids_from_file)
         pdblistfile.close()
-    pdblist = list(pdblist)
+    pdblist = [pdbid.lower() for pdbid in pdblist]
     #get_custom_report
     if not PDB_REDO:
         npdbs = len(pdblist)
