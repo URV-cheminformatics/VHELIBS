@@ -150,7 +150,7 @@ def get_pdbredo_data(pdbids=[]):
             if data_started == 2:
                 if row[0] == '#END':
                     break
-                elif pdbids and row[0] not in pdbids:
+                elif pdbids and row[0].lower() not in pdbids and row[0].upper() not in pdbids:
                     continue
                 datadict = {}
                 #for i in xrange(1, len(row)):
