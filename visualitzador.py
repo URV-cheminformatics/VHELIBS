@@ -718,7 +718,6 @@ class SettingsDialog(object):
     def __init__(self, args=['--no-args']):
         self.values = argparser.parse_args(args)
         self.panel = JPanel(GridBagLayout())
-
         for k in self.profiles['Default']:
             if k == 'use_owab':
                 continue
@@ -727,8 +726,6 @@ class SettingsDialog(object):
             elif k == 'use_pdb_redo':
                 continue
             else:
-                if not self.values.__dict__[k]:
-                    self.values.__dict__[k] = self.profiles['Default'][k]
                 self.__dict__[k] = JTextField(str(self.values.__dict__[k]))
 
         constraints = GridBagConstraints()
@@ -844,6 +841,7 @@ class SettingsDialog(object):
         self.panel.add(JButton('Output file name', toolTipText=outtt, actionPerformed=self.selectOutFileName), constraints)
         constraints.gridx += 1
         self.outputfile.toolTipText=outtt
+        self.outputfile.text = os.path.abspath(self.outputfile.text)
         self.panel.add(self.outputfile, constraints)
         constraints.gridx -= 1
 
@@ -892,6 +890,7 @@ class SettingsDialog(object):
         self.diag.setLocationRelativeTo(self.frame)
         self.frame.setUndecorated(True)
         self.diag.pack()
+        self.load_profile(e=None, profilename='Default')
 
     def _check_pdbredo_owab(self, event):
         """
@@ -954,6 +953,8 @@ class SettingsDialog(object):
                 self.res_cb.selected = v
             elif k == 'use_pdb_redo':
                 self.use_pdb_redo.selected = v
+            elif k == 'outputfile':
+                self.outputfile.text = os.path.abspath(v)
             else:
                 self.__dict__[k].text = str(v)
 
