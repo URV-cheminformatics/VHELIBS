@@ -121,7 +121,10 @@ class StruVa(Runnable):
         self.wd = WaitDialog()
         if self.values:
             try:
-                self.loadCSV()
+                restart = self.loadCSV()
+                if restart:
+                    self.restart()
+                    return
                 if not self.viewer:
                     SwingUtilities.invokeAndWait(self)
                 else:
@@ -339,6 +342,7 @@ class StruVa(Runnable):
         game_over = JOptionPane.showConfirmDialog(self.frame,u'Continue working with other structures?',u'No more structures to view!',JOptionPane.YES_NO_OPTION)
         if game_over == JOptionPane.OK_OPTION:
             self.restart()
+            return
         else:
             exit(0)
 
@@ -505,6 +509,7 @@ class StruVa(Runnable):
         self.structs_cbox.selectedItem = self.key
 
     def loadCSV(self):
+        restart = False
         values = self.values
         self.resultdict = {}
         csvfilename = values.csvfile
@@ -513,7 +518,8 @@ class StruVa(Runnable):
             if not os.path.isfile(csvfilename):
                 print 'File %s does not exist' % csvfilename
                 showWarningDialog('File %s does not exist' % csvfilename)
-                self.restart()
+                restart = True
+                return restart
             outdir = os.path.dirname(csvfilename)
             basename = os.path.splitext(os.path.basename(csvfilename))[0]
             #Set some global variables
@@ -534,8 +540,8 @@ class StruVa(Runnable):
                 showMessageDialog('Analysis data saved to %s' % values.outputfile, 'Analysis completed')
             else:
                 showWarningDialog('No structures to be viewed.')
-                self.restart()
-                return
+                restart = True
+                return restart
         self.checkedfilename = os.path.join(outdir, basename + '_checked.csv')
         #Ask about which structures to look at.
         struc_d = StructureSelectDialog(values)
@@ -549,8 +555,8 @@ class StruVa(Runnable):
         check_dubious_ligand = wannasee['ligand']['Dubious']
 
         if check_good_bs == check_good_ligand == check_bad_bs == check_bad_ligand == check_dubious_bs == check_dubious_ligand == False:
-            self.restart()
-            return
+            restart = True
+            return restart
 
         print('Loading data from %s...' % csvfilename)
         csvfile = open(csvfilename, 'rb')
@@ -585,11 +591,13 @@ class StruVa(Runnable):
         if not self.resultdict:
             print 'File without data! %s' % values.outputfile
             showWarningDialog('No binding sites to be viewed.')
-            self.restart()
+            restart = True
+        return restart
 
     def restart(self):
         if self.frame:
             self.frame.setVisible(False)
+            self.frame.dispose()
             self.frame = None
         self.__init__(SettingsDialog().getValues())
 
