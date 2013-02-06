@@ -697,6 +697,7 @@ class SettingsDialog(object):
                             , 'use_res': rsr_analysis.CHECK_RESOLUTION
                             , 'use_pdb_redo': False
                             , 'outputfile':  'vhelibs_analysis_default.csv'
+                            , 'editable': False
                             }
                     , 'Default (PDB_REDO)':{
                             'distance':math.sqrt(rsr_analysis.inner_distance)
@@ -712,6 +713,7 @@ class SettingsDialog(object):
                             , 'use_res': rsr_analysis.CHECK_RESOLUTION
                             , 'use_pdb_redo': True
                             , 'outputfile':  'vhelibs_analysis_PDB_REDO_default.csv'
+                            , 'editable': False
                             }
                     ,'Iridium':{
                             'distance':5
@@ -727,18 +729,18 @@ class SettingsDialog(object):
                             , 'use_res': False
                             , 'outputfile':  'vhelibs_analysis_iridium.csv'
                             , 'use_pdb_redo': False
+                            , 'editable': False
                             }
-                    ,'Custom':{'outputfile':  'vhelibs_analysis_custom.csv'}
+                    ,'Custom':{
+                        'outputfile':  'vhelibs_analysis_custom.csv'
+                        , 'editable': True
+                        }
                     }
     def __init__(self, args=['--no-args']):
         self.values = argparser.parse_args(args)
         self.panel = JPanel(GridBagLayout())
         for k in self.profiles['Default (PDB)']:
-            if k == 'use_owab':
-                continue
-            elif k == 'use_res':
-                continue
-            elif k == 'use_pdb_redo':
+            if k in ('use_owab', 'use_res', 'use_pdb_redo', 'editable'):
                 continue
             else:
                 self.__dict__[k] = JTextField(str(self.values.__dict__[k]))
@@ -963,7 +965,19 @@ class SettingsDialog(object):
             profilename = self.profilecbb.selectedItem
         profile = self.profiles[profilename]
         for k,  v in profile.items():
-            if k == 'use_owab':
+            if k == 'editable':
+                editable = v
+                for w in self.profiles['Default (PDB)'].keys():
+                    if w == 'editable': continue
+                    elif w == 'use_owab':
+                        self.owab_cb.enabled = editable
+                    elif w == 'use_res':
+                        self.res_cb.enabled = editable
+                    elif w == 'outputfile':
+                        continue
+                    else:
+                        self.__dict__[w].enabled = editable
+            elif k == 'use_owab':
                 self.owab_cb.selected = v
             elif k == 'use_res':
                 self.res_cb.selected = v
