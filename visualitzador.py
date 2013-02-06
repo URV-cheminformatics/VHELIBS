@@ -683,7 +683,7 @@ class StructureSelectDialog(object):
 
 
 class SettingsDialog(object):
-    profiles = {'Default':{
+    profiles = {'Default (PDB)':{
                             'distance':math.sqrt(rsr_analysis.inner_distance)
                             , 'rsr_lower':rsr_analysis.RSR_lower
                             , 'rsr_upper':rsr_analysis.RSR_upper
@@ -695,8 +695,23 @@ class SettingsDialog(object):
                             , 'min_rfree':rsr_analysis.RFREE_min
                             , 'use_owab': rsr_analysis.CHECK_OWAB
                             , 'use_res': rsr_analysis.CHECK_RESOLUTION
-                            , 'use_pdb_redo': rsr_analysis.PDB_REDO
+                            , 'use_pdb_redo': False
                             , 'outputfile':  'vhelibs_analysis_default.csv'
+                            }
+                    , 'Default (PDB_REDO)':{
+                            'distance':math.sqrt(rsr_analysis.inner_distance)
+                            , 'rsr_lower': 0.165
+                            , 'rsr_upper':rsr_analysis.RSR_upper
+                            , 'max_owab':rsr_analysis.OWAB_max
+                            , 'min_rscc':rsr_analysis.RSCC_min
+                            , 'max_resolution':rsr_analysis.RESOLUTION_max
+                            , 'tolerance':rsr_analysis.TOLERANCE
+                            , 'min_occupancy':rsr_analysis.OCCUPANCY_min
+                            , 'min_rfree':rsr_analysis.RFREE_min
+                            , 'use_owab': False
+                            , 'use_res': rsr_analysis.CHECK_RESOLUTION
+                            , 'use_pdb_redo': True
+                            , 'outputfile':  'vhelibs_analysis_PDB_REDO_default.csv'
                             }
                     ,'Iridium':{
                             'distance':5
@@ -718,7 +733,7 @@ class SettingsDialog(object):
     def __init__(self, args=['--no-args']):
         self.values = argparser.parse_args(args)
         self.panel = JPanel(GridBagLayout())
-        for k in self.profiles['Default']:
+        for k in self.profiles['Default (PDB)']:
             if k == 'use_owab':
                 continue
             elif k == 'use_res':
@@ -803,7 +818,7 @@ class SettingsDialog(object):
 
         constraints.gridy += 1
         tooltip="Maxmimum good occupancy-weighted B-factor (OWAB)"
-        self.owab_cb = JCheckBox('OWAB', toolTipText=tooltip, selected=(self.profiles['Default']['max_owab'] != self.values.max_owab) or self.profiles['Default']['use_owab'], actionPerformed=self._check_pdbredo_owab)
+        self.owab_cb = JCheckBox('OWAB', toolTipText=tooltip, selected=(self.profiles['Default (PDB)']['max_owab'] != self.values.max_owab) or self.profiles['Default (PDB)']['use_owab'], actionPerformed=self._check_pdbredo_owab)
         self.panel.add(self.owab_cb, constraints)
         constraints.gridx += 1
         self.max_owab.toolTipText=tooltip
@@ -812,7 +827,7 @@ class SettingsDialog(object):
 
         constraints.gridy += 1
         tooltip="Maximum good resolution value"
-        self.res_cb = JCheckBox("Resolution limit", toolTipText=tooltip, selected=(self.profiles['Default']['max_resolution'] != self.values.max_resolution) or self.profiles['Default']['use_res'])
+        self.res_cb = JCheckBox("Resolution limit", toolTipText=tooltip, selected=(self.profiles['Default (PDB)']['max_resolution'] != self.values.max_resolution) or self.profiles['Default (PDB)']['use_res'])
         self.panel.add(self.res_cb, constraints)
         constraints.gridx += 1
         self.max_resolution.toolTipText=tooltip
@@ -849,7 +864,7 @@ class SettingsDialog(object):
         constraints.gridy += 1
         constraints.gridwidth = 2
         tooltip="Models will be loaded from PDB_REDO instead of the PDB"
-        self.use_pdb_redo = JCheckBox("Use models from PDB_REDO", toolTipText=tooltip, selected=self.profiles['Default']['use_pdb_redo'], actionPerformed=self._check_pdbredo_owab)
+        self.use_pdb_redo = JCheckBox("Use models from PDB_REDO", toolTipText=tooltip, selected=self.profiles['Default (PDB)']['use_pdb_redo'], actionPerformed=self._check_pdbredo_owab)
         self.use_pdb_redo.toolTipText=tooltip
         self.panel.add(self.use_pdb_redo, constraints)
         constraints.gridwidth = 1
@@ -858,7 +873,7 @@ class SettingsDialog(object):
         constraints.gridy += 1
         constraints.gridwidth = 2
         tooltip="Data will be saved to and loaded from %s" % os.path.join(os.path.expanduser('~'), '.vhelibs_cache')
-        self.use_cache = JCheckBox("Do not download already downloaded files", toolTipText=tooltip, selected=(self.profiles['Default']['max_resolution'] != self.values.max_resolution) or self.profiles['Default']['use_res'])
+        self.use_cache = JCheckBox("Do not download already downloaded files", toolTipText=tooltip, selected=(self.profiles['Default (PDB)']['max_resolution'] != self.values.max_resolution) or self.profiles['Default (PDB)']['use_res'])
         self.use_cache.toolTipText=tooltip
         self.panel.add(self.use_cache, constraints)
         constraints.gridwidth = 1
@@ -890,7 +905,8 @@ class SettingsDialog(object):
         self.diag.setLocationRelativeTo(self.frame)
         self.frame.setUndecorated(True)
         self.diag.pack()
-        self.load_profile(e=None, profilename='Default')
+        self.profilecbb.selectedItem = 'Default (PDB)'
+        #self.load_profile(e=None, profilename='Default (PDB)')
 
     def _check_pdbredo_owab(self, event):
         """

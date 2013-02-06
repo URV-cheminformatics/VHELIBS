@@ -32,10 +32,10 @@ CHECK_RESOLUTION = False
 RESOLUTION_max = 3.5
 RSR_upper = 0.4
 RSR_lower = 0.24
-RSCC_min = 0
+RSCC_min = 0.9
 RFREE_min = 0
 OCCUPANCY_min = 1.0
-TOLERANCE = 1
+TOLERANCE = 2
 inner_distance = 4.5**2
 titles = ['PDB ID', "Coordinates to exam", "Ligand Residues", "Binding Site Residues", "Good Ligand", "Good Binding Site", "Model source"]
 
