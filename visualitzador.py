@@ -216,7 +216,9 @@ class StruVa(Runnable):
 
         buttonPanel = JPanel(GridBagLayout())
 
-        self.structs_cbox = JComboBox(self.resultdict.keys())
+        idlist = self.resultdict.keys()
+        idlist.sort()
+        self.structs_cbox = JComboBox(idlist)
         self.structs_cbox.addActionListener(make_listen(self.reloadStruct))
 
         about_button = JButton('About', actionPerformed=self.displayAbout)
