@@ -543,8 +543,58 @@ class StruVa(Runnable):
                 restart = True
                 return restart
         self.checkedfilename = os.path.join(outdir, basename + '_checked.csv')
+
+        print('Loading data from %s...' % csvfilename)
+        csvfile = open(csvfilename, 'rb')
+        reader = csv.reader(csvfile, 'excel')
+        header = reader.next()
+        has_source = len(header) > 6
+        ngoodbs = 0
+        ngoodlig = 0
+        ndubbs = 0
+        ndublig = 0
+        nbadbs = 0
+        nbadlig = 0
+        for fields in reader:
+            id, residues_to_exam_string, ligandresidues_string, binding_site_string, ligandgood, bsgood = fields[:6]
+            if has_source:
+                source = fields[6]
+            else:
+                source = 'PDB'
+            bsgood = bsgood.lower()
+            ligandgood = ligandgood.lower()
+            residues_to_exam = residues_to_exam_string.split(';')
+            ligandresidues = ligandresidues_string.split(';')
+            binding_site = binding_site_string.split(';')
+            if bsgood == 'true':
+                ngoodbs += 1
+            elif bsgood == 'false':
+                nbadbs += 1
+            elif bsgood == 'dubious':
+                ndubbs +=1
+            else:
+                print "Unrecognized type: %s" % bsgood
+
+            if ligandgood == 'true':
+                ngoodlig += 1
+            elif ligandgood == 'false':
+                nbadlig += 1
+            elif ligandgood == 'dubious':
+                ndublig +=1
+            else:
+                print "Unrecognized type: %s" % ligandgood
+            self.resultdict[id + '|' +ligandresidues[0]] = [ligandresidues, residues_to_exam, binding_site, ligandgood, bsgood, source]
+        else:
+            print 'Data loaded'
+        csvfile.close()
+
+        #Display results
+        print "             \tGood\tDubious\tBad"
+        print "Ligands     \t%s\t%s\t%s" % (ngoodlig, ndublig, nbadlig)
+        print "Binding sites\t%s\t%s\t%s" % (ngoodbs, ndubbs, nbadbs)
+
         #Ask about which structures to look at.
-        struc_d = StructureSelectDialog(values)
+        struc_d = StructureSelectDialog(values, (ngoodlig, ndublig, nbadlig, ngoodbs, ndubbs, nbadbs), csvfilename)
         wannasee = struc_d.show()
 
         check_good_bs = wannasee['bs']['Good']
@@ -557,21 +607,8 @@ class StruVa(Runnable):
         if check_good_bs == check_good_ligand == check_bad_bs == check_bad_ligand == check_dubious_bs == check_dubious_ligand == False:
             restart = True
             return restart
-
-        print('Loading data from %s...' % csvfilename)
-        csvfile = open(csvfilename, 'rb')
-        reader = csv.reader(csvfile, 'excel')
-        header = reader.next()
-        has_source = len(header) > 6
-        for fields in reader:
-            id, residues_to_exam_string, ligandresidues_string, binding_site_string, ligandgood, bsgood = fields[:6]
-            if has_source:
-                source = fields[6]
-            else:
-                source = 'PDB'
-            bsgood = bsgood.lower()
-            ligandgood = ligandgood.lower()
-            cont = True
+        for k, v in self.resultdict.items():
+            ligandresidues, residues_to_exam, binding_site, ligandgood, bsgood, source = v
             if not(\
                 (check_good_bs and bsgood == 'true') or\
                 (check_bad_bs and bsgood == 'false') or\
@@ -580,14 +617,8 @@ class StruVa(Runnable):
                 (check_bad_ligand and ligandgood == 'false') or\
                 (check_dubious_ligand and ligandgood == 'dubious')
             ):
-                continue
-            residues_to_exam = residues_to_exam_string.split(';')
-            ligandresidues = ligandresidues_string.split(';')
-            binding_site = binding_site_string.split(';')
-            self.resultdict[id + '|' +ligandresidues[0]] = [ligandresidues, residues_to_exam, binding_site, ligandgood, bsgood, source]
-        else:
-            print 'Data loaded'
-        csvfile.close()
+                self.resultdict.pop(k)
+
         if not self.resultdict:
             print 'File without data! %s' % values.outputfile
             showWarningDialog('No binding sites to be viewed.')
@@ -619,7 +650,9 @@ class DialogShower(SwingWorker):
             raise SystemExit, e.getCause()
 
 class StructureSelectDialog(object):
-    def __init__(self, values):
+    def __init__(self, values, stats, csvfilename):
+        ngoodlig, ndublig, nbadlig, ngoodbs, ndubbs, nbadbs = stats
+        total = sum((ngoodlig, ndublig, nbadlig))
         self.diag = JDialog(JFrame(iconImage=vhelibsicon),size = (500, 200), title = 'Select which structures to view', modal=True)
         self.panel = JPanel(GridBagLayout())
         constraints = GridBagConstraints()
@@ -629,23 +662,27 @@ class StructureSelectDialog(object):
         constraints.insets = Insets(3,3,3,3)
         constraints.gridy = 0
         constraints.gridx = 0
-        constraints.gridwidth = 5
-        self.panel.add(JLabel('Select which structures to view'), constraints)
+        self.panel.add(JLabel('Data loaded from %s' % csvfilename))
+        constraints.gridy += 1
         constraints.gridwidth = 2
-        constraints.gridy += 1
-        self.panel.add(JCheckBox('Good Binding Site', toolTipText='Check Binding Sites whith all residues with an RSR < %s' % values.rsr_lower), constraints)
+        self.panel.add(JLabel('Select which structures to view:', ), constraints)
         constraints.gridx += 2
-        self.panel.add(JCheckBox('Good Ligand', toolTipText='Check Ligands with RSR < %s' % values.rsr_lower), constraints)
+        self.panel.add(JLabel('(%s found)' % total), constraints)
         constraints.gridx -= 2
         constraints.gridy += 1
-        self.panel.add(JCheckBox('Bad Binding Site', toolTipText='Check Binding Sites with residues with RSR > %s' % values.rsr_upper), constraints)
+        self.panel.add(JCheckBox('Good Binding Sites (%s/%s)' % (ngoodbs, total), toolTipText='Check Binding Sites which met all the required conditions (%s binding sites)' % ngoodbs), constraints)
         constraints.gridx += 2
-        self.panel.add(JCheckBox('Bad Ligand', toolTipText='Check Ligands with RSR > %s' % values.rsr_upper), constraints)
+        self.panel.add(JCheckBox('Good Ligands (%s/%s)' % (ngoodlig, total), toolTipText='Check Ligands which met all the required conditions (%s ligands)' % ngoodlig), constraints)
         constraints.gridx -= 2
         constraints.gridy += 1
-        self.panel.add(JCheckBox('Dubious Binding Site', toolTipText='Check Binding Sites with residues with RSR between %s and %s' % (values.rsr_lower, values.rsr_upper), selected=True), constraints)
+        self.panel.add(JCheckBox('Bad Binding Sites (%s/%s)' % (nbadbs, total), toolTipText='Check Binding Sites which failed to meet more than %s of the required conditions (%s binding sites)' % (values.tolerance, nbadbs)), constraints)
         constraints.gridx += 2
-        self.panel.add(JCheckBox('Dubious Ligand', toolTipText='Check Ligands with RSR between %s and %s' % (values.rsr_lower, values.rsr_upper), selected=True), constraints)
+        self.panel.add(JCheckBox('Bad Ligands (%s/%s)' % (nbadlig, total), toolTipText='Check Ligands which failed to meet more than %s of the required conditions (%s ligands)' % (values.tolerance, nbadlig)), constraints)
+        constraints.gridx -= 2
+        constraints.gridy += 1
+        self.panel.add(JCheckBox('Dubious Binding Sites (%s/%s)' % (ndubbs, total), toolTipText='Check Binding Sites with up to %s unmet contiditions (%s binding sites)' % (values.tolerance, ndubbs), selected=True), constraints)
+        constraints.gridx += 2
+        self.panel.add(JCheckBox('Dubious Ligands (%s/%s)' % (ndublig, total), toolTipText='Check Ligands with up to %s unmet contiditions (%s ligands)' % (values.tolerance, ndublig), selected=True), constraints)
         constraints.gridy += 1
         constraints.gridx = 0
         constraints.gridwidth = 2
