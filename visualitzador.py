@@ -777,6 +777,17 @@ class SettingsDialog(object):
         self.panel.add(JButton('Import profile', toolTipText=tooltip, actionPerformed=self.import_profile), constraints)
         constraints.gridx -= 1
         ##############
+
+        ##############
+        constraints.gridy += 1
+        constraints.gridwidth = 2
+        tooltip="Models will be loaded from PDB_REDO instead of the PDB"
+        self.use_pdb_redo = JCheckBox("Use models from PDB_REDO", toolTipText=tooltip, selected=self.profiles['Default (PDB)']['use_pdb_redo'], actionPerformed=self._check_pdbredo_owab)
+        self.use_pdb_redo.toolTipText=tooltip
+        self.panel.add(self.use_pdb_redo, constraints)
+        constraints.gridwidth = 1
+        ##############
+
         constraints.gridy += 1
         distancetooltip = 'Residues with at least one atom within this distance from any atom of the ligand will be considered as part of the binding site'
         self.panel.add(JLabel(u'Radius (in Å)', toolTipText=distancetooltip), constraints)
@@ -861,16 +872,6 @@ class SettingsDialog(object):
         self.outputfile.text = os.path.abspath(self.outputfile.text)
         self.panel.add(self.outputfile, constraints)
         constraints.gridx -= 1
-
-        ##############
-        constraints.gridy += 1
-        constraints.gridwidth = 2
-        tooltip="Models will be loaded from PDB_REDO instead of the PDB"
-        self.use_pdb_redo = JCheckBox("Use models from PDB_REDO", toolTipText=tooltip, selected=self.profiles['Default (PDB)']['use_pdb_redo'], actionPerformed=self._check_pdbredo_owab)
-        self.use_pdb_redo.toolTipText=tooltip
-        self.panel.add(self.use_pdb_redo, constraints)
-        constraints.gridwidth = 1
-        ##############
 
         constraints.gridy += 1
         constraints.gridwidth = 2
