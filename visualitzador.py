@@ -1178,16 +1178,17 @@ class AboutDialog(object):
         <br>
         <p style="margin-top: 0.12cm; margin-bottom: 0cm; line-height: 0.53cm;" lang="en-US"><small><small>
         <font face="Helvetica-Light, Arial Unicode MS, sans-serif"><font style="font-size: 13pt;" size="3"><small><small>Adrià
-        Cereto-Massagué<sup> 1</sup>, María José Ojeda<sup>1</sup>,
+        Cereto-Massagué<sup> 1</sup>, María José Ojeda<sup>1</sup>, Robbie P. Joosten<sup>2</sup>,
         Cristina Valls<sup> 1</sup>, Miquel Mulero<sup> 1</sup>, M. Josepa
         Salvado<sup>1</sup>, Anna Arola-Arnal<sup>1</sup>, Lluís Arola<sup>1,
-        2</sup>, Santiago Garcia-Vallvé<sup>1, 2</sup> and Gerard Pujadas<sup>
-        1, 2,</sup></small></small></font></font></small></small></p>
+        3</sup>, Santiago Garcia-Vallvé<sup>1, 3</sup> and Gerard Pujadas<sup>
+        1, 3,</sup></small></small></font></font></small></small></p>
         <p style="margin-top: 0.07cm; margin-bottom: 0.09cm;" lang="pt-BR"><small><small><font face="Helvetica-Light, Arial Unicode MS, sans-serif"><sup>1</sup>Grup
         de Recerca en Nutrigenòmica, Departament de Bioquímica i
         Biotecnologia, Universitat Rovira i Virgili, Campus de Sescelades, C/
         Marce&#320;lí Domingo s/n, 43007 Tarragona, Catalonia, Spain</font></small></small></p>
-        <p style="margin-top: 0.07cm; margin-bottom: 0.09cm;" lang="pt-BR"><small><small><font face="Helvetica-Light, Arial Unicode MS, sans-serif"><sup>2</sup>Centre
+        <p style="margin-top: 0.07cm; margin-bottom: 0.09cm;" lang="pt-BR"><small><small><font face="Helvetica-Light, Arial Unicode MS, sans-serif"><sup>2</sup>Department of Biochemistry, Netherlands Cancer Institute, Plesmanlaan 121, 1066 CX Amsterdam, The Netherlands</font></small></small></p>
+        <p style="margin-top: 0.07cm; margin-bottom: 0.09cm;" lang="pt-BR"><small><small><font face="Helvetica-Light, Arial Unicode MS, sans-serif"><sup>3</sup>Centre
         Tecnològic de Nutrició i Salut (CTNS), TECNIO, CEICS, Avinguda
         Universitat 1, 43204, Reus, Catalonia, Spain</font></small></small></p>
         <br>
