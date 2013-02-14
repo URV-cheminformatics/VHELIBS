@@ -1152,9 +1152,9 @@ class AboutDialog(object):
         else:
            self.urvicon=ImageIcon(urvfn)
         ctnsfn = 'logo_ctns.png'
-        urv = java.lang.ClassLoader.getSystemClassLoader().getResource(ctnsfn)
-        if urv:
-            u = URL(str(urv))
+        ctns = java.lang.ClassLoader.getSystemClassLoader().getResource(ctnsfn)
+        if ctns:
+            u = URL(str(ctns))
             self.ctnsicon = ImageIcon(u)
         else:
             self.ctnsicon=ImageIcon(ctnsfn)
@@ -1168,8 +1168,10 @@ class AboutDialog(object):
 
         constraints.gridy = 0
         constraints.gridx = 0
-        constraints.gridwidth = 3
+        constraints.gridwidth = 1
         self.panel.add(JLabel(ImageIcon(vhelibsicon)), constraints)
+        constraints.gridx += 1
+        constraints.gridwidth = 2
 
         label = dedent(u"""<html><body>
         <div style="text-align: center;"><big><big><big><span style="font-weight: bold;">VHELIBS %s</span></big></big></big><br>
@@ -1196,23 +1198,23 @@ class AboutDialog(object):
         </div>
         </body></html>""") % VHELIBS_VERSION
 
-        constraints.gridy = 1
-        self.panel.add(JLabel(label), constraints)
 
-        constraints.gridy = 2
+        self.panel.add(JLabel(label), constraints)
+        constraints.gridy += 1
+
         constraints.gridx = 0
         constraints.gridwidth = 1
         constraints.gridheight = 2
         self.panel.add(JLabel(self.urvicon), constraints)
 
-        constraints.gridx = 2
+        constraints.gridx += 2
         self.panel.add(JLabel(self.ctnsicon), constraints)
 
-        constraints.gridx = 1
+        constraints.gridx -= 1
         constraints.gridheight = 1
         self.panel.add(JLabel(u"""<html>More information, help and documentation can be found at:</html>"""), constraints)
+        constraints.gridy += 1
 
-        constraints.gridy = 3
         website = JLabel()
         website.text = "<html><a href=\"\">urvnutrigenomica-ctns.github.com/VHELIBS</a></html>"
         website.cursor = Cursor(Cursor.HAND_CURSOR)
@@ -1222,8 +1224,8 @@ class AboutDialog(object):
         self.diag = JDialog(self.frame, title = 'About VHELIBS')
         self.diag.setLocationRelativeTo(self.parentframe)
         self.diag.add(self.panel)
+        self.diag.preferredSize = (660,420)
         self.diag.pack()
-        self.diag.size = (692,524)
     def show(self):
         self.diag.visible = True
 
