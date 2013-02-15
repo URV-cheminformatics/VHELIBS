@@ -299,33 +299,32 @@ def classificate_residue(residue, edd_dict, good_rsr, dubious_rsr, bad_rsr):
         return 0
     rscc = residue_dict['RSCC']
     if RSCC_min > rscc:
-        score -= 1
+        score += 1
     if CHECK_OWAB:
         owab = residue_dict['OWAB']
         if not 1 < owab < OWAB_max:
-            score -=1
+            score +=1
     occ = residue_dict['occupancy']
     if occ > 1:
         bad_rsr.add(residue)
         return 1337
     elif occ < OCCUPANCY_min:
-        score -=1
+        score +=1
     rsr = residue_dict['RSR']
     rFree = edd_dict['rFree']
     if rFree < RFREE_min:
-        score -= 1
+        score += 1
     if CHECK_RESOLUTION:
         resolution = edd_dict.get('Resolution', 0)
         if resolution > RESOLUTION_max:
-            score -= 1
-    if rsr <= RSR_upper:
-        if rsr <= RSR_lower:
-            score +=1
-    else:
-        score -= 1
-    if score > 0:
+            score += 1
+    if rsr > RSR_lower:
+        score += 1
+        if rsr > RSR_upper:
+            score += 1
+    if score == 0:
         good_rsr.add(residue)
-    elif score <= -TOLERANCE:
+    elif score > TOLERANCE:
         bad_rsr.add(residue)
     else:
         dubious_rsr.add(residue)
