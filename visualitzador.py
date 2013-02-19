@@ -836,7 +836,7 @@ class SettingsDialog(object):
         constraints.gridx -= 1
 
         constraints.gridy += 1
-        hrsrtooltip="Ligands and binding sites with at least one 'residue' with an RSR above this value will be tagged as Bad."
+        hrsrtooltip="Ligands and binding sites with at least one 'residue' with an RSR above this value will have +1 score"
         self.panel.add(JLabel('Upper cap for RSR', toolTipText=hrsrtooltip), constraints)
         constraints.gridx += 1
         self.rsr_upper.toolTipText=hrsrtooltip
@@ -844,7 +844,7 @@ class SettingsDialog(object):
         constraints.gridx -= 1
 
         constraints.gridy += 1
-        lrsrtooltip="Ligands and binding sites with all 'residues' with a RSR below this value will be tagged as Good"
+        lrsrtooltip="Ligands and binding sites with a 'residue' with an RSR above this value will have +1 score"
         self.panel.add(JLabel('Good RSR cap', toolTipText=lrsrtooltip), constraints)
         constraints.gridx += 1
         self.rsr_lower.toolTipText=lrsrtooltip
@@ -853,7 +853,7 @@ class SettingsDialog(object):
 
         ##############
         constraints.gridy += 1
-        tooltip="Lowest good RSCC"
+        tooltip="Ligands and residues with an RSCC below this value will have +1 score"
         self.panel.add(JLabel('Lowest good RSCC', toolTipText=tooltip), constraints)
         constraints.gridx += 1
         self.min_rscc.toolTipText=tooltip
@@ -861,7 +861,7 @@ class SettingsDialog(object):
         constraints.gridx -= 1
 
         constraints.gridy += 1
-        tooltip="Minimum average occupancy per residue"
+        tooltip="Residues and ligands with an average occupancy below this value will have +1 score"
         self.panel.add(JLabel('Average Occupancy', toolTipText=tooltip), constraints)
         constraints.gridx += 1
         self.min_occupancy.toolTipText=tooltip
@@ -869,7 +869,7 @@ class SettingsDialog(object):
         constraints.gridx -= 1
 
         constraints.gridy += 1
-        tooltip="Maxmimum good occupancy-weighted B-factor (OWAB)"
+        tooltip="Residues and ligands with an occupancy-weighted B-factor (OWAB) above this value will have +1 score"
         self.owab_cb = JCheckBox('OWAB', toolTipText=tooltip, selected=(self.profiles['Default (PDB)']['max_owab'] != self.values.max_owab) or self.profiles['Default (PDB)']['use_owab'], actionPerformed=self._check_pdbredo_owab)
         self.panel.add(self.owab_cb, constraints)
         constraints.gridx += 1
@@ -878,7 +878,7 @@ class SettingsDialog(object):
         constraints.gridx -= 1
 
         constraints.gridy += 1
-        tooltip="Maximum good resolution value"
+        tooltip="All residues and ligands from structures with a resolution above this value will have +1 score"
         self.res_cb = JCheckBox("Resolution limit", toolTipText=tooltip, selected=(self.profiles['Default (PDB)']['max_resolution'] != self.values.max_resolution) or self.profiles['Default (PDB)']['use_res'])
         self.panel.add(self.res_cb, constraints)
         constraints.gridx += 1
@@ -887,7 +887,7 @@ class SettingsDialog(object):
         constraints.gridx -= 1
 
         constraints.gridy += 1
-        tooltip="Minimum R-free value"
+        tooltip="All residues and ligands from structures with a resolution below this value will have +1 score"
         self.panel.add(JLabel('Minimum R-free value', toolTipText=tooltip), constraints)
         constraints.gridx += 1
         self.min_rfree.toolTipText=tooltip
@@ -895,7 +895,7 @@ class SettingsDialog(object):
         constraints.gridx -= 1
 
         constraints.gridy += 1
-        tooltip="<html><body>Maximum number of unsatisfied conditions for a dubious residue or ligand.<br> If the number of unsatisfied conditions is higher than the tolerance,<br>the residue or ligand will be clasified as bad"
+        tooltip="<html><body>Each ligand will be classified as follows: <br>* Good if the score is 0.<br>* Dubious if the score is lower than the tolerance <br>* Bad if the score is higher than the tolerance</html>"
         self.panel.add(JLabel('Tolerance', toolTipText=tooltip), constraints)
         constraints.gridx += 1
         self.tolerance.toolTipText=tooltip
@@ -938,7 +938,7 @@ class SettingsDialog(object):
 
         constraints.gridy += 1
         constraints.gridwidth = 2
-        csvfilett = "Load a previously generated file to review its structures"
+        csvfilett = "Load a previously generated file to review its models"
         self.panel.add(JButton('Load previous results file',  toolTipText=csvfilett, actionPerformed=self.csvFileDialog), constraints)
         self.frame = JFrame(iconImage=vhelibsicon,size = (0, 0), title = TITLE)
         self.diag = JDialog(self.frame,size = (500, 200), title = TITLE, modal=True)
