@@ -58,7 +58,7 @@ from org.jmol.adapter.smarter import SmarterJmolAdapter
 from org.jmol.api import JmolViewer
 from org.openscience.jmol.app.jmolpanel import AppConsole
 
-VHELIBS_VERSION = "3.0"
+VHELIBS_VERSION = "3.0.1"
 TITLE =  "VHELIBS " + VHELIBS_VERSION
 
 #Own stuff
@@ -798,21 +798,21 @@ class SettingsDialog(object):
         constraints.gridwidth = 1
 
         constraints.gridy += 1
-        tooltip = 'cb'
+        tooltip = 'Each profile provides a different set of values to use. The "Custom" profile lets you edit them'
         self.panel.add(JLabel(u'Select a predefined profile', toolTipText=tooltip), constraints)
         self.distance.toolTipText=tooltip
         constraints.gridx += 1
-        self.profilecbb = JComboBox(self.profiles.keys())
+        self.profilecbb = JComboBox(self.profiles.keys(), toolTipText=tooltip)
         self.profilecbb.selectedItem = 'Custom'
         self.profilecbb.addActionListener(make_listen(self.load_profile))
         self.panel.add(self.profilecbb, constraints)
         constraints.gridx -= 1
         ##############
         constraints.gridy += 1
-        tooltip=""
+        tooltip="Save the current profile to a file"
         self.panel.add(JButton('Export profile', toolTipText=tooltip, actionPerformed=self.export_current_profile), constraints)
         constraints.gridx += 1
-        tooltip=""
+        tooltip="Load a profile from a file"
         self.panel.add(JButton('Import profile', toolTipText=tooltip, actionPerformed=self.import_profile), constraints)
         constraints.gridx -= 1
         ##############
@@ -836,7 +836,7 @@ class SettingsDialog(object):
         constraints.gridx -= 1
 
         constraints.gridy += 1
-        hrsrtooltip="Ligands and binding sites with at least one 'residue' with an RSR above this value will have +1 score"
+        hrsrtooltip="Ligands and binding sites with at least one 'residue' with an RSR above this value will have their score increased by 1"
         self.panel.add(JLabel('Upper cap for RSR', toolTipText=hrsrtooltip), constraints)
         constraints.gridx += 1
         self.rsr_upper.toolTipText=hrsrtooltip
@@ -844,7 +844,7 @@ class SettingsDialog(object):
         constraints.gridx -= 1
 
         constraints.gridy += 1
-        lrsrtooltip="Ligands and binding sites with a 'residue' with an RSR above this value will have +1 score"
+        lrsrtooltip="Ligands and binding sites with a 'residue' with an RSR above this value will have their score increased by 1"
         self.panel.add(JLabel('Good RSR cap', toolTipText=lrsrtooltip), constraints)
         constraints.gridx += 1
         self.rsr_lower.toolTipText=lrsrtooltip
@@ -853,7 +853,7 @@ class SettingsDialog(object):
 
         ##############
         constraints.gridy += 1
-        tooltip="Ligands and residues with an RSCC below this value will have +1 score"
+        tooltip="Ligands and residues with an RSCC below this value will have their score increased by 1"
         self.panel.add(JLabel('Lowest good RSCC', toolTipText=tooltip), constraints)
         constraints.gridx += 1
         self.min_rscc.toolTipText=tooltip
@@ -861,7 +861,7 @@ class SettingsDialog(object):
         constraints.gridx -= 1
 
         constraints.gridy += 1
-        tooltip="Residues and ligands with an average occupancy below this value will have +1 score"
+        tooltip="Residues and ligands with an average occupancy below this value will have their score increased by 1"
         self.panel.add(JLabel('Average Occupancy', toolTipText=tooltip), constraints)
         constraints.gridx += 1
         self.min_occupancy.toolTipText=tooltip
@@ -869,7 +869,7 @@ class SettingsDialog(object):
         constraints.gridx -= 1
 
         constraints.gridy += 1
-        tooltip="Residues and ligands with an occupancy-weighted B-factor (OWAB) above this value will have +1 score"
+        tooltip="Residues and ligands with an occupancy-weighted B-factor (OWAB) above this value will have their score increased by 1"
         self.owab_cb = JCheckBox('OWAB', toolTipText=tooltip, selected=(self.profiles['Default (PDB)']['max_owab'] != self.values.max_owab) or self.profiles['Default (PDB)']['use_owab'], actionPerformed=self._check_pdbredo_owab)
         self.panel.add(self.owab_cb, constraints)
         constraints.gridx += 1
@@ -878,7 +878,7 @@ class SettingsDialog(object):
         constraints.gridx -= 1
 
         constraints.gridy += 1
-        tooltip="All residues and ligands from structures with a resolution above this value will have +1 score"
+        tooltip="All residues and ligands from structures with a resolution above this value will have their score increased by 1"
         self.res_cb = JCheckBox("Resolution limit", toolTipText=tooltip, selected=(self.profiles['Default (PDB)']['max_resolution'] != self.values.max_resolution) or self.profiles['Default (PDB)']['use_res'])
         self.panel.add(self.res_cb, constraints)
         constraints.gridx += 1
@@ -887,7 +887,7 @@ class SettingsDialog(object):
         constraints.gridx -= 1
 
         constraints.gridy += 1
-        tooltip="All residues and ligands from structures with a resolution below this value will have +1 score"
+        tooltip="All residues and ligands from structures with an R-free value below this value will have their score increased by 1"
         self.panel.add(JLabel('Minimum R-free value', toolTipText=tooltip), constraints)
         constraints.gridx += 1
         self.min_rfree.toolTipText=tooltip
@@ -895,7 +895,7 @@ class SettingsDialog(object):
         constraints.gridx -= 1
 
         constraints.gridy += 1
-        tooltip="<html><body>Each ligand will be classified as follows: <br>* Good if the score is 0.<br>* Dubious if the score is lower than the tolerance <br>* Bad if the score is higher than the tolerance</html>"
+        tooltip="<html><body>Each ligand and binding site will be classified as follows: <br>* Good if the score is 0.<br>* Dubious if the score is lower than the tolerance <br>* Bad if the score is higher than the tolerance</html>"
         self.panel.add(JLabel('Tolerance', toolTipText=tooltip), constraints)
         constraints.gridx += 1
         self.tolerance.toolTipText=tooltip
@@ -1125,7 +1125,7 @@ class SettingsDialog(object):
 
 class WaitDialog(Runnable):
     def __init__(self, parent=None, info=None, modal=False):
-        self.info = info if info else '<html>Calculating binding sites and retrieving RSR information<br /> Please be patient</html>'
+        self.info = info if info else '<html>Calculating binding sites and retrieving relevant data<br /> Please be patient</html>'
         i = UIManager.getIcon("OptionPane.informationIcon")
         self.icon = JLabel(i) if i is not None else JLabel(_infoicon)
         self.frame =  JFrame(iconImage=vhelibsicon)
