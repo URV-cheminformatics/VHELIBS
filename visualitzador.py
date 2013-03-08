@@ -58,7 +58,7 @@ from org.jmol.adapter.smarter import SmarterJmolAdapter
 from org.jmol.api import JmolViewer
 from org.openscience.jmol.app.jmolpanel import AppConsole
 
-VHELIBS_VERSION = "3.0.1"
+VHELIBS_VERSION = "3.0.2"
 TITLE =  "VHELIBS " + VHELIBS_VERSION
 
 #Own stuff
@@ -1030,7 +1030,7 @@ class SettingsDialog(object):
 
     def writeLe(self, e):
         lefn = str(showOpenDialog(SimpleFileFilter('.csv', None, 'CSV files'), prefkey='loadedFiles', prefs=prefs,multiselect=False))
-        if lefn and lefn != 'None' and os.path.isfile(lefn):
+        if lefn and lefn != 'None':
             try:
                 print 'Saved to', lefn
                 rsr_analysis.cofactors.dump_lists(lefn)
