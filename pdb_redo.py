@@ -2,7 +2,7 @@
 #
 #   Copyright 2013 Adrià Cereto Massagué <adrian.cereto@.urv.cat>
 #
-import urllib2, sys, os, time, csv, datetime
+import urllib2, sys, os, time, csv, datetime, bz2
 if sys.platform.startswith('java'):
     import multithreading as multiprocessing
     from java.util import Locale
@@ -14,9 +14,40 @@ PDB_REDO_ed_data_url_tmpl = "http://www.cmbi.ru.nl/pdb_redo/MIDDLE/PDBID/PDBID_f
 ALLDATA_URL = "http://www.cmbi.ru.nl/pdb_redo/others/alldata.txt"
 CACHE_EXPIRED = True
 
+def get_EDM(pdbid):
+    """Downloads the EDM and returns its path"""
+    pdbid = pdbid.lower()
+    downloaddir = os.path.join(PDBfiles.CACHEDIR, pdbid.lower())
+    if not os.path.isdir(downloaddir):
+        os.makedirs(downloaddir)
+    url = PDB_REDO_ed_data_url_tmpl.replace('MIDDLE', pdbid[1:3]).replace('PDBID', pdbid).replace('.eds', '_model.ccp4.bz2')
+    filename = os.path.splitext(os.path.join(downloaddir, os.path.basename(url)))[0]
+    if CACHE_EXPIRED or not os.path.isfile(filename): #Download
+        print "Downloading %s" % url
+        tries = 3
+        while tries > 0:
+            tries -= 1
+            try:
+                rfh = urllib2.urlopen(url)
+                ed_file = open(filename, 'wb')
+                ed_file.write(bz2.decompress(rfh.read()))
+                ed_file.close()
+                rfh.close()
+                break
+            except Exception, e:
+                print "Could not download",  url
+                print e
+                print "Retrying...",  tries
+                time.sleep(1)
+        else:
+            print "Unable to download %s" % url
+            print e
+            return
+    return filename
+
 def get_ED_data(pdbid):
     """
-    Extract data from EDS site for a given PDB code
+    Extract data from PDB_REDO site for a given PDB code
     """
     pdbid = pdbid.lower()
     downloaddir = os.path.join(PDBfiles.CACHEDIR, pdbid.lower())

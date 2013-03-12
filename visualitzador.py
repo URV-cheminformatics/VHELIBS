@@ -65,7 +65,7 @@ TITLE =  "VHELIBS " + VHELIBS_VERSION
 sys.argv = [arg for arg in sys.argv if __file__ not in arg]
 if not len(sys.argv):
     sys.argv.append('--no-args')
-import rsr_analysis, PDBfiles,  EDS_parser
+import rsr_analysis, PDBfiles,  EDS_parser, pdb_redo
 ### build the parser###
 argparser = rsr_analysis.parser
 argparser.add_argument('-c','--csvfile', metavar='CSVFILE', type=unicode, default=None, required=False, help='CSV file containing results from a previous RSR analysis')
@@ -406,14 +406,15 @@ class StruVa(Runnable):
             self.execute('isosurface %s color %s cutoff %s within %s %s "%s" mesh dots fill translucent 0.3' %\
                         (name, color, sigma_c*float(prefs.get('sigma', '1.0')), prefs.get('edmdistance', '2.1'), atoms, omapfile.replace(os.sep, '/')))
         elif self.source == 'PDB_REDO':
-            print "Not implemented yet"
-            return
-            ccp4file = '/home/adria/Baixades/100d_final_model.ccp4'
-            self.execute('isosurface %s color %s sigma %s within %s %s "%s" mesh dots fill translucent 0.3'%\
+            ccp4file = pdb_redo.get_EDM(self.pdbid)
+            if ccp4file:
+                self.execute('isosurface %s color %s sigma %s within %s %s "%s" mesh dots fill translucent 0.3'%\
                         (name, color, float(prefs.get('sigma', '1.0')), prefs.get('edmdistance', '2.1'), atoms, ccp4file.replace(os.sep, '/')))
+            else:
+                self.console.sendConsoleMessage("EDM unavailable ofr %s" % self.source)
 
         else:
-            print "Unable to load EDM from %s" % self.source
+            self.console.sendConsoleMessage("Unable to load EDM from %s" % self.source)
 
     def displayBindingSite(self, visible=True):
         if not self.binding_site:
