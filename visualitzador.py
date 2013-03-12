@@ -411,7 +411,7 @@ class StruVa(Runnable):
                 self.execute('isosurface %s color %s sigma %s within %s %s "%s" mesh dots fill translucent 0.3'%\
                         (name, color, float(prefs.get('sigma', '1.0')), prefs.get('edmdistance', '2.1'), atoms, ccp4file.replace(os.sep, '/')))
             else:
-                self.console.sendConsoleMessage("EDM unavailable ofr %s" % self.source)
+                self.console.sendConsoleMessage("EDM unavailable at %s" % self.source)
 
         else:
             self.console.sendConsoleMessage("Unable to load EDM from %s" % self.source)
