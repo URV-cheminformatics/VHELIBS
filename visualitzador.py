@@ -408,7 +408,7 @@ class StruVa(Runnable):
         elif self.source == 'PDB_REDO':
             ccp4file = pdb_redo.get_EDM(self.pdbid)
             if ccp4file:
-                self.execute('isosurface %s color %s sigma %s within %s %s "%s" mesh dots fill translucent 0.3'%\
+                self.execute('isosurface %s color %s sigma %s within %s %s insideout "%s" mesh dots fill translucent 0.3'%\
                         (name, color, float(prefs.get('sigma', '1.0')), prefs.get('edmdistance', '2.1'), atoms, ccp4file.replace(os.sep, '/')))
             else:
                 self.console.sendConsoleMessage("EDM unavailable at %s" % self.source)
