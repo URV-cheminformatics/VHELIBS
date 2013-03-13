@@ -22,7 +22,7 @@ def get_EDM(pdbid):
         os.makedirs(downloaddir)
     url = PDB_REDO_ed_data_url_tmpl.replace('MIDDLE', pdbid[1:3]).replace('PDBID', pdbid).replace('.eds', '_model.ccp4.bz2')
     filename = os.path.splitext(os.path.join(downloaddir, os.path.basename(url)))[0]
-    if CACHE_EXPIRED or not os.path.isfile(filename): #Download
+    if not os.path.isfile(filename): #Download
         print "Downloading %s" % url
         tries = 3
         while tries > 0:
