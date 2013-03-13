@@ -20,8 +20,8 @@ def get_EDM(pdbid):
     downloaddir = os.path.join(PDBfiles.CACHEDIR, pdbid.lower())
     if not os.path.isdir(downloaddir):
         os.makedirs(downloaddir)
-    url = PDB_REDO_ed_data_url_tmpl.replace('MIDDLE', pdbid[1:3]).replace('PDBID', pdbid).replace('.eds', '_model.ccp4.bz2')
-    filename = os.path.splitext(os.path.join(downloaddir, os.path.basename(url)))[0]
+    url = PDB_REDO_ed_data_url_tmpl.replace('MIDDLE', pdbid[1:3]).replace('PDBID', pdbid).replace('.eds', '_model.ccp4.gz')
+    filename = os.path.join(downloaddir, os.path.basename(url))
     if not os.path.isfile(filename): #Download
         print "Downloading %s" % url
         tries = 3
@@ -30,7 +30,7 @@ def get_EDM(pdbid):
             try:
                 rfh = urllib2.urlopen(url)
                 ed_file = open(filename, 'wb')
-                ed_file.write(bz2.decompress(rfh.read()))
+                ed_file.write((rfh.read()))
                 ed_file.close()
                 rfh.close()
                 break
