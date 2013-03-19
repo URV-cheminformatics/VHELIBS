@@ -68,6 +68,7 @@ def get_EDM(pdbid):
         except urllib2.URLError, e:
             print e
             tries +=1
+    return None, None
 
 def get_EDS(pdbid):
     """

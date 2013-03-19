@@ -58,7 +58,7 @@ from org.jmol.adapter.smarter import SmarterJmolAdapter
 from org.jmol.api import JmolViewer
 from org.openscience.jmol.app.jmolpanel import AppConsole
 
-VHELIBS_VERSION = "3.0.4"
+VHELIBS_VERSION = "3.0.5"
 TITLE =  "VHELIBS " + VHELIBS_VERSION
 
 #Own stuff
@@ -403,6 +403,9 @@ class StruVa(Runnable):
     def displayEDM(self, atoms, name, color):
         if self.source == 'PDB':
             omapfile, sigma_c = EDS_parser.get_EDM(self.pdbid)
+            if not omapfile:
+                self.console.sendConsoleMessage("EDM unavailable at EDS")
+                return
             self.execute('isosurface %s color %s cutoff %s within %s %s "%s" mesh dots fill translucent 0.3' %\
                         (name, color, sigma_c*float(prefs.get('sigma', '1.0')), prefs.get('edmdistance', '2.1'), atoms, omapfile.replace(os.sep, '/')))
         elif self.source == 'PDB_REDO':
