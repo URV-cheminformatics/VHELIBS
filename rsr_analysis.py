@@ -148,7 +148,7 @@ def parse_binding_site(argtuple):
             dbg("Model not obtained by X-ray crystallography")
             return  (pdbid, "Model not obtained by X-ray crystallography")
         pdbdict, edd_dict = EDS_parser.get_EDS(pdbid)
-        if not pdbdict[pdbid.lower()]:
+        if not edd_dict:
             dbg("No EDS data available for %s, it will be discarded" % pdbid)
             return  (pdbid, "No EDS data available")
         edd_dict['rFree'] = argtuple[1].get('rFree', 0)
