@@ -10,17 +10,14 @@ sys.path.append('__pyclasspath__/pylib')
 if not sys.prefix:
     sys.prefix='.'
 ######One-jar magic#######
-import shutil, tempfile, os
+import os
 
 import csv
 import math
 import time
 from textwrap import dedent
 from sys import exit
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
+
 #Java stuff
 import java
 from java.net import URL, URI
