@@ -58,7 +58,7 @@ from org.jmol.adapter.smarter import SmarterJmolAdapter
 from org.jmol.api import JmolViewer
 from org.openscience.jmol.app.jmolpanel import AppConsole
 
-VHELIBS_VERSION = "3.0.5"
+VHELIBS_VERSION = "3.0.6"
 TITLE =  "VHELIBS " + VHELIBS_VERSION
 
 #Own stuff
@@ -199,7 +199,7 @@ class StruVa(Runnable):
                     checked = prefs.get('bindingsite_edm', False)
                 elif 'exam' in action:
                     checked = prefs.get('coordstoexam_edm', True)
-                later.append(JCheckBox(caction.replace('Toggle', 'EDM for'), prefbool(checked), itemStateChanged=self.updateDisplay))
+                later.append(JCheckBox(caction.replace('Toggle', 'ED for'), prefbool(checked), itemStateChanged=self.updateDisplay))
         #Must first add the checkboxes to the panel, then refrence them
         #Otherwise their selection state is not correctly accessed
         for cb in later:
@@ -404,7 +404,7 @@ class StruVa(Runnable):
         if self.source == 'PDB':
             omapfile, sigma_c = EDS_parser.get_EDM(self.pdbid)
             if not omapfile:
-                self.console.sendConsoleMessage("EDM unavailable at EDS")
+                self.console.sendConsoleMessage("ED unavailable at EDS")
                 return
             self.execute('isosurface %s color %s cutoff %s within %s %s "%s" mesh dots fill translucent 0.3' %\
                         (name, color, sigma_c*float(prefs.get('sigma', '1.0')), prefs.get('edmdistance', '2.1'), atoms, omapfile.replace(os.sep, '/')))
@@ -414,10 +414,10 @@ class StruVa(Runnable):
                 self.execute('isosurface %s color %s sigma %s within %s %s insideout "%s" mesh dots fill translucent 0.3'%\
                         (name, color, float(prefs.get('sigma', '1.0')), prefs.get('edmdistance', '2.1'), atoms, ccp4file.replace(os.sep, '/')))
             else:
-                self.console.sendConsoleMessage("EDM unavailable at %s" % self.source)
+                self.console.sendConsoleMessage("ED unavailable at %s" % self.source)
 
         else:
-            self.console.sendConsoleMessage("Unable to load EDM from %s" % self.source)
+            self.console.sendConsoleMessage("Unable to load ED from %s" % self.source)
 
     def displayBindingSite(self, visible=True):
         if not self.binding_site:
@@ -1196,7 +1196,7 @@ class AboutDialog(object):
         Cereto-Massagué<sup> 1</sup>, María José Ojeda<sup>1</sup>, Robbie P. Joosten<sup>2</sup>,
         Cristina Valls<sup> 1</sup>, Miquel Mulero<sup> 1</sup>, M. Josepa
         Salvado<sup>1</sup>, Anna Arola-Arnal<sup>1</sup>, Lluís Arola<sup>1,
-        3</sup>, Santiago Garcia-Vallvé<sup>1, 3</sup> and Gerard Pujadas<sup>
+        3</sup>, Anastassis Perrakis<sup>2</sup>, Santiago Garcia-Vallvé<sup>1, 3</sup> and Gerard Pujadas<sup>
         1, 3,</sup></small></small></font></font></small></small></p>
         <p style="margin-top: 0.07cm; margin-bottom: 0.09cm;" ><small><small><font face="Helvetica-Light, Arial Unicode MS, sans-serif"><sup>1</sup>Grup
         de Recerca en Nutrigenòmica, Departament de Bioquímica i
@@ -1322,15 +1322,15 @@ class DisplaySettingsDialog(object):
         constraints.gridy = 3
         self.panel.add(JLabel('Color'), constraints)
         constraints.gridy = 4
-        self.panel.add(JLabel('EDM Color'), constraints)
+        self.panel.add(JLabel('ED Color'), constraints)
         constraints.gridy = 5
         constraints.insets = Insets(15,3,3,3)
-        self.panel.add(JLabel(u'EDM Radius (in Å)', toolTipText="Distance within which the Electron Density Map will be showed"), constraints)
+        self.panel.add(JLabel(u'ED Radius (in Å)', toolTipText="Distance within which the Electron Density Map will be showed"), constraints)
         constraints.gridx = 1
         self.edmdistance = JTextField(minimumSize=minimum_size, preferredSize=minimum_size)
         self.panel.add(self.edmdistance, constraints)
         constraints.gridx = 2
-        self.panel.add(JLabel('EDM sigma', toolTipText="Contour level of the Electron Density Map"), constraints)
+        self.panel.add(JLabel('ED sigma', toolTipText="Contour level of the Electron Density Map"), constraints)
         constraints.gridx = 3
         self.sigma = JTextField(minimumSize=minimum_size, preferredSize=minimum_size)
         self.panel.add(self.sigma, constraints)
