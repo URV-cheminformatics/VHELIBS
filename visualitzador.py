@@ -48,7 +48,7 @@ else:
 from swingutils.preferences import getUserPrefs
 from swingutils.dialogs.filechooser import showOpenDialog, SimpleFileFilter
 from swingutils.dialogs.basic import showErrorDialog, showWarningDialog, showMessageDialog
-prefs = getUserPrefs('struva')
+prefs = getUserPrefs('vhelibs')
 
 #Jmol stuff
 from org.jmol.adapter.smarter import SmarterJmolAdapter
