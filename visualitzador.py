@@ -289,7 +289,7 @@ class StruVa(Runnable):
             elif 'exam' in ltext:
                 prefs['coordstoexam'] = checked
                 self.displayCoordsToExam(checked)
-        elif 'edm for' in ltext:
+        elif 'ed for' in ltext:
             checked = event.getStateChange() == ItemEvent.SELECTED
             if 'ligand' in ltext:
                 prefs['ligand_edm'] = checked
