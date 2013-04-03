@@ -745,7 +745,7 @@ class SettingsDialog(object):
                             , 'use_owab': rsr_analysis.CHECK_OWAB
                             , 'use_res': rsr_analysis.CHECK_RESOLUTION
                             , 'use_pdb_redo': False
-                            , 'outputfile':  'vhelibs_analysis_default.csv'
+                            , 'outputfile':  'vhelibs_analysis_default_PDB.csv'
                             , 'editable': False
                             }
                     , 'Default (PDB_REDO)':{
@@ -761,7 +761,7 @@ class SettingsDialog(object):
                             , 'use_owab': False
                             , 'use_res': rsr_analysis.CHECK_RESOLUTION
                             , 'use_pdb_redo': True
-                            , 'outputfile':  'vhelibs_analysis_PDB_REDO_default.csv'
+                            , 'outputfile':  'vhelibs_analysis_default_PDB_REDO.csv'
                             , 'editable': False
                             }
                     ,'Iridium':{
@@ -788,7 +788,7 @@ class SettingsDialog(object):
     def __init__(self, args=['--no-args']):
         self.values = argparser.parse_args(args)
         self.panel = JPanel(GridBagLayout())
-        for k in self.profiles['Default (PDB)']:
+        for k in self.profiles['Default (PDB_REDO)']:
             if k in ('use_owab', 'use_res', 'use_pdb_redo', 'editable'):
                 continue
             else:
@@ -831,7 +831,7 @@ class SettingsDialog(object):
         constraints.gridy += 1
         constraints.gridwidth = 2
         tooltip="Models will be loaded from PDB_REDO instead of the PDB"
-        self.use_pdb_redo = JCheckBox("Use models from PDB_REDO", toolTipText=tooltip, selected=self.profiles['Default (PDB)']['use_pdb_redo'], actionPerformed=self._check_pdbredo_owab)
+        self.use_pdb_redo = JCheckBox("Use models from PDB_REDO", toolTipText=tooltip, selected=self.profiles['Default (PDB_REDO)']['use_pdb_redo'], actionPerformed=self._check_pdbredo_owab)
         self.use_pdb_redo.toolTipText=tooltip
         self.panel.add(self.use_pdb_redo, constraints)
         constraints.gridwidth = 1
@@ -880,7 +880,7 @@ class SettingsDialog(object):
 
         constraints.gridy += 1
         tooltip="Residues and ligands with an occupancy-weighted B-factor (OWAB) above this value will have their score increased by 1"
-        self.owab_cb = JCheckBox('OWAB', toolTipText=tooltip, selected=(self.profiles['Default (PDB)']['max_owab'] != self.values.max_owab) or self.profiles['Default (PDB)']['use_owab'], actionPerformed=self._check_pdbredo_owab)
+        self.owab_cb = JCheckBox('OWAB', toolTipText=tooltip, selected=(self.profiles['Default (PDB_REDO)']['max_owab'] != self.values.max_owab) or self.profiles['Default (PDB_REDO)']['use_owab'], actionPerformed=self._check_pdbredo_owab)
         self.panel.add(self.owab_cb, constraints)
         constraints.gridx += 1
         self.max_owab.toolTipText=tooltip
@@ -889,7 +889,7 @@ class SettingsDialog(object):
 
         constraints.gridy += 1
         tooltip="All residues and ligands from structures with a resolution above this value will have their score increased by 1"
-        self.res_cb = JCheckBox("Resolution limit", toolTipText=tooltip, selected=(self.profiles['Default (PDB)']['max_resolution'] != self.values.max_resolution) or self.profiles['Default (PDB)']['use_res'])
+        self.res_cb = JCheckBox("Resolution limit", toolTipText=tooltip, selected=(self.profiles['Default (PDB_REDO)']['max_resolution'] != self.values.max_resolution) or self.profiles['Default (PDB_REDO)']['use_res'])
         self.panel.add(self.res_cb, constraints)
         constraints.gridx += 1
         self.max_resolution.toolTipText=tooltip
@@ -925,7 +925,7 @@ class SettingsDialog(object):
         constraints.gridy += 1
         constraints.gridwidth = 2
         tooltip="Data will be saved to and loaded from %s" % os.path.join(os.path.expanduser('~'), '.vhelibs_cache')
-        self.use_cache = JCheckBox("Do not download already downloaded files", toolTipText=tooltip, selected=(self.profiles['Default (PDB)']['max_resolution'] != self.values.max_resolution) or self.profiles['Default (PDB)']['use_res'])
+        self.use_cache = JCheckBox("Do not download already downloaded files", toolTipText=tooltip, selected=(self.profiles['Default (PDB_REDO)']['max_resolution'] != self.values.max_resolution) or self.profiles['Default (PDB_REDO)']['use_res'])
         self.use_cache.toolTipText=tooltip
         self.panel.add(self.use_cache, constraints)
         constraints.gridwidth = 1
@@ -957,7 +957,7 @@ class SettingsDialog(object):
         self.diag.setLocationRelativeTo(self.frame)
         self.frame.setUndecorated(True)
         self.diag.pack()
-        self.profilecbb.selectedItem = 'Default (PDB)'
+        self.profilecbb.selectedItem = 'Default (PDB_REDO)'
         #self.load_profile(e=None, profilename='Default (PDB)')
 
     def _check_pdbredo_owab(self, event):
@@ -977,7 +977,7 @@ class SettingsDialog(object):
         if not filename.endswith('.tsv'):
             filename += '.tsv'
         profile = self.profiles[self.profilecbb.selectedItem]
-        for key in self.profiles['Default'].keys():
+        for key in self.profiles['Default (PDB_REDO)'].keys():
             if key not in profile:
                 if key == 'use_owab':
                     profile[key] = self.owab_cb.selected
@@ -1009,7 +1009,7 @@ class SettingsDialog(object):
             self.profilecbb.addItem(profilename)
             self.profilecbb.selectedItem = profilename
 
-    def load_profile(self,e=None, profilename='Default'):
+    def load_profile(self,e=None, profilename='Default (PDB_REDO)'):
         if e and e.actionCommand != u'comboBoxChanged': return
         if e:
             profilename = self.profilecbb.selectedItem
@@ -1017,7 +1017,7 @@ class SettingsDialog(object):
         for k,  v in profile.items():
             if k == 'editable':
                 editable = v
-                for w in self.profiles['Default (PDB)'].keys():
+                for w in self.profiles['Default (PDB_REDO)'].keys():
                     if w == 'editable': continue
                     elif w == 'use_owab':
                         self.owab_cb.enabled = editable
