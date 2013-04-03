@@ -460,8 +460,8 @@ class StruVa(Runnable):
         exam_residues_selection = reslist_to_sel(self.residues_to_exam)
         self.execute(';'.join(['define coords_to_exam (%s)' % exam_residues_selection
         ,'select(coords_to_exam)'
-        ,'wireframe %s' % prefs.get('rewfv', '0.1')
-        ,'spacefill %s' % prefs.get('resfv', '0.2')
+        ,'wireframe %s' % prefs.get('rewfv', '0.2')
+        ,'spacefill %s' % prefs.get('resfv', '0.4')
         ,'color %s' % prefs.get('recolor', 'temperature')
         ,'select none']))
         if prefs.get('coordstoexam_edm', True):
@@ -489,8 +489,8 @@ class StruVa(Runnable):
         ligands_selection = reslist_to_sel(self.ligandresidues)
         self.execute(';'.join(['define svligand (%s)' % ligands_selection
         ,'select(svligand)'
-        ,'wireframe %s' % prefs.get('ligwfv', '0.1')
-        ,'spacefill %s' % prefs.get('ligsfv', '0.2')
+        ,'wireframe %s' % prefs.get('ligwfv', '0.2')
+        ,'spacefill %s' % prefs.get('ligsfv', '0.4')
         ,'color %s' % prefs.get('ligcolor', 'magenta')
         ,'select none'
         ,'center svligand']))
