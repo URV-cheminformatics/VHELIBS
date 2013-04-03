@@ -846,7 +846,7 @@ class SettingsDialog(object):
         constraints.gridx -= 1
 
         constraints.gridy += 1
-        hrsrtooltip="Ligands and binding sites with at least one 'residue' with an RSR above this value will have their score increased by 1"
+        hrsrtooltip="Ligands and residues with an RSR above this value will have their score increased by 1"
         self.panel.add(JLabel('Upper cap for RSR', toolTipText=hrsrtooltip), constraints)
         constraints.gridx += 1
         self.rsr_upper.toolTipText=hrsrtooltip
@@ -854,7 +854,7 @@ class SettingsDialog(object):
         constraints.gridx -= 1
 
         constraints.gridy += 1
-        lrsrtooltip="Ligands and binding sites with a 'residue' with an RSR above this value will have their score increased by 1"
+        lrsrtooltip="Ligands and residues with an RSR above this value will have their score increased by 1"
         self.panel.add(JLabel('Good RSR cap', toolTipText=lrsrtooltip), constraints)
         constraints.gridx += 1
         self.rsr_lower.toolTipText=lrsrtooltip
