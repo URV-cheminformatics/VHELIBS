@@ -55,7 +55,7 @@ from org.jmol.adapter.smarter import SmarterJmolAdapter
 from org.jmol.api import JmolViewer
 from org.openscience.jmol.app.jmolpanel import AppConsole
 
-VHELIBS_VERSION = "3.0.6"
+VHELIBS_VERSION = "3.0.7"
 TITLE =  "VHELIBS " + VHELIBS_VERSION
 
 #Own stuff
@@ -1193,7 +1193,7 @@ class AboutDialog(object):
         Cereto-Massagué<sup> 1</sup>, María José Ojeda<sup>1</sup>, Robbie P. Joosten<sup>2</sup>,
         Cristina Valls<sup> 1</sup>, Miquel Mulero<sup> 1</sup>, M. Josepa
         Salvado<sup>1</sup>, Anna Arola-Arnal<sup>1</sup>, Lluís Arola<sup>1,
-        3</sup>, Anastassis Perrakis<sup>2</sup>, Santiago Garcia-Vallvé<sup>1, 3</sup> and Gerard Pujadas<sup>
+        3</sup>, Santiago Garcia-Vallvé<sup>1, 3</sup> and Gerard Pujadas<sup>
         1, 3,</sup></small></small></font></font></small></small></p>
         <p style="margin-top: 0.07cm; margin-bottom: 0.09cm;" ><small><small><font face="Helvetica-Light, Arial Unicode MS, sans-serif"><sup>1</sup>Grup
         de Recerca en Nutrigenòmica, Departament de Bioquímica i
