@@ -45,6 +45,12 @@ def get_EDM(pdbid):
             return
     return filename
 
+def fix_residue(res):
+    hetid = res[:3].strip()
+    while len(hetid) < 3:
+        hetid += " "
+    return hetid + res[3:]
+
 def get_ED_data(pdbid):
     """
     Extract data from PDB_REDO site for a given PDB code
@@ -96,9 +102,13 @@ def get_ED_data(pdbid):
         rsr = row[1]
         rscc = row[3]
         #ngrid = row[4]
-        edd_dict[residue] = {"RSR":float(rsr) if rsr.strip() else 100
+        d = {"RSR":float(rsr) if rsr.strip() else 100
                              ,"RSCC": float(rscc) if rscc.strip() else 0
                              }
+        edd_dict[residue] = d
+        fresidue = fix_residue(residue)
+        if residue != fresidue:
+            edd_dict[fresidue] = d
     edfile.close()
     return edd_dict
 
