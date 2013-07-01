@@ -296,6 +296,7 @@ def classificate_residue(residue, edd_dict, good_rsr, dubious_rsr, bad_rsr):
     residue_dict = edd_dict.get(residue, None)
     if not residue_dict:
         bad_rsr.add(residue)
+        dbg("No data for %s" % residue)
         return 0
     rscc = residue_dict['RSCC']
     if RSCC_min > rscc:
@@ -328,6 +329,7 @@ def classificate_residue(residue, edd_dict, good_rsr, dubious_rsr, bad_rsr):
         bad_rsr.add(residue)
     else:
         dubious_rsr.add(residue)
+    dbg("%s: %s" %(residue, score))
     return 0
 
 def group_ligands(ligand_residues, links):
@@ -443,7 +445,7 @@ def get_binding_site(ligand, good_rsr, bad_rsr, dubious_rsr, pdbid, res_atom_dic
                 residue_dict['occupancy'] = average_occ(resatoms)
             else:
                 dbg("No data available for %s!" % res)
-                print res in ligand_res_atom_dict
+                dbg(res) in ligand_res_atom_dict
                 residue_dict['occupancy'] = 0
         classificate_residue(res, edd_dict, good_rsr, dubious_rsr, bad_rsr)
     rte = inner_binding_site.union(ligand).difference(good_rsr)
