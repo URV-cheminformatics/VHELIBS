@@ -107,6 +107,7 @@ def get_pdbredo_data(pdbids=[]):
     alldatapath = os.path.join(PDBfiles.CACHEDIR, os.path.basename(ALLDATA_URL))
     #if not os.path.isfile(alldatapath): #Download
     tries = 3
+    dateformat = " on %a, %d %b %Y %H:%M:%S "
     while tries > 0:
         tries -= 1
         if sys.platform.startswith('java'):
@@ -121,7 +122,7 @@ def get_pdbredo_data(pdbids=[]):
                 for line in alldata:
                     n +=1
                     if n == 8:
-                        olddate = datetime.datetime.strptime(line.split('+')[0], "Created on %a, %d %b %Y %H:%M:%S ")
+                        olddate = datetime.datetime.strptime(line.split('+')[0].split("Created")[1], dateformat)
                 alldata.close()
             rfh = urllib2.urlopen(ALLDATA_URL)
             n = 0
@@ -133,7 +134,7 @@ def get_pdbredo_data(pdbids=[]):
                 firstlines += line
                 n +=1
                 if n == 8:
-                    newdate = datetime.datetime.strptime(line.split('+')[0], "Created on %a, %d %b %Y %H:%M:%S ")
+                    newdate = datetime.datetime.strptime(line.split('+')[0].split("Created")[1], dateformat)
                     if newdate <= olddate:
                         print "%s is up to date (%s)" % (alldatapath, olddate.__str__())
                         CACHE_EXPIRED = False
