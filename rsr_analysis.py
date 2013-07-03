@@ -612,7 +612,3 @@ def main(values):
     pool.terminate()
     pool.join()
     return datawritten
-
-if __name__ == "__main__":
-    r = parse_binding_site(('3dzu', 0.4, 0.24))
-    print r
