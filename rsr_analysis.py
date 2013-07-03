@@ -437,21 +437,28 @@ def get_binding_site(ligand, good_rsr, bad_rsr, dubious_rsr, pdbid, res_atom_dic
                             inner_binding_site.add(lres)
                             #classificate_residue(lres, edd_dict, good_rsr, dubious_rsr, bad_rsr)
                             break
+    bad_occupancy = [ligres for ligres in ligand if edd_dict.get(ligres, {'occupancy':0})['occupancy'] < 1]
     for res in inner_binding_site:
         residue_dict = edd_dict.get(res, None)
         resatoms = res_atom_dict.get(res, None)
         if residue_dict and resatoms:
             if resatoms:
-                residue_dict['occupancy'] = average_occ(resatoms)
+                occ = average_occ(resatoms)
+                residue_dict['occupancy'] = occ
+                if occ < 1:
+                    bad_occupancy.append(res)
             else:
                 dbg("No data available for %s!" % res)
                 dbg(res) in ligand_res_atom_dict
                 residue_dict['occupancy'] = 0
+                bad_occupancy.append(res)
+        else:
+            bad_occupancy.append(res)
         classificate_residue(res, edd_dict, good_rsr, dubious_rsr, bad_rsr)
     rte = inner_binding_site.union(ligand).difference(good_rsr)
     ligandgood = validate(ligand, good_rsr, bad_rsr, dubious_rsr, pdbid)
     bsgood = validate(inner_binding_site, good_rsr, bad_rsr, dubious_rsr, pdbid)
-    return ligand, inner_binding_site, rte, ligandgood, bsgood
+    return ligand, inner_binding_site, rte, ligandgood, bsgood, bad_occupancy
 
 def validate(residues, good_rsr, bad_rsr, dubious_rsr, pdbid):
     if residues <= good_rsr:
@@ -478,6 +485,11 @@ def results_to_csv(results, outputfile):
     """
     outfile = open(outputfile, 'wb')
     rejectedfile = open(os.path.splitext(outputfile)[0] + '_rejected.txt', 'w')
+    badoc_fn = os.path.splitext(outputfile)[0] + '_low_occupancy.txt'
+    badoc_file = open(badoc_fn, 'w')
+    badoc_w = csv.writer(badoc_file, delimiter="\t")
+    badoc_w.writerow(['Binding Site', 'Low Occupancy Residues'])
+    erase_badoc = True
     csvfile = csv.writer(outfile)
     csvfile.writerow(titles)
     dbg('Calculating...')
@@ -494,7 +506,7 @@ def results_to_csv(results, outputfile):
                 resname = nonligand[:3].strip()
                 line = '%s:\t%s %s\n' %(pdbid, nonligand, notligands[nonligand])
                 rejectedfile.write( line)
-            for ligandresidues, binding_site, residues_to_exam, ligandgood, bsgood in ligand_bs_list:
+            for ligandresidues, binding_site, residues_to_exam, ligandgood, bsgood, bad_occupancy in ligand_bs_list:
                 id = pdbid
                 if not ligandresidues:
                     dbg('%s has no actual ligands, it will be discarded' % pdbid)
@@ -506,6 +518,12 @@ def results_to_csv(results, outputfile):
                     csvfile.writerow([id, ';'.join(residues_to_exam), ';'.join(ligandresidues),';'.join(binding_site), ligandgood, bsgood, source])
                     outfile.flush()
                     datawritten = bool(outputfile)
+                    if bad_occupancy:
+                        erase_badoc = False
+                        badoc_w.writerow([id + '|' + list(ligandresidues)[0], ';'.join(bad_occupancy)])
+    badoc_file.close()
+    if erase_badoc and os.path.isfile(badoc_fn):
+        os.remove(badoc_fn)
     outfile.close()
     rejectedfile.close()
     if not datawritten:
