@@ -11,6 +11,7 @@ else:
 import PDBfiles
 
 PDB_REDO_ed_data_url_tmpl = "http://www.cmbi.ru.nl/pdb_redo/MIDDLE/PDBID/PDBID_final.eds"
+PDB_REDO_edm_url_tmpl = "http://www.cmbi.ru.nl/pdb_redo/cgi-bin/map.pl?id=PDBID"
 ALLDATA_URL = "http://www.cmbi.ru.nl/pdb_redo/others/alldata.txt"
 CACHE_EXPIRED = True
 
@@ -20,8 +21,8 @@ def get_EDM(pdbid):
     downloaddir = os.path.join(PDBfiles.CACHEDIR, pdbid.lower())
     if not os.path.isdir(downloaddir):
         os.makedirs(downloaddir)
-    url = PDB_REDO_ed_data_url_tmpl.replace('MIDDLE', pdbid[1:3]).replace('PDBID', pdbid).replace('.eds', '_model.ccp4.gz')
-    filename = os.path.join(downloaddir, os.path.basename(url))
+    url = PDB_REDO_edm_url_tmpl.replace('PDBID', pdbid)
+    filename = os.path.join(downloaddir, pdbid + "_final.cpp4")
     if not os.path.isfile(filename): #Download
         print "Downloading %s" % url
         tries = 3
