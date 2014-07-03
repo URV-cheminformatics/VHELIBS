@@ -129,22 +129,19 @@ def get_pdbredo_data(pdbids=[]):
             olddate = datetime.datetime(1,1,1)
             if os.path.isfile(alldatapath):
                 alldata = open(alldatapath, 'r')
-                n = 0
                 for line in alldata:
-                    n +=1
-                    if n == 8:
+                    if "Created on" in line:
                         olddate = datetime.datetime.strptime(line.split('+')[0].split("Created")[1], dateformat)
+                        break
                 alldata.close()
             rfh = urllib2.urlopen(ALLDATA_URL)
-            n = 0
             firstlines = ''
             for line in rfh:
                 if download:
                     alldata.write(line)
                     continue
                 firstlines += line
-                n +=1
-                if n == 8:
+                if not download and "Created on" in line:
                     newdate = datetime.datetime.strptime(line.split('+')[0].split("Created")[1], dateformat)
                     if newdate <= olddate:
                         print "%s is up to date (%s)" % (alldatapath, olddate.__str__())
