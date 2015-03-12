@@ -28,11 +28,15 @@ PDB_REDO = False
 CHECK_OWAB = False
 OWAB_max = 50
 CHECK_RESOLUTION = False
+USE_DPI = False
+USE_RDIFF = False
 RESOLUTION_max = 3.5
 RSR_upper = 0.4
 RSR_lower = 0.24
 RSCC_min = 0.9
 RFREE_min = 0
+RDIFF_max = 0.05
+DPI_max = 0.42
 OCCUPANCY_min = 1.0
 TOLERANCE = 2
 inner_distance = 4.5**2
@@ -49,6 +53,8 @@ parser.add_argument('-b','--max_owab', type=float, default=None, metavar='FLOAT'
 parser.add_argument('-R','--min_rscc', type=float, default=RSCC_min, metavar='FLOAT', help='set minimum RSCC per residue')
 parser.add_argument('-O','--min_occupancy', type=float, default=OCCUPANCY_min, metavar='FLOAT', help='set minimum average occupancy per residue')
 parser.add_argument('-F','--min_rfree', type=float, default=RFREE_min, metavar='FLOAT', help='set minimum R-free for the structure')
+parser.add_argument('-M','--max_rdiff', type=float, default=None, metavar='FLOAT', help='maximum difference between R and R-free, to avoid overfit models')
+parser.add_argument('-D','--max_DPI', type=float, default=None, metavar='FLOAT', help='maximum model DPI')
 parser.add_argument('-r','--max_resolution', type=float, default=None, metavar='FLOAT', help='set maximum resolution (in Å) below which to consider Good models')
 parser.add_argument('-T','--tolerance', type=int, default=TOLERANCE, metavar='INT', help='set maximum number of non-met criteria of Dubious structures')
 parser.add_argument('-d','--distance', type=float, default=math.sqrt(inner_distance), metavar='Å', help='consider part of the binding sites all the residues nearer than this to the ligand (in Å)')
@@ -151,9 +157,9 @@ def parse_binding_site(argtuple):
         edd_dict = pdb_redo.get_ED_data(pdbid)
         if not edd_dict:
             return  (pdbid, "Not in PDB_REDO")
-        edd_dict['rFree'] = float(argtuple[1].get('RFFIN', '0'))
-        resolution = float(argtuple[1].get('RESOLUTION', '0'))
-        edd_dict['Resolution'] = resolution
+        edd_dict['rFree'] = float(argtuple[1].get('RFFIN', 0))
+        edd_dict['rWork'] = float(argtuple[1].get('RFIN', 0))
+        resolution = float(argtuple[1].get('RESOLUTION', 0))
     else:
         if not argtuple[1]:
             dbg("Model not obtained by X-ray crystallography")
@@ -163,7 +169,12 @@ def parse_binding_site(argtuple):
             dbg("No EDS data available for %s, it will be discarded" % pdbid)
             return  (pdbid, "No EDS data available")
         edd_dict['rFree'] = argtuple[1].get('rFree', 0)
-        resolution = 0 if CHECK_RESOLUTION else 1714
+        edd_dict['rWork'] = argtuple[1].get('rWork', 0)
+        resolution = argtuple[1].get('refinementResolution', 0) if CHECK_RESOLUTION else 1714
+    edd_dict['Resolution'] = resolution
+    if USE_RDIFF:
+        Rdiff = edd_dict['rWork'] - edd_dict['rFree']
+        edd_dict['Rdiff'] = Rdiff
 #    for key, value in argtuple[1].items():
 #        edd_dict[key] = value
     pdbfilepath = PDBfiles.get_pdb_file(pdbid.upper(), PDB_REDO)
@@ -204,13 +215,13 @@ def parse_binding_site(argtuple):
                     dbg("bogus LINK distance")
                     dist = 1714 #Distance will be calculated when looking for the binding site
                 links.append((line[17:27],  line[47:57], float(dist))) #distance
-            elif resolution == 0 and label == 'REMARK':
-                if line[9] == '2' and len(line) > 10:
-                    try:
-                        resolution = float(line[23:30])
-                        edd_dict['Resolution'] = resolution
-                    except ValueError:
-                        return  (pdbid, "resolution not found")
+#            elif resolution == 0 and label == 'REMARK':
+#                if line[9] == '2' and len(line) > 10:
+#                    try:
+#                        resolution = float(line[23:30])
+#                        edd_dict['Resolution'] = resolution
+#                    except ValueError:
+#                        return  (pdbid, "resolution not found")
     except IOError, error:
         dbg(pdbfilepath)
         dbg(error)
@@ -327,8 +338,16 @@ def classificate_residue(residue, edd_dict, good_rsr, dubious_rsr, bad_rsr):
     if rFree < RFREE_min:
         score += 1
     if CHECK_RESOLUTION:
-        resolution = edd_dict.get('Resolution', 0)
+        resolution = edd_dict.get('Resolution', 1)
         if resolution > RESOLUTION_max:
+            score += 1
+    if USE_RDIFF:
+        Rdiff = edd_dict.get('Rdiff', 1)
+        if Rdiff > RDIFF_max:
+            score += 1
+    if USE_DPI:
+        DPI = edd_dict.get('DPI', 1)
+        if DPI > DPI_max:
             score += 1
     if rsr > RSR_lower:
         score += 1
@@ -544,6 +563,7 @@ def results_to_csv(results, outputfile):
 def main(values):
     global CHECK_OWAB, OWAB_max, CHECK_RESOLUTION, RESOLUTION_max, RSCC_min, TOLERANCE
     global RSR_upper, RSR_lower, RFREE_min, OCCUPANCY_min, PDB_REDO
+    global USE_DPI, USE_RDIFF, RDIFF_max, DPI_max
     filepath =  values.pdbidfile
     if not values.max_owab is None:
         CHECK_OWAB = True
@@ -570,6 +590,12 @@ def main(values):
     if not values.max_resolution is None:
         CHECK_RESOLUTION = True
         RESOLUTION_max = values.max_resolution
+    if not values.max_rdiff is None:
+        USE_RDIFF = True
+        RDIFF_max = values.max_rdiff
+    if not values.max_DPI is None:
+        USE_DPI = True
+        DPI_max = values.max_DPI
     if values.use_cache:
         dbg('Using cache')
         cachedir = os.path.join(os.path.expanduser('~'), '.vhelibs_cache')

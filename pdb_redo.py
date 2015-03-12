@@ -2,12 +2,9 @@
 #
 #   Copyright 2013 Adrià Cereto Massagué <adrian.cereto@.urv.cat>
 #
-import urllib2, sys, os, time, csv, datetime, bz2
+import urllib2, sys, os, time, csv, datetime
 if sys.platform.startswith('java'):
-    import multithreading as multiprocessing
     from java.util import Locale
-else:
-    import multiprocessing
 import PDBfiles
 
 PDB_REDO_ed_data_url_tmpl = "http://www.cmbi.ru.nl/pdb_redo/MIDDLE/PDBID/PDBID_final.eds"
@@ -83,7 +80,7 @@ def get_ED_data(pdbid):
             print "Unable to download %s" % url
             print e
             return
-    pdbdict={pdbid:None}
+    #pdbdict={pdbid:None}
     edd_dict = {}
     edfile = open(filename, 'r')
     header = []
@@ -174,8 +171,16 @@ def get_pdbredo_data(pdbids=[]):
     #lines[11:111] are the columns explained
         #We need columns:
         #0   PDBID
+        #14  RFIN
         #15  RFFIN
         #62  RESOLUTION
+        # 65  NREFCNT    Number of reflections
+        # 70  AAXIS      Length of cell axis a
+        # 71  BAXIS      Length of cell axis b
+        # 72  CAXIS      Length of cell axis c
+        # 73  ALPHA      Cell angle alpha
+        # 74  BETA       Cell angle beta
+        # 75  GAMMA      Cell angle gamma
     #lines[112] == '#START DATA'
     #lines[113] are the column headers
     #here the data [114:-3]
@@ -194,8 +199,8 @@ def get_pdbredo_data(pdbids=[]):
                     continue
                 datadict = {}
                 #for i in xrange(1, len(row)):
-                for i in (15, 62):
-                    datadict[header[i]] = row[i]
+                for i in (14, 15, 62, 65, 70, 71, 72, 73, 74, 75):
+                    datadict[header[i]] = float(row[i]) if row[i].strip() else 0
                 parseddata[row[0].upper()] = datadict
             elif data_started == 1:
                 data_started = 2
