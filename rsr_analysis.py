@@ -88,6 +88,13 @@ QUERY_TPL = "?pdbids=%s&customReportColumns={}&service=wsfile&format=csv".format
 def average_occ(residue_atoms):
     return sum([atom.occupancy for atom in residue_atoms])/len(residue_atoms)
 
+def dpi(a, b, c, alpha, beta, gamma, natoms, reflections, rfree):
+    cosa = math.cos(alpha)
+    cosb = math.cos(beta)
+    cosg = math.cos(gamma)
+    V = a*b*c*math.sqrt(1-cosa**2-cosb**2-cosg**2 + 2*cosa*cosb*cosg)
+    return 1.28*(natoms**(1.0/2))*(V**(1.0/3))*(reflections**(-5.0/6))*rfree
+
 def get_custom_report(pdbids_list):
     urlstring = SERVICELOCATION + QUERY_TPL % ','.join(pdbids_list)
     with contextlib.closing(urllib2.urlopen(urlstring)) as urlhandler:
@@ -157,9 +164,17 @@ def parse_binding_site(argtuple):
         edd_dict = pdb_redo.get_ED_data(pdbid)
         if not edd_dict:
             return  (pdbid, "Not in PDB_REDO")
-        edd_dict['rFree'] = float(argtuple[1].get('RFFIN', 0))
-        edd_dict['rWork'] = float(argtuple[1].get('RFIN', 0))
-        resolution = float(argtuple[1].get('RESOLUTION', 0))
+        edd_dict['rFree'] = argtuple[1].get('RFFIN', 0)
+        edd_dict['rWork'] = argtuple[1].get('RFIN', 0)
+        if USE_DPI:
+            reflections = float(argtuple[1].get('NREFCNT', 0))
+            a = argtuple[1].get('AAXIS', 0)
+            b = argtuple[1].get('BAXIS', 0)
+            c = argtuple[1].get('CAXIS', 0)
+            alpha = argtuple[1].get('ALPHA', 0)
+            beta = argtuple[1].get('BETA', 0)
+            gamma = argtuple[1].get('GAMMA', 0)
+        resolution = argtuple[1].get('RESOLUTION', 0)
     else:
         if not argtuple[1]:
             dbg("Model not obtained by X-ray crystallography")
@@ -170,6 +185,13 @@ def parse_binding_site(argtuple):
             return  (pdbid, "No EDS data available")
         edd_dict['rFree'] = argtuple[1].get('rFree', 0)
         edd_dict['rWork'] = argtuple[1].get('rWork', 0)
+        if USE_DPI:
+            a = argtuple[1].get('lengthOfUnitCellLatticeA', 0)
+            b = argtuple[1].get('lengthOfUnitCellLatticeB', 0)
+            c = argtuple[1].get('lengthOfUnitCellLatticeC', 0)
+            alpha = argtuple[1].get('unitCellAngleAlpha', 0)
+            beta = argtuple[1].get('unitCellAngleBeta', 0)
+            gamma = argtuple[1].get('unitCellAngleGamma', 0)
         resolution = argtuple[1].get('refinementResolution', 0) if CHECK_RESOLUTION else 1714
     edd_dict['Resolution'] = resolution
     if USE_RDIFF:
@@ -178,6 +200,7 @@ def parse_binding_site(argtuple):
 #    for key, value in argtuple[1].items():
 #        edd_dict[key] = value
     pdbfilepath = PDBfiles.get_pdb_file(pdbid.upper(), PDB_REDO)
+    natoms = 0
     if pdbfilepath.endswith('.gz'):
         pdbfile = gzip.GzipFile(pdbfilepath)
     else:
@@ -189,6 +212,8 @@ def parse_binding_site(argtuple):
             label = line[:6].strip()
             if label in ("ATOM", "HETATM"):
                 atom = PdbAtom(line)
+                if atom.occupancy == 1.0:
+                    natoms += 1
                 if label == "ATOM" and inner_distance: #Don't care about protein when distance = 0
                     try:
                         res_atom_dict[atom.residue].add(atom)
@@ -215,13 +240,12 @@ def parse_binding_site(argtuple):
                     dbg("bogus LINK distance")
                     dist = 1714 #Distance will be calculated when looking for the binding site
                 links.append((line[17:27],  line[47:57], float(dist))) #distance
-#            elif resolution == 0 and label == 'REMARK':
-#                if line[9] == '2' and len(line) > 10:
-#                    try:
-#                        resolution = float(line[23:30])
-#                        edd_dict['Resolution'] = resolution
-#                    except ValueError:
-#                        return  (pdbid, "resolution not found")
+            elif USE_DPI and label == 'REMARK':
+                if line[9] == '3' and "NUMBER OF REFLECTIONS" in line:
+                    try:
+                        reflections = int(line.split(":")[1].strip())
+                    except ValueError:
+                        return  (pdbid, "number of reflections")
     except IOError, error:
         dbg(pdbfilepath)
         dbg(error)
@@ -229,6 +253,9 @@ def parse_binding_site(argtuple):
         pdbfile.close()
         if error:
             return  (pdbid, str(error))
+    if USE_DPI:
+        edd_dict["DPI"] = dpi(a, b, c, alpha, beta, gamma, natoms, reflections, edd_dict["rFree"])
+        print "DPI is {}".format(edd_dict["DPI"])
     #Now let's prune covalently bound ligands
     alllinksparsed = False
     while not alllinksparsed:
@@ -277,13 +304,6 @@ def parse_binding_site(argtuple):
         dbg('%s has no ligands!' % pdbid)
         return (pdbid, "no ligands found")
     ligands = group_ligands(ligand_residues, links)
-    #ligands_res = set()
-#    for ligand in ligands:
-#        ligands_res.update(ligand)
-#    ligdiff = ligand_residues.difference(ligands_res)
-#    if ligdiff:
-#        dbg("!!!Ligand residues without ligand:")
-#        dbg("\n".join(ligdiff))
     for ligand in ligands:
         for res in ligand:
             residue_dict = edd_dict.get(res, None)
