@@ -3,7 +3,7 @@
 #
 #   Copyright 2011 - 2013 Adrià Cereto Massagué <adrian.cereto@.urv.cat>
 #
-import os, gzip, sys, urllib2, csv, itertools, math
+import os, gzip, sys, urllib2, csv, itertools, math, contextlib
 try:
     if sys.platform.startswith('java'):
         import java
@@ -11,7 +11,6 @@ try:
         import multithreading as multiprocessing
         #Load optimized java version
         import PdbAtomJava as PdbAtom
-        from sys import exit
     else:
         java = None
         #CPython
@@ -66,27 +65,39 @@ def dbg(string):
     return 0
 
 SERVICELOCATION="http://www.rcsb.org/pdb/rest/customReport"
-QUERY_TPL = "?pdbids=%s&customReportColumns=experimentalTechnique,rFree&service=wsfile&format=csv"
+columns = [
+"experimentalTechnique"
+,"rFree"
+,"rWork"
+,"refinementResolution"
+,"unitCellAngleAlpha"
+,"unitCellAngleBeta"
+,"unitCellAngleGamma"
+,"lengthOfUnitCellLatticeA"
+,"lengthOfUnitCellLatticeB"
+,"lengthOfUnitCellLatticeC"
+]
+QUERY_TPL = "?pdbids=%s&customReportColumns={}&service=wsfile&format=csv".format(",".join(columns))
 
 def average_occ(residue_atoms):
     return sum([atom.occupancy for atom in residue_atoms])/len(residue_atoms)
 
 def get_custom_report(pdbids_list):
     urlstring = SERVICELOCATION + QUERY_TPL % ','.join(pdbids_list)
-    urlhandler = urllib2.urlopen(urlstring)
-    if urlhandler.code != 200:
-        print urlhandler.msg
-        raise IOError(urlhandler.msg)
-    reader = csv.reader(urlhandler)
-    result = {}
-    header = reader.next()
-    rowlen = len(header)
-    for row in reader:
-        rowdict = {}
-        if row[1] == "X-RAY DIFFRACTION":
-            rowdict['rFree'] = float(row[2]) if row[2] else 0
-        result[row[0]] = rowdict
-    urlhandler.close()
+    with contextlib.closing(urllib2.urlopen(urlstring)) as urlhandler:
+        if urlhandler.code != 200:
+            print urlhandler.msg
+            raise IOError(urlhandler.msg)
+        reader = csv.reader(urlhandler)
+        result = {}
+        reader.next()
+        for row in reader:
+            rowdict = {}
+            if row[1] == "X-RAY DIFFRACTION":
+                for n, column in enumerate(columns[1:]):
+                    n2 = n+2
+                    rowdict[column] = float(row[n2]) if row[n2] else 0
+            result[row[0]] = rowdict
     return result
 
 def get_sptopdb_dict():
@@ -255,7 +266,7 @@ def parse_binding_site(argtuple):
         dbg('%s has no ligands!' % pdbid)
         return (pdbid, "no ligands found")
     ligands = group_ligands(ligand_residues, links)
-    ligands_res = set()
+    #ligands_res = set()
 #    for ligand in ligands:
 #        ligands_res.update(ligand)
 #    ligdiff = ligand_residues.difference(ligands_res)
@@ -370,7 +381,7 @@ def group_ligands(ligand_residues, links):
 
     for lres in ligand_residues:
         for ligand in ligands:
-            present = False
+            #present = False
             if lres in ligand:
                 break
         else:
@@ -503,7 +514,7 @@ def results_to_csv(results, outputfile):
         elif restuplelen == 3:
             pdbid, ligand_bs_list, notligands = restuple
             for nonligand in notligands:
-                resname = nonligand[:3].strip()
+#                resname = nonligand[:3].strip()
                 line = '%s:\t%s %s\n' %(pdbid, nonligand, notligands[nonligand])
                 rejectedfile.write( line)
             for ligandresidues, binding_site, residues_to_exam, ligandgood, bsgood, bad_occupancy in ligand_bs_list:
@@ -595,8 +606,8 @@ def main(values):
         maxn = 1595
         if npdbs > maxn:
             pdbids_extra_data_dict = {}
-            steps = npdbs / maxn
-            remnant = npdbs % maxn
+#            steps = npdbs / maxn
+#            remnant = npdbs % maxn
             p = multiprocessing.Pool(multiprocessing.cpu_count())
             for d in p.imap(get_custom_report, [pdblist[i:i+maxn] for i in xrange(0, npdbs, maxn)]):
                 pdbids_extra_data_dict.update(d)
@@ -612,3 +623,6 @@ def main(values):
     pool.terminate()
     pool.join()
     return datawritten
+
+if __name__ == "__main__":
+    main(parser.parse_args(sys.argv[1:]))
