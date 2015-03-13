@@ -1,7 +1,7 @@
 #/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-#   Copyright 2011 - 2013 Adrià Cereto Massagué <adrian.cereto@.urv.cat>
+#   Copyright 2011 - 2015 Adrià Cereto Massagué <adrian.cereto@.urv.cat>
 #
 import os, gzip, sys, urllib2, csv, itertools, math, contextlib
 try:
@@ -193,7 +193,8 @@ def parse_binding_site(argtuple):
             beta = argtuple[1].get('unitCellAngleBeta', 0)
             gamma = argtuple[1].get('unitCellAngleGamma', 0)
         resolution = argtuple[1].get('refinementResolution', 0) if CHECK_RESOLUTION else 1714
-    edd_dict['Resolution'] = resolution
+    if CHECK_RESOLUTION:
+        edd_dict['Resolution'] = resolution
     if USE_RDIFF:
         Rdiff = edd_dict['rWork'] - edd_dict['rFree']
         edd_dict['Rdiff'] = Rdiff

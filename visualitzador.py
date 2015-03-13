@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-#   Copyright 2012, 2013 Adrià Cereto Massagué <adrian.cereto@.urv.cat>
+#   Copyright 2012 - 2015 Adrià Cereto Massagué <adrian.cereto@.urv.cat>
 #
 
 #Python stuff

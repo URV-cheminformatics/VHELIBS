@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-#   Copyright 2013 Adrià Cereto Massagué <adrian.cereto@.urv.cat>
+#   Copyright 2013-2015 Adrià Cereto Massagué <adrian.cereto@.urv.cat>
 #
 import urllib2, sys, os, time, csv, datetime
 if sys.platform.startswith('java'):
