@@ -91,10 +91,23 @@ def average_occ(residue_atoms):
     return sum([atom.occupancy for atom in residue_atoms])/len(residue_atoms)
 
 def dpi(a, b, c, alpha, beta, gamma, natoms, reflections, rfree):
-    cosa = math.cos(alpha)
-    cosb = math.cos(beta)
-    cosg = math.cos(gamma)
+    dbg("a={}".format(a))
+    dbg("b={}".format(b))
+    dbg("c={}".format(c))
+    dbg("alpha={}".format(alpha))
+    dbg("beta={}".format(beta))
+    dbg("gamma={}".format(gamma))
+    cosa = math.cos(math.radians(alpha))
+    dbg("cosa={}".format(cosa))
+    cosb = math.cos(math.radians(beta))
+    dbg("cosb={}".format(cosb))
+    cosg = math.cos(math.radians(gamma))
+    dbg("cosg={}".format(cosg))
     V = a*b*c*math.sqrt(1-cosa**2-cosb**2-cosg**2 + 2*cosa*cosb*cosg)
+    dbg("V={}".format(V))
+    dbg("reflections={}".format(reflections))
+    dbg("natoms={}".format(natoms))
+    dbg("rfree={}".format(rfree))
     return 1.28*(natoms**(1.0/2))*(V**(1.0/3))*(reflections**(-5.0/6))*rfree
 
 def get_custom_report(pdbids_list):
