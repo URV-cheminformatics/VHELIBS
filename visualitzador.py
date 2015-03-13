@@ -1135,9 +1135,9 @@ class SettingsDialog(object):
 
 class WaitDialog(Runnable):
     def __init__(self, parent=None, info=None, modal=False):
-        self.info = info if info else '<html>Calculating binding sites and retrieving relevant data<br /> Please be patient</html>'
+        self.info = info or '<html>Calculating binding sites and retrieving relevant data<br /> Please be patient</html>'
         i = UIManager.getIcon("OptionPane.informationIcon")
-        self.icon = JLabel(i) if i is not None else JLabel(_infoicon)
+        self.icon = JLabel(i or _infoicon)
         self.frame =  JFrame(iconImage=vhelibsicon)
         self.panel = JPanel()
         self.panel.add(self.icon)

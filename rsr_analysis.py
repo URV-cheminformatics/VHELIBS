@@ -109,7 +109,7 @@ def get_custom_report(pdbids_list):
             if row[1] == "X-RAY DIFFRACTION":
                 for n, column in enumerate(columns[1:]):
                     n2 = n+2
-                    rowdict[column] = float(row[n2]) if row[n2] else 0
+                    rowdict[column] = float(row[n2] or 0)
             result[row[0]] = rowdict
     return result
 

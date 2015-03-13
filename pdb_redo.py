@@ -100,8 +100,8 @@ def get_ED_data(pdbid):
         rsr = row[1]
         rscc = row[3]
         #ngrid = row[4]
-        d = {"RSR":float(rsr) if rsr.strip() else 100
-                             ,"RSCC": float(rscc) if rscc.strip() else 0
+        d = {"RSR":float(rsr.strip() or 100)
+                             ,"RSCC": float(rscc.strip() or 0)
                              }
         edd_dict[residue] = d
         fresidue = fix_residue(residue)
@@ -200,7 +200,7 @@ def get_pdbredo_data(pdbids=[]):
                 datadict = {}
                 #for i in xrange(1, len(row)):
                 for i in (14, 15, 62, 65, 70, 71, 72, 73, 74, 75):
-                    datadict[header[i]] = float(row[i]) if row[i].strip() else 0
+                    datadict[header[i]] = float(row[i].strip() or 0)
                 parseddata[row[0].upper()] = datadict
             elif data_started == 1:
                 data_started = 2
