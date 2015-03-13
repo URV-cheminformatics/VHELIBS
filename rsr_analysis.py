@@ -64,11 +64,13 @@ parser.add_argument('-w','--writeexcludes', metavar='PATH', type=unicode, defaul
 parser.add_argument('-e','--excludesfile', metavar='PATH', type=unicode, default=None, required=False, help='Override excluded HET ids with the ones provided in this file')
 parser.add_argument('-C','--use-cache', required=False, action='store_true', help="Use cached EDS and PDB data if available for the analysis, otherwise cache it.")
 parser.add_argument('-P','--use-pdb-redo', required=False, action='store_true', help="Use models from PDB_REDO instead of PDB.")
+parser.add_argument('-V','--verbose', required=False, action='store_true', help="Enable verbose output.")
 #######################
 
 def dbg(string):
     print(string)
-    return 0
+
+def dummy(*args): pass
 
 SERVICELOCATION="http://www.rcsb.org/pdb/rest/customReport"
 columns = [
@@ -256,7 +258,7 @@ def parse_binding_site(argtuple):
             return  (pdbid, str(error))
     if USE_DPI:
         edd_dict["DPI"] = dpi(a, b, c, alpha, beta, gamma, natoms, reflections, edd_dict["rFree"])
-        print "DPI is {}".format(edd_dict["DPI"])
+        dbg("DPI is {}".format(edd_dict["DPI"]))
     #Now let's prune covalently bound ligands
     alllinksparsed = False
     while not alllinksparsed:
@@ -579,13 +581,18 @@ def results_to_csv(results, outputfile):
     rejectedfile.close()
     if not datawritten:
         os.remove(outputfile)
+    else:
+        print "Results written to {}".format(outputfile)
     return datawritten
 
 def main(values):
     global CHECK_OWAB, OWAB_max, CHECK_RESOLUTION, RESOLUTION_max, RSCC_min, TOLERANCE
     global RSR_upper, RSR_lower, RFREE_min, OCCUPANCY_min, PDB_REDO
     global USE_DPI, USE_RDIFF, RDIFF_max, DPI_max
+    global dbg
     filepath =  values.pdbidfile
+    if not values.verbose:
+        dbg = dummy
     if not values.max_owab is None:
         CHECK_OWAB = True
         OWAB_max = values.max_owab
