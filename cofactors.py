@@ -245,7 +245,6 @@ ligand_blacklist = {
 , 'XCT': 'DNA linking'
 , 'XGU': 'DNA linking'
 , 'XTH': 'DNA linking'
-, 'BEN': 'Imported from Twilight'
 , 'PG0': 'Imported from Twilight'
 , 'ETX': 'Imported from Twilight'
 , 'P4C': 'Imported from Twilight'
