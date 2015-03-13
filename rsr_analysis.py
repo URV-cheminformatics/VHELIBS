@@ -173,14 +173,15 @@ def parse_binding_site(argtuple):
     ligand_res_atom_dict = {}
     notligands = {}
     links = []
+    struc_dict = {}
     if PDB_REDO:
         if not argtuple[1]:
             return  (pdbid, "Not in PDB_REDO")
         edd_dict = pdb_redo.get_ED_data(pdbid)
         if not edd_dict:
             return  (pdbid, "Not in PDB_REDO")
-        edd_dict['rFree'] = argtuple[1].get('RFFIN', 0)
-        edd_dict['rWork'] = argtuple[1].get('RFIN', 0)
+        struc_dict['rFree'] = argtuple[1].get('RFFIN', 0)
+        struc_dict['rWork'] = argtuple[1].get('RFIN', 0)
         if USE_DPI:
             reflections = float(argtuple[1].get('NREFCNT', 0))
             a = argtuple[1].get('AAXIS', 0)
@@ -198,8 +199,8 @@ def parse_binding_site(argtuple):
         if not edd_dict:
             dbg("No EDS data available for %s, it will be discarded" % pdbid)
             return  (pdbid, "No EDS data available")
-        edd_dict['rFree'] = argtuple[1].get('rFree', 0)
-        edd_dict['rWork'] = argtuple[1].get('rWork', 0)
+        struc_dict['rFree'] = argtuple[1].get('rFree', 0)
+        struc_dict['rWork'] = argtuple[1].get('rWork', 0)
         if USE_DPI:
             a = argtuple[1].get('lengthOfUnitCellLatticeA', 0)
             b = argtuple[1].get('lengthOfUnitCellLatticeB', 0)
@@ -209,12 +210,10 @@ def parse_binding_site(argtuple):
             gamma = argtuple[1].get('unitCellAngleGamma', 0)
         resolution = argtuple[1].get('refinementResolution', 0) if CHECK_RESOLUTION else 1714
     if CHECK_RESOLUTION:
-        edd_dict['Resolution'] = resolution
+        struc_dict['Resolution'] = resolution
     if USE_RDIFF:
-        Rdiff = edd_dict['rWork'] - edd_dict['rFree']
-        edd_dict['Rdiff'] = Rdiff
-#    for key, value in argtuple[1].items():
-#        edd_dict[key] = value
+        Rdiff = struc_dict['rWork'] - struc_dict['rFree']
+        struc_dict['Rdiff'] = Rdiff
     pdbfilepath = PDBfiles.get_pdb_file(pdbid.upper(), PDB_REDO)
     natoms = 0
     if pdbfilepath.endswith('.gz'):
@@ -270,8 +269,8 @@ def parse_binding_site(argtuple):
         if error:
             return  (pdbid, str(error))
     if USE_DPI:
-        edd_dict["DPI"] = dpi(a, b, c, alpha, beta, gamma, natoms, reflections, edd_dict["rFree"])
-        dbg("DPI is {}".format(edd_dict["DPI"]))
+        struc_dict["DPI"] = dpi(a, b, c, alpha, beta, gamma, natoms, reflections, struc_dict["rFree"])
+        dbg("DPI is {}".format(struc_dict["DPI"]))
     #Now let's prune covalently bound ligands
     alllinksparsed = False
     while not alllinksparsed:
@@ -325,14 +324,14 @@ def parse_binding_site(argtuple):
             residue_dict = edd_dict.get(res, None)
             if residue_dict:
                 residue_dict['occupancy'] = average_occ(ligand_res_atom_dict[res])
-            if 1337 == classificate_residue(res, edd_dict, good_rsr, dubious_rsr, bad_rsr):
+            if 1337 == classificate_residue(res, edd_dict.get(res, None), struc_dict, good_rsr, dubious_rsr, bad_rsr):
                 notligands[res] = "Occupancy above 1"
 
     binding_sites_found = False
     while not binding_sites_found:
         ligand_bs_list = []
         for ligand in ligands:
-            bs = get_binding_site(ligand, good_rsr, bad_rsr, dubious_rsr, pdbid, res_atom_dict, ligands, ligand_res_atom_dict, rsr_upper, rsr_lower, edd_dict)
+            bs = get_binding_site(ligand, good_rsr, bad_rsr, dubious_rsr, pdbid, res_atom_dict, ligands, ligand_res_atom_dict, rsr_upper, rsr_lower, edd_dict, struc_dict)
             if len(bs) == 1:
                 notligands[ligand] = bs[0]
                 dbg('%s is not a ligand!' % ligand)
@@ -349,9 +348,8 @@ def parse_binding_site(argtuple):
     dbg("done")
     return (pdbid, ligand_bs_list, notligands)
 
-def classificate_residue(residue, edd_dict, good_rsr, dubious_rsr, bad_rsr):
+def classificate_residue(residue, residue_dict, struc_dict, good_rsr, dubious_rsr, bad_rsr):
     score = 0
-    residue_dict = edd_dict.get(residue, None)
     if not residue_dict:
         bad_rsr.add(residue)
         dbg("No data for %s" % residue)
@@ -370,19 +368,19 @@ def classificate_residue(residue, edd_dict, good_rsr, dubious_rsr, bad_rsr):
     elif occ < OCCUPANCY_min:
         score +=1
     rsr = residue_dict['RSR']
-    rFree = edd_dict['rFree']
+    rFree = struc_dict['rFree']
     if rFree < RFREE_min:
         score += 1
     if CHECK_RESOLUTION:
-        resolution = edd_dict.get('Resolution', 1)
+        resolution = struc_dict.get('Resolution', 1)
         if resolution > RESOLUTION_max:
             score += 1
     if USE_RDIFF:
-        Rdiff = edd_dict.get('Rdiff', 1)
+        Rdiff = struc_dict.get('Rdiff', 1)
         if Rdiff > RDIFF_max:
             score += 1
     if USE_DPI:
-        DPI = edd_dict.get('DPI', 1)
+        DPI = struc_dict.get('DPI', 1)
         if DPI > DPI_max:
             score += 1
     if rsr > RSR_lower:
@@ -471,7 +469,7 @@ def group_ligands(ligand_residues, links):
     return ligands
 
 
-def get_binding_site(ligand, good_rsr, bad_rsr, dubious_rsr, pdbid, res_atom_dict, ligands, ligand_res_atom_dict, rsr_upper, rsr_lower, edd_dict):
+def get_binding_site(ligand, good_rsr, bad_rsr, dubious_rsr, pdbid, res_atom_dict, ligands, ligand_res_atom_dict, rsr_upper, rsr_lower, edd_dict, struc_dict):
     """
     Get the binding site residues for the provided ligand and return them in a tuple
     """
@@ -501,7 +499,6 @@ def get_binding_site(ligand, good_rsr, bad_rsr, dubious_rsr, pdbid, res_atom_dic
                         distance = latom | ligandatom
                         if distance <= inner_distance:
                             inner_binding_site.add(lres)
-                            #classificate_residue(lres, edd_dict, good_rsr, dubious_rsr, bad_rsr)
                             break
     bad_occupancy = [ligres for ligres in ligand if edd_dict.get(ligres, {'occupancy':0})['occupancy'] < 1]
     for res in inner_binding_site:
@@ -520,7 +517,7 @@ def get_binding_site(ligand, good_rsr, bad_rsr, dubious_rsr, pdbid, res_atom_dic
                 bad_occupancy.append(res)
         else:
             bad_occupancy.append(res)
-        classificate_residue(res, edd_dict, good_rsr, dubious_rsr, bad_rsr)
+        classificate_residue(res, edd_dict.get(res, None), struc_dict, good_rsr, dubious_rsr, bad_rsr)
     rte = inner_binding_site.union(ligand).difference(good_rsr)
     ligandgood = validate(ligand, good_rsr, bad_rsr, dubious_rsr, pdbid)
     bsgood = validate(inner_binding_site, good_rsr, bad_rsr, dubious_rsr, pdbid)
