@@ -5,12 +5,7 @@
 """
 Handle and download PDB files
 """
-import os, gzip, urllib2, time, sys, tempfile
-if sys.platform.startswith('java'):
-    import multithreading as multiprocessing
-else:
-    import multiprocessing
-from cofactors import ligand_blacklist
+import os, urllib2, time, tempfile
 
 PDBbase = "http://www.rcsb.org/pdb/files/%s.pdb.gz"
 #PDBREDObase_conservative = "http://www.cmbi.ru.nl/pdb_redo/MIDDLE/PDBID/PDBID_besttls.pdb"

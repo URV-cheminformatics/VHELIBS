@@ -23,7 +23,7 @@ import java
 from java.net import URL, URI
 from java.lang import Runnable
 from java.awt import BorderLayout, Dimension, GridLayout, GridBagLayout, GridBagConstraints, Insets, Cursor, Desktop
-from java.awt.event import ItemEvent, ActionListener, WindowAdapter
+from java.awt.event import ItemEvent, ActionListener
 from javax.swing import JFrame, JPanel, JButton, JOptionPane, JTextField, JCheckBox, JLabel, UIManager, JDialog, SwingUtilities, SwingWorker, JComboBox, ToolTipManager, ImageIcon
 
 systemlaf = UIManager.getSystemLookAndFeelClassName()

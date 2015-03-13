@@ -5,11 +5,7 @@
 """
 Mòdul que extreu informació la EDS database
 """
-import urllib2, sys, os, time
-if sys.platform.startswith('java'):
-    import multithreading as multiprocessing
-else:
-    import multiprocessing
+import urllib2, os, time
 import PDBfiles
 
 edsurl = "http://eds.bmc.uu.se/eds/dfs/PDB2/PDB1/PDB1_stat.lis"

@@ -670,6 +670,3 @@ def main(values):
     pool.terminate()
     pool.join()
     return datawritten
-
-if __name__ == "__main__":
-    main(parser.parse_args(sys.argv[1:]))
