@@ -53,7 +53,7 @@ prefs = getUserPrefs('vhelibs')
 #Jmol stuff
 from org.jmol.adapter.smarter import SmarterJmolAdapter
 from org.jmol.api import JmolViewer
-from org.openscience.jmol.app.jmolpanel import AppConsole
+from org.openscience.jmol.app.jmolpanel.console import AppConsole
 
 VHELIBS_VERSION = "4.0"
 TITLE =  "VHELIBS " + VHELIBS_VERSION
