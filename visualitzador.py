@@ -55,7 +55,7 @@ from org.jmol.adapter.smarter import SmarterJmolAdapter
 from org.jmol.api import JmolViewer
 from org.openscience.jmol.app.jmolpanel import AppConsole
 
-VHELIBS_VERSION = "3.0.10"
+VHELIBS_VERSION = "4.0"
 TITLE =  "VHELIBS " + VHELIBS_VERSION
 
 #Own stuff
@@ -747,6 +747,10 @@ class SettingsDialog(object):
                             , 'use_pdb_redo': False
                             , 'outputfile':  'vhelibs_analysis_default_PDB.csv'
                             , 'editable': False
+                            , 'use_rdiff': rsr_analysis.USE_RDIFF
+                            , 'max_rdiff': rsr_analysis.RDIFF_max
+                            , 'use_DPI': rsr_analysis.USE_DPI
+                            , 'max_DPI': rsr_analysis.DPI_max
                             }
                     , 'Default (PDB_REDO)':{
                             'distance':math.sqrt(rsr_analysis.inner_distance)
@@ -763,6 +767,10 @@ class SettingsDialog(object):
                             , 'use_pdb_redo': True
                             , 'outputfile':  'vhelibs_analysis_default_PDB_REDO.csv'
                             , 'editable': False
+                            , 'use_rdiff': rsr_analysis.USE_RDIFF
+                            , 'max_rdiff': rsr_analysis.RDIFF_max
+                            , 'use_DPI': rsr_analysis.USE_DPI
+                            , 'max_DPI': rsr_analysis.DPI_max
                             }
                     ,'Iridium':{
                             'distance':5
@@ -779,6 +787,10 @@ class SettingsDialog(object):
                             , 'outputfile':  'vhelibs_analysis_iridium.csv'
                             , 'use_pdb_redo': False
                             , 'editable': False
+                            , 'use_rdiff': rsr_analysis.USE_RDIFF
+                            , 'max_rdiff': rsr_analysis.RDIFF_max
+                            , 'use_DPI': rsr_analysis.USE_DPI
+                            , 'max_DPI': rsr_analysis.DPI_max
                             }
                     ,'Custom':{
                         'outputfile':  'vhelibs_analysis_custom.csv'
@@ -788,8 +800,8 @@ class SettingsDialog(object):
     def __init__(self, args=['--no-args']):
         self.values = argparser.parse_args(args)
         self.panel = JPanel(GridBagLayout())
-        for k in self.profiles['Default (PDB_REDO)']:
-            if k in ('use_owab', 'use_res', 'use_pdb_redo', 'editable'):
+        for k in self.profiles['Default (PDB)']:
+            if k in ('use_owab', 'use_res', 'use_pdb_redo', 'editable', 'use_rdiff', 'use_DPI'):
                 continue
             else:
                 self.__dict__[k] = JTextField(str(self.values.__dict__[k]))
@@ -831,7 +843,7 @@ class SettingsDialog(object):
         constraints.gridy += 1
         constraints.gridwidth = 2
         tooltip="Models will be loaded from PDB_REDO instead of the PDB"
-        self.use_pdb_redo = JCheckBox("Use models from PDB_REDO", toolTipText=tooltip, selected=self.profiles['Default (PDB_REDO)']['use_pdb_redo'], actionPerformed=self._check_pdbredo_owab)
+        self.use_pdb_redo = JCheckBox("Use models from PDB_REDO", toolTipText=tooltip, selected=self.profiles['Default (PDB)']['use_pdb_redo'], actionPerformed=self._check_pdbredo_owab)
         self.use_pdb_redo.toolTipText=tooltip
         self.panel.add(self.use_pdb_redo, constraints)
         constraints.gridwidth = 1
@@ -880,7 +892,7 @@ class SettingsDialog(object):
 
         constraints.gridy += 1
         tooltip="Residues and ligands with an occupancy-weighted B-factor (OWAB) above this value will have their score increased by 1"
-        self.owab_cb = JCheckBox('OWAB', toolTipText=tooltip, selected=(self.profiles['Default (PDB_REDO)']['max_owab'] != self.values.max_owab) or self.profiles['Default (PDB_REDO)']['use_owab'], actionPerformed=self._check_pdbredo_owab)
+        self.owab_cb = JCheckBox('OWAB', toolTipText=tooltip, selected=(self.profiles['Default (PDB)']['max_owab'] != self.values.max_owab) or self.profiles['Default (PDB)']['use_owab'], actionPerformed=self._check_pdbredo_owab)
         self.panel.add(self.owab_cb, constraints)
         constraints.gridx += 1
         self.max_owab.toolTipText=tooltip
@@ -889,11 +901,29 @@ class SettingsDialog(object):
 
         constraints.gridy += 1
         tooltip="All residues and ligands from structures with a resolution above this value will have their score increased by 1"
-        self.res_cb = JCheckBox("Resolution limit", toolTipText=tooltip, selected=(self.profiles['Default (PDB_REDO)']['max_resolution'] != self.values.max_resolution) or self.profiles['Default (PDB_REDO)']['use_res'])
+        self.res_cb = JCheckBox("Resolution limit", toolTipText=tooltip, selected=(self.profiles['Default (PDB)']['max_resolution'] != self.values.max_resolution) or self.profiles['Default (PDB)']['use_res'])
         self.panel.add(self.res_cb, constraints)
         constraints.gridx += 1
         self.max_resolution.toolTipText=tooltip
         self.panel.add(self.max_resolution, constraints)
+        constraints.gridx -= 1
+      
+        constraints.gridy += 1
+        tooltip="All residues and ligands from structures with an R higher than this from their R-free value will have their score increased by 1"
+        self.use_rdiff = JCheckBox('Max. R - Rfree', toolTipText=tooltip, selected=(self.profiles['Default (PDB)']['use_rdiff']))
+        self.panel.add(self.use_rdiff, constraints)
+        constraints.gridx += 1
+        self.max_rdiff.toolTipText=tooltip
+        self.panel.add(self.max_rdiff, constraints)
+        constraints.gridx -= 1
+        
+        constraints.gridy += 1
+        tooltip="All residues and ligands from structures with a DPI higher than this value will have their score increased by 1"
+        self.use_DPI = JCheckBox('Max. DPI', toolTipText=tooltip, selected=(self.profiles['Default (PDB)']['use_DPI']))
+        self.panel.add(self.use_DPI, constraints)
+        constraints.gridx += 1
+        self.max_DPI.toolTipText=tooltip
+        self.panel.add(self.max_DPI, constraints)
         constraints.gridx -= 1
 
         constraints.gridy += 1
@@ -925,9 +955,17 @@ class SettingsDialog(object):
         constraints.gridy += 1
         constraints.gridwidth = 2
         tooltip="Data will be saved to and loaded from %s" % os.path.join(os.path.expanduser('~'), '.vhelibs_cache')
-        self.use_cache = JCheckBox("Do not download already downloaded files", toolTipText=tooltip, selected=(self.profiles['Default (PDB_REDO)']['max_resolution'] != self.values.max_resolution) or self.profiles['Default (PDB_REDO)']['use_res'])
+        self.use_cache = JCheckBox("Do not download already downloaded files", toolTipText=tooltip, selected=True)
         self.use_cache.toolTipText=tooltip
         self.panel.add(self.use_cache, constraints)
+        constraints.gridwidth = 1
+        
+        constraints.gridy += 1
+        constraints.gridwidth = 2
+        tooltip="All model-wide used parameters will be included"
+        self.include_stats = JCheckBox("Append analysis information to the output report", toolTipText=tooltip, selected=True)
+        self.include_stats.toolTipText=tooltip
+        self.panel.add(self.include_stats, constraints)
         constraints.gridwidth = 1
 
         constraints.gridy += 1
@@ -957,7 +995,7 @@ class SettingsDialog(object):
         self.diag.setLocationRelativeTo(self.frame)
         self.frame.setUndecorated(True)
         self.diag.pack()
-        self.profilecbb.selectedItem = 'Default (PDB_REDO)'
+        self.profilecbb.selectedItem = 'Default (PDB)'
         #self.load_profile(e=None, profilename='Default (PDB)')
 
     def _check_pdbredo_owab(self, event):
@@ -977,12 +1015,16 @@ class SettingsDialog(object):
         if not filename.endswith('.tsv'):
             filename += '.tsv'
         profile = self.profiles[self.profilecbb.selectedItem]
-        for key in self.profiles['Default (PDB_REDO)'].keys():
+        for key in self.profiles['Default (PDB)'].keys():
             if key not in profile:
                 if key == 'use_owab':
                     profile[key] = self.owab_cb.selected
                 elif key == 'use_res':
                     profile[key] = self.res_cb.selected
+                elif key == 'use_rdiff':
+                    profile[key] = self.use_rdiff.selected
+                elif key == 'use_DPI':
+                    profile[key] = self.use_DPI.selected
                 elif key == 'use_pdb_redo':
                     profile[key] = self.use_pdb_redo.selected
                 else:
@@ -1009,7 +1051,7 @@ class SettingsDialog(object):
             self.profilecbb.addItem(profilename)
             self.profilecbb.selectedItem = profilename
 
-    def load_profile(self,e=None, profilename='Default (PDB_REDO)'):
+    def load_profile(self,e=None, profilename='Default (PDB)'):
         if e and e.actionCommand != u'comboBoxChanged': return
         if e:
             profilename = self.profilecbb.selectedItem
@@ -1017,12 +1059,16 @@ class SettingsDialog(object):
         for k,  v in profile.items():
             if k == 'editable':
                 editable = v
-                for w in self.profiles['Default (PDB_REDO)'].keys():
+                for w in self.profiles['Default (PDB)'].keys():
                     if w == 'editable': continue
                     elif w == 'use_owab':
                         self.owab_cb.enabled = editable
                     elif w == 'use_res':
                         self.res_cb.enabled = editable
+                    elif w == 'use_rdiff':
+                        self.use_rdiff.enabled = editable
+                    elif w == 'use_DPI':
+                        self.use_DPI.enabled = editable
                     elif w == 'outputfile':
                         continue
                     else:
@@ -1030,6 +1076,10 @@ class SettingsDialog(object):
             elif k == 'use_owab':
                 self.owab_cb.selected = v
             elif k == 'use_res':
+                self.res_cb.selected = v
+            elif k == 'use_rdiff':
+                self.res_cb.selected = v
+            elif k == 'use_DPI':
                 self.res_cb.selected = v
             elif k == 'use_pdb_redo':
                 self.use_pdb_redo.selected = v
@@ -1116,6 +1166,11 @@ class SettingsDialog(object):
             self.values.max_resolution = float(self.max_resolution.text)
         else:
             self.values.max_resolution = None
+        if self.use_DPI.selected:
+            self.values.max_DPI = float(self.max_DPI.text)
+        if self.use_rdiff.selected:
+            self.values.max_rdiff = float(self.max_rdiff.text)
+        self.values.include_stats = self.include_stats.selected
         self.values.tolerance = int(self.tolerance.text)
 
     def isViable(self):
