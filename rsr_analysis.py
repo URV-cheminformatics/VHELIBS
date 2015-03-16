@@ -40,22 +40,23 @@ DPI_max = 0.42
 OCCUPANCY_min = 1.0
 TOLERANCE = 2
 inner_distance = 4.5**2
-titles = ['PDB ID', "Coordinates to exam", "Ligand Residues", "Binding Site Residues", "Good Ligand", "Good Binding Site", "Model source"]
-
+STATS = False
+titles = ['PDB ID', "Coordinates to exam", "Ligand Residues", "Binding Site Residues", "Good Ligand", "Good Binding Site", "Model source", 'Ligand Score', 'Binding Site Score']
+stat_titles = ['rFree', 'rWork']
 ###Create the argument parser###
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('-i','--pdbids', nargs='+', default=[], type=str, metavar='PDBID', help='list of PDB ids')
 parser.add_argument('-s','--swissprot', nargs='+', default=[], type=str, metavar='SP_AN [or SP_NAME]', help='list of Swiss-Prot protein names or accession numbers')
-parser.add_argument('-u','--rsr_upper', type=float, default=RSR_upper, metavar='FLOAT', help='set maximum RSR value for each residue (residues with a higher RSR will be discarded)')
-parser.add_argument('-l','--rsr_lower', type=float, default=RSR_lower, metavar='FLOAT', help='set minimum RSR value for each residue (residues with a lower RSR value will be directly considered right)')
-parser.add_argument('-b','--max_owab', type=float, default=None, metavar='FLOAT', help='set maximum OWAB (Occupancy-weighted B-factor) per residue')
-parser.add_argument('-R','--min_rscc', type=float, default=RSCC_min, metavar='FLOAT', help='set minimum RSCC per residue')
-parser.add_argument('-O','--min_occupancy', type=float, default=OCCUPANCY_min, metavar='FLOAT', help='set minimum average occupancy per residue')
-parser.add_argument('-F','--min_rfree', type=float, default=RFREE_min, metavar='FLOAT', help='set minimum R-free for the structure')
-parser.add_argument('-M','--max_rdiff', type=float, default=None, metavar='FLOAT', help='maximum difference between R and R-free, to avoid overfit models')
-parser.add_argument('-D','--max_DPI', type=float, default=None, metavar='FLOAT', help='maximum model DPI')
-parser.add_argument('-r','--max_resolution', type=float, default=None, metavar='FLOAT', help='set maximum resolution (in Å) below which to consider Good models')
+parser.add_argument('-u','--rsr-upper', type=float, default=RSR_upper, metavar='FLOAT', help='set maximum RSR value for each residue (residues with a higher RSR will be discarded)')
+parser.add_argument('-l','--rsr-lower', type=float, default=RSR_lower, metavar='FLOAT', help='set minimum RSR value for each residue (residues with a lower RSR value will be directly considered right)')
+parser.add_argument('-b','--max-owab', type=float, default=None, metavar='FLOAT', help='set maximum OWAB (Occupancy-weighted B-factor) per residue')
+parser.add_argument('-R','--min-rscc', type=float, default=RSCC_min, metavar='FLOAT', help='set minimum RSCC per residue')
+parser.add_argument('-O','--min-occupancy', type=float, default=OCCUPANCY_min, metavar='FLOAT', help='set minimum average occupancy per residue')
+parser.add_argument('-F','--min-rfree', type=float, default=RFREE_min, metavar='FLOAT', help='set minimum R-free for the structure')
+parser.add_argument('-M','--max-rdiff', type=float, default=None, metavar='FLOAT', help='maximum difference between R and R-free, to avoid overfit models')
+parser.add_argument('-D','--max-DPI', type=float, default=None, metavar='FLOAT', help='maximum model DPI')
+parser.add_argument('-r','--max-resolution', type=float, default=None, metavar='FLOAT', help='set maximum resolution (in Å) below which to consider Good models')
 parser.add_argument('-T','--tolerance', type=int, default=TOLERANCE, metavar='INT', help='set maximum number of non-met criteria of Dubious structures')
 parser.add_argument('-d','--distance', type=float, default=math.sqrt(inner_distance), metavar='Å', help='consider part of the binding sites all the residues nearer than this to the ligand (in Å)')
 parser.add_argument('-f','--pdbidfile', metavar='PATH', type=unicode, default=None, required=False, help='text file containing a list of PDB ids, one per line')
@@ -65,6 +66,7 @@ parser.add_argument('-e','--excludesfile', metavar='PATH', type=unicode, default
 parser.add_argument('-C','--use-cache', required=False, action='store_true', help="Use cached EDS and PDB data if available for the analysis, otherwise cache it.")
 parser.add_argument('-P','--use-pdb-redo', required=False, action='store_true', help="Use models from PDB_REDO instead of PDB.")
 parser.add_argument('-V','--verbose', required=False, action='store_true', help="Enable verbose output.")
+parser.add_argument('-S','--include-stats', required=False, action='store_true', help="Include model data in output file")
 #######################
 
 def dbg(string):
@@ -319,41 +321,47 @@ def parse_binding_site(argtuple):
         dbg('%s has no ligands!' % pdbid)
         return (pdbid, "no ligands found")
     ligands = group_ligands(ligand_residues, links)
+    ligand_scores = []
     for ligand in ligands:
+        ligand_score = 0
         for res in ligand:
             residue_dict = edd_dict.get(res, None)
             if residue_dict:
                 residue_dict['occupancy'] = average_occ(ligand_res_atom_dict[res])
-            if 1337 == classificate_residue(res, edd_dict.get(res, None), struc_dict, good_rsr, dubious_rsr, bad_rsr):
-                notligands[res] = "Occupancy above 1"
-
+            score,  reason = classificate_residue(res, edd_dict.get(res, None), struc_dict, good_rsr, dubious_rsr, bad_rsr)
+            if reason:
+                notligands[res] = reason
+            ligand_score = max(ligand_score, score)
+        ligand_scores.append(ligand_score)
     binding_sites_found = False
     while not binding_sites_found:
         ligand_bs_list = []
-        for ligand in ligands:
-            bs = get_binding_site(ligand, good_rsr, bad_rsr, dubious_rsr, pdbid, res_atom_dict, ligands, ligand_res_atom_dict, rsr_upper, rsr_lower, edd_dict, struc_dict)
+        for ligand, ligand_score in zip(ligands, ligand_scores):
+            bs = get_binding_site(ligand, ligand_score, good_rsr, bad_rsr, dubious_rsr, pdbid, res_atom_dict, ligands, ligand_res_atom_dict, rsr_upper, rsr_lower, edd_dict, struc_dict, notligands)
             if len(bs) == 1:
-                notligands[ligand] = bs[0]
-                dbg('%s is not a ligand!' % ligand)
-                if ligand in ligand_residues:
-                    ligand_residues.remove(ligand)
-                    dbg('%s removed from ligand residues' % ligand)
-                if ligand in ligand_res_atom_dict:
-                    res_atom_dict[ligand] = ligand_res_atom_dict.pop(ligand)
-                    dbg('%s atoms added to protein' % ligand)
-                break
+                for ligandres in ligand:
+                    if ligandres in ligand_residues:
+                        ligand_residues.remove(ligandres)
+                        dbg('%s removed from ligand residues' % ligandres)
+                    if ligandres in ligand_res_atom_dict:
+                        res_atom_dict[ligandres] = ligand_res_atom_dict.pop(ligandres)
+                        dbg('%s atoms added to protein' % ligandres)
+                    if ligandres not in notligands:
+                        notligands[ligandres] = "Covalently bound to non-ligand"
+                continue
             ligand_bs_list.append(bs)
         else:
             break
     dbg("done")
-    return (pdbid, ligand_bs_list, notligands)
+    return (pdbid, ligand_bs_list, notligands, struc_dict)
 
 def classificate_residue(residue, residue_dict, struc_dict, good_rsr, dubious_rsr, bad_rsr):
     score = 0
+    reason = None
     if not residue_dict:
-        bad_rsr.add(residue)
-        dbg("No data for %s" % residue)
-        return 0
+        score +=1000
+        reason = "No data for %s" % residue
+        dbg(reason)
     rscc = residue_dict['RSCC']
     if RSCC_min > rscc:
         score += 1
@@ -363,8 +371,8 @@ def classificate_residue(residue, residue_dict, struc_dict, good_rsr, dubious_rs
             score +=1
     occ = residue_dict['occupancy']
     if occ > 1:
-        bad_rsr.add(residue)
-        return 1337
+        score +=1000
+        reason = "Occupancy above 1"
     elif occ < OCCUPANCY_min:
         score +=1
     rsr = residue_dict['RSR']
@@ -394,7 +402,7 @@ def classificate_residue(residue, residue_dict, struc_dict, good_rsr, dubious_rs
     else:
         dubious_rsr.add(residue)
     dbg("%s: %s" %(residue, score))
-    return 0
+    return score, reason
 
 def group_ligands(ligand_residues, links):
     """
@@ -469,12 +477,15 @@ def group_ligands(ligand_residues, links):
     return ligands
 
 
-def get_binding_site(ligand, good_rsr, bad_rsr, dubious_rsr, pdbid, res_atom_dict, ligands, ligand_res_atom_dict, rsr_upper, rsr_lower, edd_dict, struc_dict):
+def get_binding_site(ligand, ligand_score, good_rsr, bad_rsr, dubious_rsr, pdbid, res_atom_dict, ligands, ligand_res_atom_dict, rsr_upper, rsr_lower, edd_dict, struc_dict, notligands):
     """
     Get the binding site residues for the provided ligand and return them in a tuple
     """
     inner_binding_site = set()
     for ligandres in ligand:
+        if ligandres in notligands:
+            reason = notligands[ligandres]
+            return reason
         for res in res_atom_dict:
             for atom in res_atom_dict[res]:
                 for ligandatom in ligand_res_atom_dict[ligandres]:
@@ -484,9 +495,13 @@ def get_binding_site(ligand, good_rsr, bad_rsr, dubious_rsr, pdbid, res_atom_dic
                             hetid = ligandres[:3].strip()
                             if hetid in cofactors.ligand_blacklist:
                                 reason = ("Covalently bound to a blacklisted ligand", )
+                                dbg('{} is not a ligand! ({})'.format(ligand, reason))
+                                notligands[ligandres] = reason
                                 return reason
                             elif hetid in cofactors.metals:
                                 reason = ("Covalently bound to the sequence", )
+                                dbg('{} is not a ligand! ({})'.format(ligand, reason))
+                                notligands[ligandres] = reason
                                 return reason
                         inner_binding_site.add(atom.residue)
                         break
@@ -501,6 +516,7 @@ def get_binding_site(ligand, good_rsr, bad_rsr, dubious_rsr, pdbid, res_atom_dic
                             inner_binding_site.add(lres)
                             break
     bad_occupancy = [ligres for ligres in ligand if edd_dict.get(ligres, {'occupancy':0})['occupancy'] < 1]
+    bs_score = 0
     for res in inner_binding_site:
         residue_dict = edd_dict.get(res, None)
         resatoms = res_atom_dict.get(res, None)
@@ -517,11 +533,12 @@ def get_binding_site(ligand, good_rsr, bad_rsr, dubious_rsr, pdbid, res_atom_dic
                 bad_occupancy.append(res)
         else:
             bad_occupancy.append(res)
-        classificate_residue(res, edd_dict.get(res, None), struc_dict, good_rsr, dubious_rsr, bad_rsr)
+        score,  reason = classificate_residue(res, edd_dict.get(res, None), struc_dict, good_rsr, dubious_rsr, bad_rsr)
+        bs_score = max(bs_score, score)
     rte = inner_binding_site.union(ligand).difference(good_rsr)
     ligandgood = validate(ligand, good_rsr, bad_rsr, dubious_rsr, pdbid)
     bsgood = validate(inner_binding_site, good_rsr, bad_rsr, dubious_rsr, pdbid)
-    return ligand, inner_binding_site, rte, ligandgood, bsgood, bad_occupancy
+    return ligand, inner_binding_site, rte, ligandgood, bsgood, bad_occupancy, ligand_score, bs_score
 
 def validate(residues, good_rsr, bad_rsr, dubious_rsr, pdbid):
     if residues <= good_rsr:
@@ -546,49 +563,53 @@ def results_to_csv(results, outputfile):
     """
     Writes the output of parse_binding_site's to a csv file
     """
-    outfile = open(outputfile, 'wb')
-    rejectedfile = open(os.path.splitext(outputfile)[0] + '_rejected.txt', 'w')
-    badoc_fn = os.path.splitext(outputfile)[0] + '_low_occupancy.txt'
-    badoc_file = open(badoc_fn, 'w')
-    badoc_w = csv.writer(badoc_file, delimiter="\t")
-    badoc_w.writerow(['Binding Site', 'Low Occupancy Residues'])
-    erase_badoc = True
-    csvfile = csv.writer(outfile)
-    csvfile.writerow(titles)
-    dbg('Calculating...')
     datawritten = False
-    for restuple in results:
-        restuplelen = len(restuple)
-        if  restuplelen == 2:
-            pdbid, reason = restuple
-            rejectedfile.write('%s:\t%s\n' % (pdbid, reason))
-            continue
-        elif restuplelen == 3:
-            pdbid, ligand_bs_list, notligands = restuple
-            for nonligand in notligands:
-#                resname = nonligand[:3].strip()
-                line = '%s:\t%s %s\n' %(pdbid, nonligand, notligands[nonligand])
-                rejectedfile.write( line)
-            for ligandresidues, binding_site, residues_to_exam, ligandgood, bsgood, bad_occupancy in ligand_bs_list:
-                id = pdbid
-                if not ligandresidues:
-                    dbg('%s has no actual ligands, it will be discarded' % pdbid)
-                else:
-                    if PDB_REDO:
-                        source = 'PDB_REDO'
-                    else:
-                        source = 'PDB'
-                    csvfile.writerow([id, ';'.join(residues_to_exam), ';'.join(ligandresidues),';'.join(binding_site), ligandgood, bsgood, source])
-                    outfile.flush()
-                    datawritten = bool(outputfile)
-                    if bad_occupancy:
-                        erase_badoc = False
-                        badoc_w.writerow([id + '|' + list(ligandresidues)[0], ';'.join(bad_occupancy)])
-    badoc_file.close()
-    if erase_badoc and os.path.isfile(badoc_fn):
-        os.remove(badoc_fn)
-    outfile.close()
-    rejectedfile.close()
+    csvtitles = titles
+    if STATS:
+        csvtitles += stat_titles
+    with open(outputfile, 'wb') as outfile:
+        csvfile = csv.writer(outfile)
+        csvfile.writerow(csvtitles)
+        with open(os.path.splitext(outputfile)[0] + '_rejected.txt', 'w') as rejectedfile:
+            badoc_fn = os.path.splitext(outputfile)[0] + '_low_occupancy.txt'
+            with open(badoc_fn, 'w') as badoc_file:
+                badoc_w = csv.writer(badoc_file, delimiter="\t")
+                badoc_w.writerow(['Binding Site', 'Low Occupancy Residues'])
+                erase_badoc = True
+                dbg('Calculating...')
+                for restuple in results:
+                    restuplelen = len(restuple)
+                    if  restuplelen == 2:
+                        pdbid, reason = restuple
+                        rejectedfile.write('%s:\t%s\n' % (pdbid, reason))
+                        continue
+                    elif restuplelen == 4:
+                        pdbid, ligand_bs_list, notligands, struc_dict = restuple
+                        for nonligand in notligands:
+            #                resname = nonligand[:3].strip()
+                            line = '%s:\t%s %s\n' %(pdbid, nonligand, notligands[nonligand])
+                            rejectedfile.write( line)
+                        for ligandresidues, binding_site, residues_to_exam, ligandgood, bsgood, bad_occupancy, ligand_score, bs_score in ligand_bs_list:
+                            id = pdbid
+                            if not ligandresidues:
+                                dbg('%s has no actual ligands, it will be discarded' % pdbid)
+                            else:
+                                if PDB_REDO:
+                                    source = 'PDB_REDO'
+                                else:
+                                    source = 'PDB'
+                                row = [id, ';'.join(residues_to_exam), ';'.join(ligandresidues),';'.join(binding_site), ligandgood, bsgood, source,  ligand_score, bs_score]
+                                if STATS:
+                                    for k in stat_titles:
+                                        row.append(struc_dict[k])
+                                csvfile.writerow(row)
+                                outfile.flush()
+                                datawritten = bool(outputfile)
+                                if bad_occupancy:
+                                    erase_badoc = False
+                                    badoc_w.writerow([id + '|' + list(ligandresidues)[0], ';'.join(bad_occupancy)])
+            if erase_badoc and os.path.isfile(badoc_fn):
+                os.remove(badoc_fn)
     if not datawritten:
         os.remove(outputfile)
     else:
@@ -599,8 +620,10 @@ def main(values):
     global CHECK_OWAB, OWAB_max, CHECK_RESOLUTION, RESOLUTION_max, RSCC_min, TOLERANCE
     global RSR_upper, RSR_lower, RFREE_min, OCCUPANCY_min, PDB_REDO
     global USE_DPI, USE_RDIFF, RDIFF_max, DPI_max
-    global dbg
+    global dbg, STATS
     filepath =  values.pdbidfile
+    if values.include_stats:
+        STATS = True
     if not values.verbose:
         dbg = dummy
     if not values.max_owab is None:
@@ -628,12 +651,18 @@ def main(values):
     if not values.max_resolution is None:
         CHECK_RESOLUTION = True
         RESOLUTION_max = values.max_resolution
+        if STATS:
+            stat_titles.append("Resolution")
     if not values.max_rdiff is None:
         USE_RDIFF = True
         RDIFF_max = values.max_rdiff
+        if STATS:
+            stat_titles.append("Rdiff")
     if not values.max_DPI is None:
         USE_DPI = True
         DPI_max = values.max_DPI
+        if STATS:
+            stat_titles.append("DPI")
     if values.use_cache:
         dbg('Using cache')
         cachedir = os.path.join(os.path.expanduser('~'), '.vhelibs_cache')
@@ -670,8 +699,6 @@ def main(values):
         maxn = 1595
         if npdbs > maxn:
             pdbids_extra_data_dict = {}
-#            steps = npdbs / maxn
-#            remnant = npdbs % maxn
             p = multiprocessing.Pool(multiprocessing.cpu_count())
             for d in p.imap(get_custom_report, [pdblist[i:i+maxn] for i in xrange(0, npdbs, maxn)]):
                 pdbids_extra_data_dict.update(d)
