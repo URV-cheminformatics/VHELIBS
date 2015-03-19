@@ -342,12 +342,12 @@ def parse_binding_site(argtuple):
                 for ligandres in ligand:
                     if ligandres in ligand_residues:
                         ligand_residues.remove(ligandres)
-                        dbg('%s removed from ligand residues' % ligandres)
+                        dbg('{} removed from ligand residues because {}'.format(ligandres, bs[0]))
                     if ligandres in ligand_res_atom_dict:
                         res_atom_dict[ligandres] = ligand_res_atom_dict.pop(ligandres)
-                        dbg('%s atoms added to protein' % ligandres)
+                        dbg('{} atoms added to protein because {}'.format(ligandres, bs[0]))
                     if ligandres not in notligands:
-                        notligands[ligandres] = "Covalently bound to non-ligand"
+                        notligands[ligandres] = bs[0]
                 continue
             ligand_bs_list.append(bs)
         else:
@@ -492,7 +492,7 @@ def get_binding_site(ligand, ligand_score, good_rsr, bad_rsr, dubious_rsr, pdbid
     for ligandres in ligand:
         if ligandres in notligands:
             reason = notligands[ligandres]
-            return reason
+            return [reason]
         for res in res_atom_dict:
             for atom in res_atom_dict[res]:
                 for ligandatom in ligand_res_atom_dict[ligandres]:
@@ -504,12 +504,12 @@ def get_binding_site(ligand, ligand_score, good_rsr, bad_rsr, dubious_rsr, pdbid
                                 reason = ("Covalently bound to a blacklisted ligand", )
                                 dbg('{} is not a ligand! ({})'.format(ligand, reason))
                                 notligands[ligandres] = reason
-                                return reason
+                                return [reason]
                             elif hetid in cofactors.metals:
                                 reason = ("Covalently bound to the sequence", )
                                 dbg('{} is not a ligand! ({})'.format(ligand, reason))
                                 notligands[ligandres] = reason
-                                return reason
+                                return [reason]
                         inner_binding_site.add(atom.residue)
                         break
         for l in ligands:
@@ -596,7 +596,8 @@ def results_to_csv(results, outputfile):
             #                resname = nonligand[:3].strip()
                             line = '%s:\t%s %s\n' %(pdbid, nonligand, notligands[nonligand])
                             rejectedfile.write( line)
-                        for ligandresidues, binding_site, residues_to_exam, ligandgood, bsgood, bad_occupancy, ligand_score, bs_score in ligand_bs_list:
+                        for data in ligand_bs_list:
+                            ligandresidues, binding_site, residues_to_exam, ligandgood, bsgood, bad_occupancy, ligand_score, bs_score = data
                             id = pdbid
                             if not ligandresidues:
                                 dbg('%s has no actual ligands, it will be discarded' % pdbid)
