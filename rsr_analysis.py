@@ -362,39 +362,46 @@ def classificate_residue(residue, residue_dict, struc_dict, good_rsr, dubious_rs
         score +=1000
         reason = "No data for %s" % residue
         dbg(reason)
-    rscc = residue_dict['RSCC']
-    if RSCC_min > rscc:
-        score += 1
-    if CHECK_OWAB:
-        owab = residue_dict['OWAB']
-        if not 1 < owab < OWAB_max:
+    else:
+        rscc = residue_dict['RSCC']
+        if RSCC_min > rscc:
+            score += 1
+        if CHECK_OWAB:
+            owab = residue_dict['OWAB']
+            if not 1 < owab < OWAB_max:
+                score +=1
+        occ = residue_dict['occupancy']
+        if occ > 1:
+            score +=1000
+            reason = "Occupancy above 1"
+        elif occ < OCCUPANCY_min:
             score +=1
-    occ = residue_dict['occupancy']
-    if occ > 1:
-        score +=1000
-        reason = "Occupancy above 1"
-    elif occ < OCCUPANCY_min:
-        score +=1
-    rsr = residue_dict['RSR']
-    rFree = struc_dict['rFree']
-    if rFree < RFREE_min:
-        score += 1
-    if CHECK_RESOLUTION:
-        resolution = struc_dict.get('Resolution', 1)
-        if resolution > RESOLUTION_max:
+        rsr = residue_dict['RSR']
+        if rsr > RSR_lower:
             score += 1
-    if USE_RDIFF:
-        Rdiff = struc_dict.get('Rdiff', 1)
-        if Rdiff > RDIFF_max:
+            if rsr > RSR_upper:
+                score += 1
+    if struc_dict:
+        rFree = struc_dict['rFree']
+        if rFree < RFREE_min:
             score += 1
-    if USE_DPI:
-        DPI = struc_dict.get('DPI', 1)
-        if DPI > DPI_max:
-            score += 1
-    if rsr > RSR_lower:
-        score += 1
-        if rsr > RSR_upper:
-            score += 1
+        if CHECK_RESOLUTION:
+            resolution = struc_dict.get('Resolution', 1)
+            if resolution > RESOLUTION_max:
+                score += 1
+        if USE_RDIFF:
+            Rdiff = struc_dict.get('Rdiff', 1)
+            if Rdiff > RDIFF_max:
+                score += 1
+        if USE_DPI:
+            DPI = struc_dict.get('DPI', 1)
+            if DPI > DPI_max:
+                score += 1
+    else:
+        if USE_DPI or USE_RDIFF or CHECK_RESOLUTION or RFREE_min:
+            score +=1000
+            reason = "No structural data for %s" % residue
+            dbg(reason)
     if score == 0:
         good_rsr.add(residue)
     elif score > TOLERANCE:
