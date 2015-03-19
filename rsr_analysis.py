@@ -696,7 +696,7 @@ def main(values):
     #get_custom_report
     if not PDB_REDO:
         npdbs = len(pdblist)
-        maxn = 1595
+        maxn = 1000
         if npdbs > maxn:
             pdbids_extra_data_dict = {}
             p = multiprocessing.Pool(multiprocessing.cpu_count())
