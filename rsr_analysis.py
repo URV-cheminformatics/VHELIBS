@@ -407,7 +407,7 @@ def classificate_residue(residue, residue_dict, struc_dict, good_rsr, dubious_rs
             Rdiff = struc_dict.get('Rdiff', 100)
             if Rdiff > RDIFF_max:
                 score += 1
-            elif Rdiff >= 90:
+            if Rdiff >= 90:
                 score +=1000
                 reason = "No reliable rFree and rWork data for %s" % residue
         if USE_DPI:
