@@ -741,7 +741,7 @@ class SettingsDialog(object):
                             , 'max_resolution':rsr_analysis.RESOLUTION_max
                             , 'tolerance':rsr_analysis.TOLERANCE
                             , 'min_occupancy':rsr_analysis.OCCUPANCY_min
-                            , 'max_rfree':rsr_analysis.RFREE_min
+                            , 'max_rfree':rsr_analysis.RFREE_max
                             , 'use_owab': rsr_analysis.CHECK_OWAB
                             , 'use_res': rsr_analysis.CHECK_RESOLUTION
                             , 'use_pdb_redo': False
@@ -761,7 +761,7 @@ class SettingsDialog(object):
                             , 'max_resolution':rsr_analysis.RESOLUTION_max
                             , 'tolerance':rsr_analysis.TOLERANCE
                             , 'min_occupancy':rsr_analysis.OCCUPANCY_min
-                            , 'max_rfree':rsr_analysis.RFREE_min
+                            , 'max_rfree':rsr_analysis.RFREE_max
                             , 'use_owab': False
                             , 'use_res': rsr_analysis.CHECK_RESOLUTION
                             , 'use_pdb_redo': True
