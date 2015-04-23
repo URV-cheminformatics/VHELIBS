@@ -216,7 +216,7 @@ def parse_binding_site(argtuple):
     if CHECK_RESOLUTION:
         struc_dict['Resolution'] = resolution
     if USE_RDIFF:
-        Rdiff = struc_dict['rWork'] - struc_dict['rFree']
+        Rdiff = struc_dict['rFree'] - struc_dict['rWork'] 
         struc_dict['Rdiff'] = Rdiff
     pdbfilepath = PDBfiles.get_pdb_file(pdbid.upper(), PDB_REDO)
     natoms = 0
