@@ -203,8 +203,8 @@ def parse_binding_site(argtuple):
         if not edd_dict:
             dbg("No EDS data available for %s, it will be discarded" % pdbid)
             return  (pdbid, "No EDS data available")
-        struc_dict['rFree'] = argtuple[1].get('rFree', -100)
-        struc_dict['rWork'] = argtuple[1].get('rWork', 1000)
+        struc_dict['rFree'] = argtuple[1].get('rFree', float("nan"))
+        struc_dict['rWork'] = argtuple[1].get('rWork', float("nan"))
         if USE_DPI:
             a = argtuple[1].get('lengthOfUnitCellLatticeA', 0)
             b = argtuple[1].get('lengthOfUnitCellLatticeB', 0)
@@ -276,7 +276,7 @@ def parse_binding_site(argtuple):
         if reflections:
             struc_dict["DPI"] = dpi(a, b, c, alpha, beta, gamma, natoms, reflections, struc_dict["rFree"])
         else:
-            struc_dict["DPI"] = 9999
+            struc_dict["DPI"] = float("nan")
         dbg("DPI is {}".format(struc_dict["DPI"]))
     #Now let's prune covalently bound ligands
     alllinksparsed = False
@@ -404,17 +404,17 @@ def classificate_residue(residue, residue_dict, struc_dict, good_rsr, dubious_rs
                 score +=1000
                 reason = "No resolution data for %s" % residue
         if USE_RDIFF:
-            Rdiff = struc_dict.get('Rdiff', 100)
+            Rdiff = struc_dict.get('Rdiff', float("nan"))
             if Rdiff > RDIFF_max:
                 score += 1
-            if Rdiff >= 90:
+            elif math.isnan(Rdiff):
                 score +=1000
                 reason = "No reliable rFree and rWork data for %s" % residue
         if USE_DPI:
             DPI = struc_dict.get('DPI', -1)
             if not (DPI < DPI_max):
                 score += 1
-            if 0 > DPI:
+            if not (0 < DPI) or math.isnan(DPI):
                 score +=1000
                 reason = "No reliable structural data for %s" % residue
     else:
@@ -565,7 +565,11 @@ def get_binding_site(ligand, ligand_score, good_rsr, bad_rsr, dubious_rsr, pdbid
     rte = inner_binding_site.union(ligand).difference(good_rsr)
     ligandgood = validate(ligand, good_rsr, bad_rsr, dubious_rsr, pdbid)
     bsgood = validate(inner_binding_site, good_rsr, bad_rsr, dubious_rsr, pdbid)
-    return ligand, inner_binding_site, rte, ligandgood, bsgood, bad_occupancy, ligand_score, bs_score
+    if STATS:
+        res_stat_dict = {res:edd_dict.get(res, None) for res in inner_binding_site.union(ligand)}
+    else:
+        res_stat_dict = None
+    return ligand, inner_binding_site, rte, ligandgood, bsgood, bad_occupancy, ligand_score, bs_score, res_stat_dict
 
 def validate(residues, good_rsr, bad_rsr, dubious_rsr, pdbid):
     if residues <= good_rsr:
@@ -594,6 +598,12 @@ def results_to_csv(results, outputfile):
     csvtitles = titles
     if STATS:
         csvtitles += stat_titles
+        residue_stats = ["RSR", "RSCC", "occupancy"]
+        if CHECK_OWAB:
+           residue_stats.append("OWAB")
+        for rs in residue_stats:
+            for t in "CTE", "Ligand", "Binding Site":
+                csvtitles.append("{} ({})".format(rs, t))
     with open(outputfile, 'wb') as outfile:
         csvfile = csv.writer(outfile)
         csvfile.writerow(csvtitles)
@@ -617,8 +627,11 @@ def results_to_csv(results, outputfile):
                             line = '{}:\t{} {}\n'.format(pdbid, nonligand, reason)
                             rejectedfile.write( line)
                         for data in ligand_bs_list:
-                            ligandresidues, binding_site, residues_to_exam, ligandgood, bsgood, bad_occupancy, ligand_score, bs_score = data
+                            ligandresidues, binding_site, residues_to_exam, ligandgood, bsgood, bad_occupancy, ligand_score, bs_score, res_stat_dict = data
                             id = pdbid
+                            residues_to_exam = list(residues_to_exam)
+                            ligandresidues = list(ligandresidues)
+                            binding_site = list(binding_site)
                             if not ligandresidues:
                                 dbg('%s has no actual ligands, it will be discarded' % pdbid)
                             else:
@@ -630,6 +643,8 @@ def results_to_csv(results, outputfile):
                                 if STATS:
                                     for k in stat_titles:
                                         row.append(struc_dict[k])
+                                    for k2 in residue_stats:
+                                        row += ['; '.join([str(res_stat_dict[res][k2]) for res in resl]) for resl in [residues_to_exam, ligandresidues, binding_site]]
                                 csvfile.writerow(row)
                                 outfile.flush()
                                 datawritten = bool(outputfile)
