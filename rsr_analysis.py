@@ -34,7 +34,7 @@ RESOLUTION_max = 3.5
 RSR_upper = 0.4
 RSR_lower = 0.24
 RSCC_min = 0.9
-RFREE_min = 0
+RFREE_max = 1
 RDIFF_max = 0.05
 DPI_max = 0.42
 OCCUPANCY_min = 1.0
@@ -53,7 +53,7 @@ parser.add_argument('-l','--rsr-lower', type=float, default=RSR_lower, metavar='
 parser.add_argument('-b','--max-owab', type=float, default=None, metavar='FLOAT', help='set maximum OWAB (Occupancy-weighted B-factor) per residue')
 parser.add_argument('-R','--min-rscc', type=float, default=RSCC_min, metavar='FLOAT', help='set minimum RSCC per residue')
 parser.add_argument('-O','--min-occupancy', type=float, default=OCCUPANCY_min, metavar='FLOAT', help='set minimum average occupancy per residue')
-parser.add_argument('-F','--min-rfree', type=float, default=RFREE_min, metavar='FLOAT', help='set minimum R-free for the structure')
+parser.add_argument('-F','--max-rfree', type=float, default=RFREE_max, metavar='FLOAT', help='set maximum R-free for the structure')
 parser.add_argument('-M','--max-rdiff', type=float, default=None, metavar='FLOAT', help='maximum difference between R and R-free, to avoid overfit models')
 parser.add_argument('-D','--max-DPI', type=float, default=None, metavar='FLOAT', help='maximum model DPI')
 parser.add_argument('-r','--max-resolution', type=float, default=None, metavar='FLOAT', help='set maximum resolution (in Å) below which to consider Good models')
@@ -126,7 +126,8 @@ def get_custom_report(pdbids_list):
             if row[1] == "X-RAY DIFFRACTION":
                 for n, column in enumerate(columns[1:]):
                     n2 = n+2
-                    rowdict[column] = float(row[n2] or 0)
+                    if row[n2] or row[n2] == 0:
+                        rowdict[column] = float(row[n2])
             result[row[0]] = rowdict
     return result
 
@@ -176,14 +177,15 @@ def parse_binding_site(argtuple):
     notligands = {}
     links = []
     struc_dict = {}
+    reflections = 0
     if PDB_REDO:
         if not argtuple[1]:
             return  (pdbid, "Not in PDB_REDO")
         edd_dict = pdb_redo.get_ED_data(pdbid)
         if not edd_dict:
             return  (pdbid, "Not in PDB_REDO")
-        struc_dict['rFree'] = argtuple[1].get('RFFIN', 0)
-        struc_dict['rWork'] = argtuple[1].get('RFIN', 0)
+        struc_dict['rFree'] = argtuple[1].get('RFFIN',-100)
+        struc_dict['rWork'] = argtuple[1].get('RFIN', 1000)
         if USE_DPI:
             reflections = float(argtuple[1].get('NREFCNT', 0))
             a = argtuple[1].get('AAXIS', 0)
@@ -201,8 +203,8 @@ def parse_binding_site(argtuple):
         if not edd_dict:
             dbg("No EDS data available for %s, it will be discarded" % pdbid)
             return  (pdbid, "No EDS data available")
-        struc_dict['rFree'] = argtuple[1].get('rFree', 0)
-        struc_dict['rWork'] = argtuple[1].get('rWork', 0)
+        struc_dict['rFree'] = argtuple[1].get('rFree', float("nan"))
+        struc_dict['rWork'] = argtuple[1].get('rWork', float("nan"))
         if USE_DPI:
             a = argtuple[1].get('lengthOfUnitCellLatticeA', 0)
             b = argtuple[1].get('lengthOfUnitCellLatticeB', 0)
@@ -214,7 +216,7 @@ def parse_binding_site(argtuple):
     if CHECK_RESOLUTION:
         struc_dict['Resolution'] = resolution
     if USE_RDIFF:
-        Rdiff = struc_dict['rWork'] - struc_dict['rFree']
+        Rdiff = struc_dict['rFree'] - struc_dict['rWork'] 
         struc_dict['Rdiff'] = Rdiff
     pdbfilepath = PDBfiles.get_pdb_file(pdbid.upper(), PDB_REDO)
     natoms = 0
@@ -261,7 +263,7 @@ def parse_binding_site(argtuple):
                 if line[9] == '3' and "NUMBER OF REFLECTIONS" in line:
                     try:
                         reflections = int(line.split(":")[1].strip())
-                    except ValueError:
+                    except:
                         return  (pdbid, "number of reflections")
     except IOError, error:
         dbg(pdbfilepath)
@@ -271,7 +273,10 @@ def parse_binding_site(argtuple):
         if error:
             return  (pdbid, str(error))
     if USE_DPI:
-        struc_dict["DPI"] = dpi(a, b, c, alpha, beta, gamma, natoms, reflections, struc_dict["rFree"])
+        if reflections:
+            struc_dict["DPI"] = dpi(a, b, c, alpha, beta, gamma, natoms, reflections, struc_dict["rFree"])
+        else:
+            struc_dict["DPI"] = float("nan")
         dbg("DPI is {}".format(struc_dict["DPI"]))
     #Now let's prune covalently bound ligands
     alllinksparsed = False
@@ -324,30 +329,33 @@ def parse_binding_site(argtuple):
     ligand_scores = []
     for ligand in ligands:
         ligand_score = 0
-        for res in ligand:
+        for res in list(ligand):
             residue_dict = edd_dict.get(res, None)
             if residue_dict:
                 residue_dict['occupancy'] = average_occ(ligand_res_atom_dict[res])
             score,  reason = classificate_residue(res, edd_dict.get(res, None), struc_dict, good_rsr, dubious_rsr, bad_rsr)
-            if reason:
+            if reason and score >= 1000:
                 notligands[res] = reason
+                ligand.remove(res)
             ligand_score = max(ligand_score, score)
         ligand_scores.append(ligand_score)
     binding_sites_found = False
     while not binding_sites_found:
         ligand_bs_list = []
         for ligand, ligand_score in zip(ligands, ligand_scores):
+            if not ligand:
+                continue
             bs = get_binding_site(ligand, ligand_score, good_rsr, bad_rsr, dubious_rsr, pdbid, res_atom_dict, ligands, ligand_res_atom_dict, rsr_upper, rsr_lower, edd_dict, struc_dict, notligands)
             if len(bs) == 1:
                 for ligandres in ligand:
                     if ligandres in ligand_residues:
                         ligand_residues.remove(ligandres)
-                        dbg('%s removed from ligand residues' % ligandres)
+                        dbg('{} removed from ligand residues because {}'.format(ligandres, bs[0]))
                     if ligandres in ligand_res_atom_dict:
                         res_atom_dict[ligandres] = ligand_res_atom_dict.pop(ligandres)
-                        dbg('%s atoms added to protein' % ligandres)
+                        dbg('{} atoms added to protein because {}'.format(ligandres, bs[0]))
                     if ligandres not in notligands:
-                        notligands[ligandres] = "Covalently bound to non-ligand"
+                        notligands[ligandres] = bs[0]
                 continue
             ligand_bs_list.append(bs)
         else:
@@ -362,39 +370,58 @@ def classificate_residue(residue, residue_dict, struc_dict, good_rsr, dubious_rs
         score +=1000
         reason = "No data for %s" % residue
         dbg(reason)
-    rscc = residue_dict['RSCC']
-    if RSCC_min > rscc:
-        score += 1
-    if CHECK_OWAB:
-        owab = residue_dict['OWAB']
-        if not 1 < owab < OWAB_max:
+    else:
+        rscc = residue_dict['RSCC']
+        if RSCC_min > rscc:
+            score += 1
+        if CHECK_OWAB:
+            owab = residue_dict['OWAB']
+            if not 1 < owab < OWAB_max:
+                score +=1
+        occ = residue_dict['occupancy']
+        if occ > 1:
+            score +=1000
+            reason = "Occupancy above 1"
+        elif occ < OCCUPANCY_min:
             score +=1
-    occ = residue_dict['occupancy']
-    if occ > 1:
-        score +=1000
-        reason = "Occupancy above 1"
-    elif occ < OCCUPANCY_min:
-        score +=1
-    rsr = residue_dict['RSR']
-    rFree = struc_dict['rFree']
-    if rFree < RFREE_min:
-        score += 1
-    if CHECK_RESOLUTION:
-        resolution = struc_dict.get('Resolution', 1)
-        if resolution > RESOLUTION_max:
+        rsr = residue_dict['RSR']
+        if rsr > RSR_lower:
             score += 1
-    if USE_RDIFF:
-        Rdiff = struc_dict.get('Rdiff', 1)
-        if Rdiff > RDIFF_max:
+            if rsr > RSR_upper:
+                score += 1
+    if struc_dict:
+        rFree = struc_dict['rFree']
+        if rFree > RFREE_max:
             score += 1
-    if USE_DPI:
-        DPI = struc_dict.get('DPI', 1)
-        if DPI > DPI_max:
-            score += 1
-    if rsr > RSR_lower:
-        score += 1
-        if rsr > RSR_upper:
-            score += 1
+        if 0 > rFree:
+            score +=1000
+            reason = "No rFree data for %s" % residue
+        if CHECK_RESOLUTION:
+            resolution = struc_dict.get('Resolution', 10)
+            if resolution > RESOLUTION_max:
+                score += 1
+            if resolution == 10:
+                score +=1000
+                reason = "No resolution data for %s" % residue
+        if USE_RDIFF:
+            Rdiff = struc_dict.get('Rdiff', float("nan"))
+            if Rdiff > RDIFF_max:
+                score += 1
+            elif math.isnan(Rdiff):
+                score +=1000
+                reason = "No reliable rFree and rWork data for %s" % residue
+        if USE_DPI:
+            DPI = struc_dict.get('DPI', -1)
+            if not (DPI < DPI_max):
+                score += 1
+            if not (0 < DPI) or math.isnan(DPI):
+                score +=1000
+                reason = "No reliable structural data for %s" % residue
+    else:
+        if USE_DPI or USE_RDIFF or CHECK_RESOLUTION:
+            score +=1000
+            reason = "No structural data for %s" % residue
+            dbg(reason)
     if score == 0:
         good_rsr.add(residue)
     elif score > TOLERANCE:
@@ -485,7 +512,7 @@ def get_binding_site(ligand, ligand_score, good_rsr, bad_rsr, dubious_rsr, pdbid
     for ligandres in ligand:
         if ligandres in notligands:
             reason = notligands[ligandres]
-            return reason
+            return [reason]
         for res in res_atom_dict:
             for atom in res_atom_dict[res]:
                 for ligandatom in ligand_res_atom_dict[ligandres]:
@@ -497,12 +524,12 @@ def get_binding_site(ligand, ligand_score, good_rsr, bad_rsr, dubious_rsr, pdbid
                                 reason = ("Covalently bound to a blacklisted ligand", )
                                 dbg('{} is not a ligand! ({})'.format(ligand, reason))
                                 notligands[ligandres] = reason
-                                return reason
+                                return [reason]
                             elif hetid in cofactors.metals:
                                 reason = ("Covalently bound to the sequence", )
                                 dbg('{} is not a ligand! ({})'.format(ligand, reason))
                                 notligands[ligandres] = reason
-                                return reason
+                                return [reason]
                         inner_binding_site.add(atom.residue)
                         break
         for l in ligands:
@@ -538,7 +565,11 @@ def get_binding_site(ligand, ligand_score, good_rsr, bad_rsr, dubious_rsr, pdbid
     rte = inner_binding_site.union(ligand).difference(good_rsr)
     ligandgood = validate(ligand, good_rsr, bad_rsr, dubious_rsr, pdbid)
     bsgood = validate(inner_binding_site, good_rsr, bad_rsr, dubious_rsr, pdbid)
-    return ligand, inner_binding_site, rte, ligandgood, bsgood, bad_occupancy, ligand_score, bs_score
+    if STATS:
+        res_stat_dict = {res:edd_dict.get(res, None) for res in inner_binding_site.union(ligand)}
+    else:
+        res_stat_dict = None
+    return ligand, inner_binding_site, rte, ligandgood, bsgood, bad_occupancy, ligand_score, bs_score, res_stat_dict
 
 def validate(residues, good_rsr, bad_rsr, dubious_rsr, pdbid):
     if residues <= good_rsr:
@@ -567,6 +598,12 @@ def results_to_csv(results, outputfile):
     csvtitles = titles
     if STATS:
         csvtitles += stat_titles
+        residue_stats = ["RSR", "RSCC", "occupancy"]
+        if CHECK_OWAB:
+           residue_stats.append("OWAB")
+        for rs in residue_stats:
+            for t in "CTE", "Ligand", "Binding Site":
+                csvtitles.append("{} ({})".format(rs, t))
     with open(outputfile, 'wb') as outfile:
         csvfile = csv.writer(outfile)
         csvfile.writerow(csvtitles)
@@ -585,12 +622,16 @@ def results_to_csv(results, outputfile):
                         continue
                     elif restuplelen == 4:
                         pdbid, ligand_bs_list, notligands, struc_dict = restuple
-                        for nonligand in notligands:
+                        for nonligand, reason in notligands.iteritems():
             #                resname = nonligand[:3].strip()
-                            line = '%s:\t%s %s\n' %(pdbid, nonligand, notligands[nonligand])
+                            line = '{}:\t{} {}\n'.format(pdbid, nonligand, reason)
                             rejectedfile.write( line)
-                        for ligandresidues, binding_site, residues_to_exam, ligandgood, bsgood, bad_occupancy, ligand_score, bs_score in ligand_bs_list:
+                        for data in ligand_bs_list:
+                            ligandresidues, binding_site, residues_to_exam, ligandgood, bsgood, bad_occupancy, ligand_score, bs_score, res_stat_dict = data
                             id = pdbid
+                            residues_to_exam = list(residues_to_exam)
+                            ligandresidues = list(ligandresidues)
+                            binding_site = list(binding_site)
                             if not ligandresidues:
                                 dbg('%s has no actual ligands, it will be discarded' % pdbid)
                             else:
@@ -602,6 +643,8 @@ def results_to_csv(results, outputfile):
                                 if STATS:
                                     for k in stat_titles:
                                         row.append(struc_dict[k])
+                                    for k2 in residue_stats:
+                                        row += ['; '.join([str(res_stat_dict[res][k2]) for res in resl]) for resl in [residues_to_exam, ligandresidues, binding_site]]
                                 csvfile.writerow(row)
                                 outfile.flush()
                                 datawritten = bool(outputfile)
@@ -618,7 +661,7 @@ def results_to_csv(results, outputfile):
 
 def main(values):
     global CHECK_OWAB, OWAB_max, CHECK_RESOLUTION, RESOLUTION_max, RSCC_min, TOLERANCE
-    global RSR_upper, RSR_lower, RFREE_min, OCCUPANCY_min, PDB_REDO
+    global RSR_upper, RSR_lower, RFREE_max, OCCUPANCY_min, PDB_REDO
     global USE_DPI, USE_RDIFF, RDIFF_max, DPI_max
     global dbg, STATS
     filepath =  values.pdbidfile
@@ -646,8 +689,8 @@ def main(values):
         OCCUPANCY_min = values.min_occupancy
     if not values.min_rscc is None:
         RSCC_min = values.min_rscc
-    if not values.min_rfree is None:
-        RFREE_min = values.min_rfree
+    if not values.max_rfree is None:
+        RFREE_max = values.max_rfree
     if not values.max_resolution is None:
         CHECK_RESOLUTION = True
         RESOLUTION_max = values.max_resolution
@@ -696,7 +739,7 @@ def main(values):
     #get_custom_report
     if not PDB_REDO:
         npdbs = len(pdblist)
-        maxn = 1595
+        maxn = 1000
         if npdbs > maxn:
             pdbids_extra_data_dict = {}
             p = multiprocessing.Pool(multiprocessing.cpu_count())

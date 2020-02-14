@@ -10,4 +10,4 @@ ant
 mv VHELIBS.jar VHELIBS-$version.jar
 cd $OLDDIR
 
-python setup.py build_ext --inplace
+#python setup.py build_ext --inplace

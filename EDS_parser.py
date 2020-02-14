@@ -105,15 +105,16 @@ def get_EDS(pdbid):
             return pdbdict, edd_dict
         for line in statfilelines:
             if not line.startswith('!'):
+                line = line.replace("*", " ")
                 residue = line[8:18]
-                rscc = line[21:26]
-                rsr = line[27:33]
-                owab = line[35:40]
+                rscc = line[21:26].strip()
+                rsr = line[27:33].strip()
+                owab = line[35:40].strip()
 #                natom = line[41:46]
 #                s_occ = line[47:52]
-                edd_dict[residue] = {"RSR":float(rsr) if rsr.strip() else 100
-                                     ,"RSCC": float(rscc) if rscc.strip() else 0
-                                     ,"OWAB": float(owab) if owab.strip() else 1000
+                edd_dict[residue] = {"RSR":float(rsr) if rsr else 100
+                                     ,"RSCC": float(rscc) if rscc else 0
+                                     ,"OWAB": float(owab) if owab else 1000
 #                                     ,"Natom":float(natom) if natom.strip() else None
 #                                     ,"S_occ":float(s_occ) if s_occ.strip() else 0
                                      }

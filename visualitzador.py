@@ -55,7 +55,7 @@ from org.jmol.adapter.smarter import SmarterJmolAdapter
 from org.jmol.api import JmolViewer
 from org.openscience.jmol.app.jmolpanel.console import AppConsole
 
-VHELIBS_VERSION = "4.0"
+VHELIBS_VERSION = "4.3"
 TITLE =  "VHELIBS " + VHELIBS_VERSION
 
 #Own stuff
@@ -741,7 +741,7 @@ class SettingsDialog(object):
                             , 'max_resolution':rsr_analysis.RESOLUTION_max
                             , 'tolerance':rsr_analysis.TOLERANCE
                             , 'min_occupancy':rsr_analysis.OCCUPANCY_min
-                            , 'min_rfree':rsr_analysis.RFREE_min
+                            , 'max_rfree':rsr_analysis.RFREE_max
                             , 'use_owab': rsr_analysis.CHECK_OWAB
                             , 'use_res': rsr_analysis.CHECK_RESOLUTION
                             , 'use_pdb_redo': False
@@ -761,7 +761,7 @@ class SettingsDialog(object):
                             , 'max_resolution':rsr_analysis.RESOLUTION_max
                             , 'tolerance':rsr_analysis.TOLERANCE
                             , 'min_occupancy':rsr_analysis.OCCUPANCY_min
-                            , 'min_rfree':rsr_analysis.RFREE_min
+                            , 'max_rfree':rsr_analysis.RFREE_max
                             , 'use_owab': False
                             , 'use_res': rsr_analysis.CHECK_RESOLUTION
                             , 'use_pdb_redo': True
@@ -781,7 +781,7 @@ class SettingsDialog(object):
                             , 'max_resolution':5
                             , 'tolerance':rsr_analysis.TOLERANCE
                             , 'min_occupancy':1.0
-                            , 'min_rfree':0 #FIXME:
+                            , 'max_rfree':0 #FIXME:
                             , 'use_owab': False
                             , 'use_res': False
                             , 'outputfile':  'vhelibs_analysis_iridium.csv'
@@ -927,11 +927,11 @@ class SettingsDialog(object):
         constraints.gridx -= 1
 
         constraints.gridy += 1
-        tooltip="All residues and ligands from structures with an R-free value below this value will have their score increased by 1"
-        self.panel.add(JLabel('Minimum R-free value', toolTipText=tooltip), constraints)
+        tooltip="All residues and ligands from structures with an R-free value above this value will have their score increased by 1"
+        self.panel.add(JLabel('Maximum R-free value', toolTipText=tooltip), constraints)
         constraints.gridx += 1
-        self.min_rfree.toolTipText=tooltip
-        self.panel.add(self.min_rfree, constraints)
+        self.max_rfree.toolTipText=tooltip
+        self.panel.add(self.max_rfree, constraints)
         constraints.gridx -= 1
 
         constraints.gridy += 1
@@ -1154,7 +1154,7 @@ class SettingsDialog(object):
         self.values.rsr_upper = float(self.rsr_upper.text)
         self.values.outputfile = self.outputfile.text
         self.values.min_rscc = float(self.min_rscc.text)
-        self.values.min_rfree = float(self.min_rfree.text)
+        self.values.max_rfree = float(self.max_rfree.text)
         self.values.min_occupancy = float(self.min_occupancy.text)
         self.values.use_cache = self.use_cache.selected
         self.values.use_pdb_redo = self.use_pdb_redo.selected
