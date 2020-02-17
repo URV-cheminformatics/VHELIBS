@@ -55,14 +55,14 @@ from org.jmol.adapter.smarter import SmarterJmolAdapter
 from org.jmol.api import JmolViewer
 from org.openscience.jmol.app.jmolpanel.console import AppConsole
 
-VHELIBS_VERSION = "4.3"
+VHELIBS_VERSION = "4.4"
 TITLE =  "VHELIBS " + VHELIBS_VERSION
 
 #Own stuff
 sys.argv = [arg for arg in sys.argv if __file__ not in arg]
 if not len(sys.argv):
     sys.argv.append('--no-args')
-import rsr_analysis, PDBfiles,  EDS_parser, pdb_redo
+import rsr_analysis, PDBfiles,  EDS_parser#, pdb_redo
 ### build the parser###
 argparser = rsr_analysis.parser
 argparser.add_argument('-c','--csvfile', metavar='CSVFILE', type=unicode, default=None, required=False, help='CSV file containing results from a previous RSR analysis')
@@ -82,8 +82,8 @@ def prefbool(string):
         raise TypeError(string + ' cannot be booleaned!')
 
 def load_model(pdbid, source):
-    if source == 'PDB_REDO':
-        return PDBfiles.get_pdb_file(pdbid, True)
+    #if source == 'PDB_REDO':
+    #    return PDBfiles.get_pdb_file(pdbid, True)
     if source != 'PDB':
         print "WARNING: Unknown model source: %s"% source
         print "Loading from the PDB instead"
@@ -405,14 +405,13 @@ class StruVa(Runnable):
                 return
             self.execute('isosurface %s color %s cutoff %s within %s %s "%s" mesh dots fill translucent 0.3' %\
                         (name, color, sigma_c*float(prefs.get('sigma', '1.0')), prefs.get('edmdistance', '2.1'), atoms, omapfile.replace(os.sep, '/')))
-        elif self.source == 'PDB_REDO':
-            ccp4file = pdb_redo.get_EDM(self.pdbid)
-            if ccp4file:
-                self.execute('isosurface %s color %s sigma %s within %s %s insideout "%s" mesh dots fill translucent 0.3'%\
-                        (name, color, float(prefs.get('sigma', '1.0')), prefs.get('edmdistance', '2.1'), atoms, ccp4file.replace(os.sep, '/')))
-            else:
-                self.console.sendConsoleMessage("ED unavailable at %s" % self.source)
-
+#        elif self.source == 'PDB_REDO':
+#            ccp4file = pdb_redo.get_EDM(self.pdbid)
+#            if ccp4file:
+#                self.execute('isosurface %s color %s sigma %s within %s %s insideout "%s" mesh dots fill translucent 0.3'%\
+#                        (name, color, float(prefs.get('sigma', '1.0')), prefs.get('edmdistance', '2.1'), atoms, ccp4file.replace(os.sep, '/')))
+#            else:
+#                self.console.sendConsoleMessage("ED unavailable at %s" % self.source)
         else:
             self.console.sendConsoleMessage("Unable to load ED from %s" % self.source)
 
@@ -744,7 +743,7 @@ class SettingsDialog(object):
                             , 'max_rfree':rsr_analysis.RFREE_max
                             , 'use_owab': rsr_analysis.CHECK_OWAB
                             , 'use_res': rsr_analysis.CHECK_RESOLUTION
-                            , 'use_pdb_redo': False
+#                            , 'use_pdb_redo': False
                             , 'outputfile':  'vhelibs_analysis_default_PDB.csv'
                             , 'editable': False
                             , 'use_rdiff': rsr_analysis.USE_RDIFF
@@ -752,26 +751,26 @@ class SettingsDialog(object):
                             , 'use_DPI': rsr_analysis.USE_DPI
                             , 'max_DPI': rsr_analysis.DPI_max
                             }
-                    , 'Default (PDB_REDO)':{
-                            'distance':math.sqrt(rsr_analysis.inner_distance)
-                            , 'rsr_lower': 0.165
-                            , 'rsr_upper':rsr_analysis.RSR_upper
-                            , 'max_owab':rsr_analysis.OWAB_max
-                            , 'min_rscc':rsr_analysis.RSCC_min
-                            , 'max_resolution':rsr_analysis.RESOLUTION_max
-                            , 'tolerance':rsr_analysis.TOLERANCE
-                            , 'min_occupancy':rsr_analysis.OCCUPANCY_min
-                            , 'max_rfree':rsr_analysis.RFREE_max
-                            , 'use_owab': False
-                            , 'use_res': rsr_analysis.CHECK_RESOLUTION
-                            , 'use_pdb_redo': True
-                            , 'outputfile':  'vhelibs_analysis_default_PDB_REDO.csv'
-                            , 'editable': False
-                            , 'use_rdiff': rsr_analysis.USE_RDIFF
-                            , 'max_rdiff': rsr_analysis.RDIFF_max
-                            , 'use_DPI': rsr_analysis.USE_DPI
-                            , 'max_DPI': rsr_analysis.DPI_max
-                            }
+#                    , 'Default (PDB_REDO)':{
+#                            'distance':math.sqrt(rsr_analysis.inner_distance)
+#                            , 'rsr_lower': 0.165
+#                            , 'rsr_upper':rsr_analysis.RSR_upper
+#                            , 'max_owab':rsr_analysis.OWAB_max
+#                            , 'min_rscc':rsr_analysis.RSCC_min
+#                            , 'max_resolution':rsr_analysis.RESOLUTION_max
+#                            , 'tolerance':rsr_analysis.TOLERANCE
+#                            , 'min_occupancy':rsr_analysis.OCCUPANCY_min
+#                            , 'max_rfree':rsr_analysis.RFREE_max
+#                            , 'use_owab': False
+#                            , 'use_res': rsr_analysis.CHECK_RESOLUTION
+#                            , 'use_pdb_redo': True
+#                            , 'outputfile':  'vhelibs_analysis_default_PDB_REDO.csv'
+#                            , 'editable': False
+#                            , 'use_rdiff': rsr_analysis.USE_RDIFF
+#                            , 'max_rdiff': rsr_analysis.RDIFF_max
+#                            , 'use_DPI': rsr_analysis.USE_DPI
+#                            , 'max_DPI': rsr_analysis.DPI_max
+#                            }
                     ,'Iridium':{
                             'distance':5
                             , 'rsr_lower':0.1
@@ -785,7 +784,7 @@ class SettingsDialog(object):
                             , 'use_owab': False
                             , 'use_res': False
                             , 'outputfile':  'vhelibs_analysis_iridium.csv'
-                            , 'use_pdb_redo': False
+#                            , 'use_pdb_redo': False
                             , 'editable': False
                             , 'use_rdiff': rsr_analysis.USE_RDIFF
                             , 'max_rdiff': rsr_analysis.RDIFF_max
@@ -840,13 +839,13 @@ class SettingsDialog(object):
         ##############
 
         ##############
-        constraints.gridy += 1
-        constraints.gridwidth = 2
-        tooltip="Models will be loaded from PDB_REDO instead of the PDB"
-        self.use_pdb_redo = JCheckBox("Use models from PDB_REDO", toolTipText=tooltip, selected=self.profiles['Default (PDB)']['use_pdb_redo'], actionPerformed=self._check_pdbredo_owab)
-        self.use_pdb_redo.toolTipText=tooltip
-        self.panel.add(self.use_pdb_redo, constraints)
-        constraints.gridwidth = 1
+        #constraints.gridy += 1
+        #constraints.gridwidth = 2
+        #tooltip="Models will be loaded from PDB_REDO instead of the PDB"
+        #self.use_pdb_redo = JCheckBox("Use models from PDB_REDO", toolTipText=tooltip, selected=self.profiles['Default (PDB)']['use_pdb_redo'], actionPerformed=self._check_pdbredo_owab)
+        #self.use_pdb_redo.toolTipText=tooltip
+        #self.panel.add(self.use_pdb_redo, constraints)
+        #constraints.gridwidth = 1
         ##############
 
         constraints.gridy += 1
@@ -892,7 +891,7 @@ class SettingsDialog(object):
 
         constraints.gridy += 1
         tooltip="Residues and ligands with an occupancy-weighted B-factor (OWAB) above this value will have their score increased by 1"
-        self.owab_cb = JCheckBox('OWAB', toolTipText=tooltip, selected=(self.profiles['Default (PDB)']['max_owab'] != self.values.max_owab) or self.profiles['Default (PDB)']['use_owab'], actionPerformed=self._check_pdbredo_owab)
+        self.owab_cb = JCheckBox('OWAB', toolTipText=tooltip, selected=(self.profiles['Default (PDB)']['max_owab'] != self.values.max_owab) or self.profiles['Default (PDB)']['use_owab'], )#actionPerformed=self._check_pdbredo_owab)
         self.panel.add(self.owab_cb, constraints)
         constraints.gridx += 1
         self.max_owab.toolTipText=tooltip
@@ -998,15 +997,15 @@ class SettingsDialog(object):
         self.profilecbb.selectedItem = 'Default (PDB)'
         #self.load_profile(e=None, profilename='Default (PDB)')
 
-    def _check_pdbredo_owab(self, event):
-        """
-        No OWAB data for PDB_REDO
-        """
-        if self.owab_cb.selected and self.use_pdb_redo.selected:
-            if event.source is self.owab_cb:
-                self.use_pdb_redo.selected = False
-            else:
-                self.owab_cb.selected = False
+   # def _check_pdbredo_owab(self, event):
+   #     """
+   #     No OWAB data for PDB_REDO
+   #     """
+   #     if self.owab_cb.selected and self.use_pdb_redo.selected:
+   #         if event.source is self.owab_cb:
+   #             self.use_pdb_redo.selected = False
+   #         else:
+   #             self.owab_cb.selected = False
 
     def export_current_profile(self, event=None):
         filename = str(showOpenDialog(SimpleFileFilter('.tsv', None, 'VHELIBS profile files'), prefkey='loadedFiles', prefs=prefs,multiselect=False))
@@ -1025,8 +1024,8 @@ class SettingsDialog(object):
                     profile[key] = self.use_rdiff.selected
                 elif key == 'use_DPI':
                     profile[key] = self.use_DPI.selected
-                elif key == 'use_pdb_redo':
-                    profile[key] = self.use_pdb_redo.selected
+                #elif key == 'use_pdb_redo':
+                #    profile[key] = self.use_pdb_redo.selected
                 else:
                     profile[key] = self.__dict__[key].text
         file = open(filename, 'wb')
@@ -1081,8 +1080,8 @@ class SettingsDialog(object):
                 self.res_cb.selected = v
             elif k == 'use_DPI':
                 self.res_cb.selected = v
-            elif k == 'use_pdb_redo':
-                self.use_pdb_redo.selected = v
+            #elif k == 'use_pdb_redo':
+            #    self.use_pdb_redo.selected = v
             elif k == 'outputfile':
                 self.outputfile.text = os.path.abspath(v)
             else:
@@ -1157,7 +1156,7 @@ class SettingsDialog(object):
         self.values.max_rfree = float(self.max_rfree.text)
         self.values.min_occupancy = float(self.min_occupancy.text)
         self.values.use_cache = self.use_cache.selected
-        self.values.use_pdb_redo = self.use_pdb_redo.selected
+        #self.values.use_pdb_redo = self.use_pdb_redo.selected
         if self.owab_cb.selected:
             self.values.max_owab = float(self.max_owab.text)
         else:
