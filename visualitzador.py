@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-#   Copyright 2012 - 2015 Adrià Cereto Massagué <adrian.cereto@.urv.cat>
+#   Copyright 2012 - 2020 Adrià Cereto Massagué <adrian.cereto@.urv.cat>
 #
 
 #Python stuff
@@ -1507,6 +1507,9 @@ def reslist_to_sel(reslist):
 def main(args=sys.argv):
     """
     """
+    #values = rsr_analysis.parser.parse_args()
+    #if (values.pdbids or values.swissprot or values.pdbidfile):
+    #    return rsr_analysis.main(values)
     ttm = ToolTipManager.sharedInstance()
     ttm.reshowDelay = 0
     ttm.dismissDelay = 100000

@@ -1,7 +1,7 @@
 #/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-#   Copyright 2011 - 2015 Adrià Cereto Massagué <adrian.cereto@.urv.cat>
+#   Copyright 2011 - 2020 Adrià Cereto Massagué <adrian.cereto@.urv.cat>
 #
 import os, gzip, sys, urllib2, csv, itertools, math, contextlib
 try:
@@ -111,7 +111,11 @@ def dpi(a, b, c, alpha, beta, gamma, natoms, reflections, rfree):
     return 1.28*(natoms**(1.0/2))*(V**(1.0/3))*(reflections**(-5.0/6))*rfree
 
 def get_custom_report(pdbids_list):
+    if not pdbids_list:
+        print("No PDB ids found!")
+        raise Exception("No PDB ids found!")
     urlstring = SERVICELOCATION + QUERY_TPL % ','.join(pdbids_list)
+    print(urlstring)
     with contextlib.closing(urllib2.urlopen(urlstring)) as urlhandler:
         if urlhandler.code != 200:
             print urlhandler.msg
@@ -136,6 +140,7 @@ def get_sptopdb_dict():
     url = "http://www.uniprot.org/docs/pdbtosp.txt"
     sptopdb_dict = {}
     temppdbdict = {}
+    print("Loading Swissprot-PDB dict...")
     reader = urllib2.urlopen(url)
     pdbid = None
     for line in reader:
@@ -158,6 +163,8 @@ def get_sptopdb_dict():
             if sp_id not in sptopdb_dict:
                 sptopdb_dict[sp_id] = set()
             sptopdb_dict[sp_id].add(pdbid)
+    if not sptopdb_dict:
+        raise Exception("Could not load the Swissprot-PDB dictionary!")
     return sptopdb_dict
 
 def parse_binding_site(argtuple):
@@ -699,7 +706,9 @@ def main(values):
         cofactors.dump_lists(writeexcludes)
         dbg('List of excluded Hetids written to %s' % writeexcludes)
     if values.swissprot:
+        print("Retrieving PDB ids for {}".format(", ".join(values.swissprot)))
         sptopdb_dict = get_sptopdb_dict()
+        #print(sptopdb_dict)
         for swissprot_id in values.swissprot:
             for key in sptopdb_dict:
                 if swissprot_id in key:
@@ -710,6 +719,8 @@ def main(values):
         pdblist = itertools.chain(pdblist, pdb_ids_from_file)
         pdblistfile.close()
     pdblist = [pdbid.lower() for pdbid in pdblist]
+    if not pdblist:
+        raise Exception("No PDB ids found!")
     #get_custom_report
     npdbs = len(pdblist)
     maxn = 1000
