@@ -21,10 +21,9 @@ except:
     #Fallback to pure python
     from PdbAtom import PdbAtom
 
-import PDBfiles, EDS_parser, pdb_redo
+import PDBfiles, EDS_parser
 import cofactors
 
-PDB_REDO = False
 CHECK_OWAB = False
 OWAB_max = 50
 CHECK_RESOLUTION = False
@@ -64,7 +63,6 @@ parser.add_argument('-o','--outputfile', metavar='PATH', type=unicode, default='
 parser.add_argument('-w','--writeexcludes', metavar='PATH', type=unicode, default=None, required=False, help='Write current excluded HET ids to a file')
 parser.add_argument('-e','--excludesfile', metavar='PATH', type=unicode, default=None, required=False, help='Override excluded HET ids with the ones provided in this file')
 parser.add_argument('-C','--use-cache', required=False, action='store_true', help="Use cached EDS and PDB data if available for the analysis, otherwise cache it.")
-parser.add_argument('-P','--use-pdb-redo', required=False, action='store_true', help="Use models from PDB_REDO instead of PDB.")
 parser.add_argument('-V','--verbose', required=False, action='store_true', help="Enable verbose output.")
 parser.add_argument('-S','--include-stats', required=False, action='store_true', help="Include model data in output file")
 #######################
@@ -178,47 +176,29 @@ def parse_binding_site(argtuple):
     links = []
     struc_dict = {}
     reflections = 0
-    if PDB_REDO:
-        if not argtuple[1]:
-            return  (pdbid, "Not in PDB_REDO")
-        edd_dict = pdb_redo.get_ED_data(pdbid)
-        if not edd_dict:
-            return  (pdbid, "Not in PDB_REDO")
-        struc_dict['rFree'] = argtuple[1].get('RFFIN',-100)
-        struc_dict['rWork'] = argtuple[1].get('RFIN', 1000)
-        if USE_DPI:
-            reflections = float(argtuple[1].get('NREFCNT', 0))
-            a = argtuple[1].get('AAXIS', 0)
-            b = argtuple[1].get('BAXIS', 0)
-            c = argtuple[1].get('CAXIS', 0)
-            alpha = argtuple[1].get('ALPHA', 0)
-            beta = argtuple[1].get('BETA', 0)
-            gamma = argtuple[1].get('GAMMA', 0)
-        resolution = argtuple[1].get('RESOLUTION', 0)
-    else:
-        if not argtuple[1]:
-            dbg("Model not obtained by X-ray crystallography")
-            return  (pdbid, "Model not obtained by X-ray crystallography")
-        pdbdict, edd_dict = EDS_parser.get_EDS(pdbid)
-        if not edd_dict:
-            dbg("No EDS data available for %s, it will be discarded" % pdbid)
-            return  (pdbid, "No EDS data available")
-        struc_dict['rFree'] = argtuple[1].get('rFree', float("nan"))
-        struc_dict['rWork'] = argtuple[1].get('rWork', float("nan"))
-        if USE_DPI:
-            a = argtuple[1].get('lengthOfUnitCellLatticeA', 0)
-            b = argtuple[1].get('lengthOfUnitCellLatticeB', 0)
-            c = argtuple[1].get('lengthOfUnitCellLatticeC', 0)
-            alpha = argtuple[1].get('unitCellAngleAlpha', 0)
-            beta = argtuple[1].get('unitCellAngleBeta', 0)
-            gamma = argtuple[1].get('unitCellAngleGamma', 0)
-        resolution = argtuple[1].get('refinementResolution', 0) if CHECK_RESOLUTION else 1714
+    if not argtuple[1]:
+        dbg("Model not obtained by X-ray crystallography")
+        return  (pdbid, "Model not obtained by X-ray crystallography")
+    pdbdict, edd_dict = EDS_parser.get_EDS(pdbid)
+    if not edd_dict:
+        dbg("No EDS data available for %s, it will be discarded" % pdbid)
+        return  (pdbid, "No EDS data available")
+    struc_dict['rFree'] = argtuple[1].get('rFree', float("nan"))
+    struc_dict['rWork'] = argtuple[1].get('rWork', float("nan"))
+    if USE_DPI:
+        a = argtuple[1].get('lengthOfUnitCellLatticeA', 0)
+        b = argtuple[1].get('lengthOfUnitCellLatticeB', 0)
+        c = argtuple[1].get('lengthOfUnitCellLatticeC', 0)
+        alpha = argtuple[1].get('unitCellAngleAlpha', 0)
+        beta = argtuple[1].get('unitCellAngleBeta', 0)
+        gamma = argtuple[1].get('unitCellAngleGamma', 0)
+    resolution = argtuple[1].get('refinementResolution', 0) if CHECK_RESOLUTION else 1714
     if CHECK_RESOLUTION:
         struc_dict['Resolution'] = resolution
     if USE_RDIFF:
         Rdiff = struc_dict['rFree'] - struc_dict['rWork'] 
         struc_dict['Rdiff'] = Rdiff
-    pdbfilepath = PDBfiles.get_pdb_file(pdbid.upper(), PDB_REDO)
+    pdbfilepath = PDBfiles.get_pdb_file(pdbid.upper())
     natoms = 0
     if pdbfilepath.endswith('.gz'):
         pdbfile = gzip.GzipFile(pdbfilepath)
@@ -635,10 +615,7 @@ def results_to_csv(results, outputfile):
                             if not ligandresidues:
                                 dbg('%s has no actual ligands, it will be discarded' % pdbid)
                             else:
-                                if PDB_REDO:
-                                    source = 'PDB_REDO'
-                                else:
-                                    source = 'PDB'
+                                source = 'PDB'
                                 row = [id, ';'.join(residues_to_exam), ';'.join(ligandresidues),';'.join(binding_site), ligandgood, bsgood, source,  ligand_score, bs_score]
                                 if STATS:
                                     for k in stat_titles:
@@ -661,7 +638,7 @@ def results_to_csv(results, outputfile):
 
 def main(values):
     global CHECK_OWAB, OWAB_max, CHECK_RESOLUTION, RESOLUTION_max, RSCC_min, TOLERANCE
-    global RSR_upper, RSR_lower, RFREE_max, OCCUPANCY_min, PDB_REDO
+    global RSR_upper, RSR_lower, RFREE_max, OCCUPANCY_min
     global USE_DPI, USE_RDIFF, RDIFF_max, DPI_max
     global dbg, STATS
     filepath =  values.pdbidfile
@@ -672,9 +649,6 @@ def main(values):
     if not values.max_owab is None:
         CHECK_OWAB = True
         OWAB_max = values.max_owab
-    if values.use_pdb_redo:
-        PDB_REDO = True
-        CHECK_OWAB = False
     if not values.rsr_upper > values.rsr_lower:
         dbg('%s is higher than %s!' % (values.rsr_lower, values.rsr_upper))
         raise ValueError
@@ -737,18 +711,15 @@ def main(values):
         pdblistfile.close()
     pdblist = [pdbid.lower() for pdbid in pdblist]
     #get_custom_report
-    if not PDB_REDO:
-        npdbs = len(pdblist)
-        maxn = 1000
-        if npdbs > maxn:
-            pdbids_extra_data_dict = {}
-            p = multiprocessing.Pool(multiprocessing.cpu_count())
-            for d in p.imap(get_custom_report, [pdblist[i:i+maxn] for i in xrange(0, npdbs, maxn)]):
-                pdbids_extra_data_dict.update(d)
-        else:
-            pdbids_extra_data_dict = get_custom_report(pdblist)
+    npdbs = len(pdblist)
+    maxn = 1000
+    if npdbs > maxn:
+        pdbids_extra_data_dict = {}
+        p = multiprocessing.Pool(multiprocessing.cpu_count())
+        for d in p.imap(get_custom_report, [pdblist[i:i+maxn] for i in xrange(0, npdbs, maxn)]):
+            pdbids_extra_data_dict.update(d)
     else:
-        pdbids_extra_data_dict = pdb_redo.get_pdbredo_data(pdblist)
+        pdbids_extra_data_dict = get_custom_report(pdblist)
     argsarray = [(pdbid, pdbids_extra_data_dict.get(pdbid.upper(), {})) for pdbid in pdblist if pdbid]
     pool = multiprocessing.Pool(multiprocessing.cpu_count())
     results = pool.imap(parse_binding_site, argsarray)
