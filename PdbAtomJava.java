@@ -10,6 +10,7 @@ public class PdbAtomJava{
         //Needs an ATOM or HETATM record
         residue = record.substring(17,27);
         hetid = residue.substring(0,3);
+        residue = residue.trim();
         hetid = hetid.trim();
         xyz =  new float[3];
         xyz[0] = Float.parseFloat( record.substring(30,38));

@@ -8,8 +8,6 @@ Handle and download PDB files
 import os, urllib2, time, tempfile
 
 PDBbase = "http://www.rcsb.org/pdb/files/%s.pdb.gz"
-#PDBREDObase_conservative = "http://www.cmbi.ru.nl/pdb_redo/MIDDLE/PDBID/PDBID_besttls.pdb"
-PDBREDObase_full = "http://www.cmbi.ru.nl/pdb_redo/MIDDLE/PDBID/PDBID_final.pdb"
 #On guardarem els fitxers:
 CACHEDIR = tempfile.mkdtemp()
 
@@ -24,9 +22,7 @@ def get_pdb_file(pdbcode, pdb_redo = False):
         url = PDBbase % pdbcode
         filename = os.path.join(CACHEDIR, pdbcode.upper() + ".pdb.gz")
     else:
-        pdbcode = pdbcode.lower()
-        url = PDBREDObase_full.replace('MIDDLE', pdbcode[1:3]).replace('PDBID', pdbcode)
-        filename = os.path.join(CACHEDIR, os.path.basename(url))
+        raise Exception("PDB_REDO not supported anymore")
     if os.path.isfile(filename):
         return filename
     tries = 0

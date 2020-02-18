@@ -1,59 +1,31 @@
 # -*- coding: utf-8 -*-
 #
-#   Copyright 2010 - 2015 Adrià Cereto Massagué <adrian.cereto@.urv.cat>
+#   Copyright 2010 - 2020 Adrià Cereto Massagué <adrian.cereto@.urv.cat>
 #
 """
-Mòdul que extreu informació la EDS database
+Module dealing with getting EDM data and validation stats
 """
 import urllib2, os, time
+import xml.etree.ElementTree as ET
 import PDBfiles
 
-edsurl = "http://eds.bmc.uu.se/eds/dfs/PDB2/PDB1/PDB1_stat.lis"
-
-def get_EDM_sigma(pdbid):
-    """
-    Downloads the file containing EDM sigma
-    """
-    edmurl = edsurl.replace('_stat.lis', '.sfdat').replace('PDB1', pdbid.lower()).replace('PDB2', pdbid[1:3].lower())
-    downloaddir = os.path.join(PDBfiles.CACHEDIR, pdbid.lower())
-    if not os.path.isdir(downloaddir):
-        os.makedirs(downloaddir)
-    sfdatfile = os.path.join(downloaddir,  '%s.sfdat' % pdbid.lower())
-    tries = 0
-    while tries <=3:
-        try:
-            if os.path.isfile(sfdatfile):
-                sfdatfilestream =  open(sfdatfile)
-                sigma = float([line.split()[1] for line in sfdatfilestream if 'MAP_SIGMA' in line][0])
-                sfdatfilestream.close()
-                return sigma
-            req = urllib2.urlopen(edmurl)
-            sfdat = req.read()
-            req.close()
-            outfile = open(sfdatfile, 'wb')
-            outfile.write(sfdat)
-            outfile.close()
-        except urllib2.URLError, e:
-            print e
-            tries +=1
-    print "Unable to find the map sigma"
-    return 1
-
+edmapsurl = "https://edmaps.rcsb.org/maps/{}_2fofc.dsn6"
+edstatsurl = "https://www.ebi.ac.uk/pdbe/entry-files/download/{}_validation.xml"
 
 def get_EDM(pdbid):
     """
     Downloads the EDM of the given pdb code
     """
-    edmurl = edsurl.replace('_stat.lis', '.omap').replace('PDB1', pdbid.lower()).replace('PDB2', pdbid[1:3].lower())
+    edmurl = edmapsurl.format(pdbid.lower())
     downloaddir = os.path.join(PDBfiles.CACHEDIR, pdbid.lower())
     if not os.path.isdir(downloaddir):
         os.makedirs(downloaddir)
-    omapfile = os.path.join(downloaddir,  '%s.omap' % pdbid.lower())
+    omapfile = os.path.join(downloaddir,  os.path.basename(edmurl))
     tries = 0
     while tries <=3:
         try:
             if os.path.isfile(omapfile):
-                sigma = get_EDM_sigma(pdbid)
+                sigma = 1
                 return omapfile, sigma
             req = urllib2.urlopen(edmurl)
             omap = req.read()
@@ -73,17 +45,15 @@ def get_EDS(pdbid):
     pdbid = pdbid.lower()
     pdbdict={pdbid:None}
     edd_dict = {}
+    url = edstatsurl.format(pdbid.lower())
     downloaddir = os.path.join(PDBfiles.CACHEDIR, pdbid.lower())
     if not os.path.isdir(downloaddir):
         os.makedirs(downloaddir)
-    statfilepath = os.path.join(downloaddir,  '%s_stat.lis' % pdbid.lower())
+    statfilepath = os.path.join(downloaddir,  os.path.basename(url))
     try:
-        if os.path.isfile(statfilepath):
-            statfile = open(statfilepath, 'rb')
-            statfilelines = statfile.readlines()
-        else:
+        if not os.path.isfile(statfilepath):
             tries = 0
-            url = edsurl.replace('PDB1', pdbid.lower()).replace('PDB2', pdbid[1:3].lower())
+            
             print 'Downloading %s' % url
             statfilelines = []
             while tries <=3:
@@ -91,35 +61,50 @@ def get_EDS(pdbid):
                 try:
                     req = urllib2.urlopen(url)
                     statfilelines = req.readlines()
+                    if not statfilelines:
+                        print 'could not read stat file'
+                        pdbdict[pdbid] = False
+                        return pdbdict, edd_dict
                     statfile = open(statfilepath, 'wb')
                     statfile.writelines(statfilelines)
+                    statfile.close()
                     tries = 999
                 except Exception, e:
                     if tries >3:
                         print e
                         raise e
                     time.sleep(1)
-        if not statfilelines:
+        if not os.path.isfile(statfilepath):
             print 'could not read stat file'
             pdbdict[pdbid] = False
             return pdbdict, edd_dict
-        for line in statfilelines:
-            if not line.startswith('!'):
-                line = line.replace("*", " ")
-                residue = line[8:18]
-                rscc = line[21:26].strip()
-                rsr = line[27:33].strip()
-                owab = line[35:40].strip()
-#                natom = line[41:46]
-#                s_occ = line[47:52]
-                edd_dict[residue] = {"RSR":float(rsr) if rsr else 100
-                                     ,"RSCC": float(rscc) if rscc else 0
-                                     ,"OWAB": float(owab) if owab else 1000
-#                                     ,"Natom":float(natom) if natom.strip() else None
-#                                     ,"S_occ":float(s_occ) if s_occ.strip() else 0
-                                     }
+        
+        tree = ET.parse(statfilepath)
+        for res in tree.findall("ModelledSubgroup"):
+            
+            resname = list("   ")
+            for i, c in enumerate(res.get("resname")[::-1]):
+                resname[2-i] = c
+            resname = "".join(resname)
+            
+            resnum = list("    ")
+            for i, c in enumerate(res.get("resnum")[::-1]):
+                resnum[3-i] = c
+            resnum = "".join(resnum)
+            
+            residue = "{} {}{}{}".format(resname, res.get("chain"), resnum, res.get("icode")).strip()
+            
+            resdict = {"RSR": float(res.get("rsr", 100))
+                ,"RSCC": float(res.get("rscc", 0))
+                ,"OWAB": float(res.get("owab", 1000))
+                ,"RSRZ": float(res.get("rsrz", 9999))
+                ,"occupancy": float(res.get("avgoccu", 0))
+                }
+            
+            edd_dict[residue] = resdict
+                
         pdbdict[pdbid] = True
-        statfile.close()
+        
     except urllib2.URLError, e:
         if hasattr(e, 'reason'):
             pdbdict[pdbid] = e.reason

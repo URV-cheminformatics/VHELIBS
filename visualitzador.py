@@ -55,7 +55,7 @@ from org.jmol.adapter.smarter import SmarterJmolAdapter
 from org.jmol.api import JmolViewer
 from org.openscience.jmol.app.jmolpanel.console import AppConsole
 
-VHELIBS_VERSION = "4.4"
+VHELIBS_VERSION = "5.0"
 TITLE =  "VHELIBS " + VHELIBS_VERSION
 
 #Own stuff
@@ -352,7 +352,7 @@ class StruVa(Runnable):
         if not self.key: return
         self.pdbid = self.key.split('|')[0]
         self.wd.show(False)
-        self.wd = WaitDialog(parent=self.frame,info='<html>Loading structure %s from PDB and EDS<br /> Please be patient</html>' % self.key)
+        self.wd = WaitDialog(parent=self.frame,info='<html>Loading structure %s from PDB and edmaps.rcsb.org<br /> Please be patient</html>' % self.key)
         self.wd.dialog.pack()
         self.ds = DialogShower(self.wd, self.viewer)
         self.ds.execute()
@@ -401,7 +401,7 @@ class StruVa(Runnable):
         if self.source == 'PDB':
             omapfile, sigma_c = EDS_parser.get_EDM(self.pdbid)
             if not omapfile:
-                self.console.sendConsoleMessage("ED unavailable at EDS")
+                self.console.sendConsoleMessage("ED unavailable at edmaps.rcsb.org")
                 return
             self.execute('isosurface %s color %s cutoff %s within %s %s "%s" mesh dots fill translucent 0.3' %\
                         (name, color, sigma_c*float(prefs.get('sigma', '1.0')), prefs.get('edmdistance', '2.1'), atoms, omapfile.replace(os.sep, '/')))
@@ -743,7 +743,6 @@ class SettingsDialog(object):
                             , 'max_rfree':rsr_analysis.RFREE_max
                             , 'use_owab': rsr_analysis.CHECK_OWAB
                             , 'use_res': rsr_analysis.CHECK_RESOLUTION
-#                            , 'use_pdb_redo': False
                             , 'outputfile':  'vhelibs_analysis_default_PDB.csv'
                             , 'editable': False
                             , 'use_rdiff': rsr_analysis.USE_RDIFF
@@ -751,26 +750,6 @@ class SettingsDialog(object):
                             , 'use_DPI': rsr_analysis.USE_DPI
                             , 'max_DPI': rsr_analysis.DPI_max
                             }
-#                    , 'Default (PDB_REDO)':{
-#                            'distance':math.sqrt(rsr_analysis.inner_distance)
-#                            , 'rsr_lower': 0.165
-#                            , 'rsr_upper':rsr_analysis.RSR_upper
-#                            , 'max_owab':rsr_analysis.OWAB_max
-#                            , 'min_rscc':rsr_analysis.RSCC_min
-#                            , 'max_resolution':rsr_analysis.RESOLUTION_max
-#                            , 'tolerance':rsr_analysis.TOLERANCE
-#                            , 'min_occupancy':rsr_analysis.OCCUPANCY_min
-#                            , 'max_rfree':rsr_analysis.RFREE_max
-#                            , 'use_owab': False
-#                            , 'use_res': rsr_analysis.CHECK_RESOLUTION
-#                            , 'use_pdb_redo': True
-#                            , 'outputfile':  'vhelibs_analysis_default_PDB_REDO.csv'
-#                            , 'editable': False
-#                            , 'use_rdiff': rsr_analysis.USE_RDIFF
-#                            , 'max_rdiff': rsr_analysis.RDIFF_max
-#                            , 'use_DPI': rsr_analysis.USE_DPI
-#                            , 'max_DPI': rsr_analysis.DPI_max
-#                            }
                     ,'Iridium':{
                             'distance':5
                             , 'rsr_lower':0.1
@@ -784,7 +763,6 @@ class SettingsDialog(object):
                             , 'use_owab': False
                             , 'use_res': False
                             , 'outputfile':  'vhelibs_analysis_iridium.csv'
-#                            , 'use_pdb_redo': False
                             , 'editable': False
                             , 'use_rdiff': rsr_analysis.USE_RDIFF
                             , 'max_rdiff': rsr_analysis.RDIFF_max

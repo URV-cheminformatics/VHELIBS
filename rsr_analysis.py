@@ -87,9 +87,6 @@ columns = [
 ]
 QUERY_TPL = "?pdbids=%s&customReportColumns={}&service=wsfile&format=csv".format(",".join(columns))
 
-def average_occ(residue_atoms):
-    return sum([atom.occupancy for atom in residue_atoms])/len(residue_atoms)
-
 def dpi(a, b, c, alpha, beta, gamma, natoms, reflections, rfree):
     dbg("a={}".format(a))
     dbg("b={}".format(b))
@@ -218,27 +215,29 @@ def parse_binding_site(argtuple):
             label = line[:6].strip()
             if label in ("ATOM", "HETATM"):
                 atom = PdbAtom(line)
-                if atom.occupancy == 1.0:
-                    natoms += 1
+                residue = atom.residue
+                #if atom.occupancy == 1.0:
+                #    natoms += 1
+                natoms += atom.occupancy
                 if label == "ATOM" and inner_distance: #Don't care about protein when distance = 0
                     try:
-                        res_atom_dict[atom.residue].add(atom)
+                        res_atom_dict[residue].add(atom)
                     except KeyError:
-                        res_atom_dict[atom.residue] = set([atom, ])
+                        res_atom_dict[residue] = set([atom, ])
                 elif label == 'HETATM':
                     if atom.hetid == 'HOH':
                         continue #Skip waters
                     if (atom.hetid in cofactors.ligand_blacklist) or (atom.hetid in cofactors.metals):
                         try:
-                            res_atom_dict[atom.residue].add(atom)
+                            res_atom_dict[residue].add(atom)
                         except KeyError:
-                            res_atom_dict[atom.residue] = set([atom, ])
-                        notligands[atom.residue] = "Blacklisted ligand"
+                            res_atom_dict[residue] = set([atom, ])
+                        notligands[residue] = "Blacklisted ligand"
                         continue
                     ligand_residues.add(atom.residue)
-                    if not atom.residue in ligand_res_atom_dict:
-                        ligand_res_atom_dict[atom.residue] = set()
-                    ligand_res_atom_dict[atom.residue].add(atom)
+                    if not residue in ligand_res_atom_dict:
+                        ligand_res_atom_dict[residue] = set()
+                    ligand_res_atom_dict[residue].add(atom)
             elif label == 'LINK':
                 try:
                     dist = float(line[73:78].strip())
@@ -318,8 +317,6 @@ def parse_binding_site(argtuple):
         ligand_score = 0
         for res in list(ligand):
             residue_dict = edd_dict.get(res, None)
-            if residue_dict:
-                residue_dict['occupancy'] = average_occ(ligand_res_atom_dict[res])
             score,  reason = classificate_residue(res, edd_dict.get(res, None), struc_dict, good_rsr, dubious_rsr, bad_rsr)
             if reason and score >= 1000:
                 notligands[res] = reason
@@ -366,7 +363,7 @@ def classificate_residue(residue, residue_dict, struc_dict, good_rsr, dubious_rs
             if not 1 < owab < OWAB_max:
                 score +=1
         occ = residue_dict['occupancy']
-        if occ > 1:
+        if occ > 1.00:
             score +=1000
             reason = "Occupancy above 1"
         elif occ < OCCUPANCY_min:
@@ -536,14 +533,10 @@ def get_binding_site(ligand, ligand_score, good_rsr, bad_rsr, dubious_rsr, pdbid
         resatoms = res_atom_dict.get(res, None)
         if residue_dict and resatoms:
             if resatoms:
-                occ = average_occ(resatoms)
-                residue_dict['occupancy'] = occ
-                if occ < 1:
+                if residue_dict['occupancy'] < 1:
                     bad_occupancy.append(res)
             else:
                 dbg("No data available for %s!" % res)
-                dbg(res) in ligand_res_atom_dict
-                residue_dict['occupancy'] = 0
                 bad_occupancy.append(res)
         else:
             bad_occupancy.append(res)
