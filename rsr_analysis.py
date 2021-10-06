@@ -1,7 +1,7 @@
 #/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-#   Copyright 2011 - 2020 Adrià Cereto Massagué <adrian.cereto@.urv.cat>
+#   Copyright 2011 - 2021 Adrià Cereto Massagué <adria.cereto@fundacio.urv.cat>
 #
 import os, gzip, sys, csv, itertools, math, contextlib
 import json

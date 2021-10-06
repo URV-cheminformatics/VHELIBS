@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-#   Copyright 2010 - 2015 Adrià Cereto Massagué <adrian.cereto@.urv.cat>
+#   Copyright 2010 - 2021 Adrià Cereto Massagué <adria.cereto@fundacio.urv.cat>
 #
 """
 Handle and download PDB files
