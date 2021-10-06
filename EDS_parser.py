@@ -5,9 +5,20 @@
 """
 Module dealing with getting EDM data and validation stats
 """
-import urllib2, os, time
+import os, time
 import xml.etree.ElementTree as ET
 import PDBfiles
+
+try:
+    from urllib.parse import urlparse, urlencode
+    from urllib.request import urlopen, Request
+    from urllib.error import HTTPError
+    import ssl
+    ssl._create_default_https_context = ssl._create_unverified_context
+except ImportError:
+    from urlparse import urlparse
+    from urllib import urlencode
+    from urllib2 import urlopen, Request, HTTPError
 
 edmapsurl = "https://edmaps.rcsb.org/maps/{}_2fofc.dsn6"
 edstatsurl = "https://www.ebi.ac.uk/pdbe/entry-files/download/{}_validation.xml"
@@ -27,14 +38,14 @@ def get_EDM(pdbid):
             if os.path.isfile(omapfile):
                 sigma = 1
                 return omapfile, sigma
-            req = urllib2.urlopen(edmurl)
+            req = urlopen(edmurl)
             omap = req.read()
             req.close()
             outfile = open(omapfile, 'wb')
             outfile.write(omap)
             outfile.close()
-        except urllib2.URLError, e:
-            print e
+        except Exception as e:
+            print(e)
             tries +=1
     return None, None
 
@@ -54,28 +65,28 @@ def get_EDS(pdbid):
         if not os.path.isfile(statfilepath):
             tries = 0
             
-            print 'Downloading %s' % url
+            print('Downloading %s' % url)
             statfilelines = []
             while tries <=3:
                 tries += 1
                 try:
-                    req = urllib2.urlopen(url)
+                    req = urlopen(url)
                     statfilelines = req.readlines()
                     if not statfilelines:
-                        print 'could not read stat file'
+                        print('could not read stat file')
                         pdbdict[pdbid] = False
                         return pdbdict, edd_dict
                     statfile = open(statfilepath, 'wb')
                     statfile.writelines(statfilelines)
                     statfile.close()
                     tries = 999
-                except Exception, e:
+                except Exception as e:
                     if tries >3:
-                        print e
+                        print(e)
                         raise e
                     time.sleep(1)
         if not os.path.isfile(statfilepath):
-            print 'could not read stat file'
+            print('could not read stat file')
             pdbdict[pdbid] = False
             return pdbdict, edd_dict
         
@@ -105,7 +116,7 @@ def get_EDS(pdbid):
                 
         pdbdict[pdbid] = True
         
-    except urllib2.URLError, e:
+    except Exception as e:
         if hasattr(e, 'reason'):
             pdbdict[pdbid] = e.reason
         elif hasattr(e, 'code'):
@@ -114,5 +125,5 @@ def get_EDS(pdbid):
             else:
                 pdbdict[pdbid] = e.code
         else:
-            pdbdict[pdbid] = unicode(e)
+            pdbdict[pdbid] = str(e)
     return pdbdict, edd_dict
