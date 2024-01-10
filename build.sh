@@ -8,6 +8,6 @@ cd one-jar
 ant clean
 ant
 mv VHELIBS.jar VHELIBS-$version.jar
-cd $OLDDIR
+cd "$OLDDIR"
 
 #python setup.py build_ext --inplace

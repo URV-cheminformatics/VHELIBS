@@ -1,9 +1,20 @@
 #/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-#   Copyright 2011 - 2020 Adrià Cereto Massagué <adrian.cereto@.urv.cat>
+#   Copyright 2011 - 2021 Adrià Cereto Massagué <adria.cereto@fundacio.urv.cat>
 #
-import os, gzip, sys, urllib2, csv, itertools, math, contextlib
+import os, gzip, sys, csv, itertools, math, contextlib
+import json
+try:
+    from urllib.parse import urlparse, urlencode
+    from urllib.request import urlopen, Request
+    from urllib.error import HTTPError
+    import ssl
+    ssl._create_default_https_context = ssl._create_unverified_context
+except ImportError:
+    from urlparse import urlparse
+    from urllib import urlencode
+    from urllib2 import urlopen, Request, HTTPError
 try:
     if sys.platform.startswith('java'):
         import java
@@ -58,21 +69,21 @@ parser.add_argument('-D','--max-DPI', type=float, default=None, metavar='FLOAT',
 parser.add_argument('-r','--max-resolution', type=float, default=None, metavar='FLOAT', help='set maximum resolution (in Å) below which to consider Good models')
 parser.add_argument('-T','--tolerance', type=int, default=TOLERANCE, metavar='INT', help='set maximum number of non-met criteria of Dubious structures')
 parser.add_argument('-d','--distance', type=float, default=math.sqrt(inner_distance), metavar='Å', help='consider part of the binding sites all the residues nearer than this to the ligand (in Å)')
-parser.add_argument('-f','--pdbidfile', metavar='PATH', type=unicode, default=None, required=False, help='text file containing a list of PDB ids, one per line')
-parser.add_argument('-o','--outputfile', metavar='PATH', type=unicode, default='vhelibs_analysis.csv', required=False, help='output file name')
-parser.add_argument('-w','--writeexcludes', metavar='PATH', type=unicode, default=None, required=False, help='Write current excluded HET ids to a file')
-parser.add_argument('-e','--excludesfile', metavar='PATH', type=unicode, default=None, required=False, help='Override excluded HET ids with the ones provided in this file')
+parser.add_argument('-f','--pdbidfile', metavar='PATH', type=str, default=None, required=False, help='text file containing a list of PDB ids, one per line')
+parser.add_argument('-o','--outputfile', metavar='PATH', type=str, default='vhelibs_analysis.csv', required=False, help='output file name')
+parser.add_argument('-w','--writeexcludes', metavar='PATH', type=str, default=None, required=False, help='Write current excluded HET ids to a file')
+parser.add_argument('-e','--excludesfile', metavar='PATH', type=str, default=None, required=False, help='Override excluded HET ids with the ones provided in this file')
 parser.add_argument('-C','--use-cache', required=False, action='store_true', help="Use cached EDS and PDB data if available for the analysis, otherwise cache it.")
 parser.add_argument('-V','--verbose', required=False, action='store_true', help="Enable verbose output.")
 parser.add_argument('-S','--include-stats', required=False, action='store_true', help="Include model data in output file")
 #######################
 
-def dbg(string):
-    print(string)
+def dbg(s):
+    print(s)
 
 def dummy(*args): pass
 
-SERVICELOCATION="http://www.rcsb.org/pdb/rest/customReport"
+#SERVICELOCATION="http://www.rcsb.org/pdb/rest/customReport"
 columns = [
 "experimentalTechnique"
 ,"rFree"
@@ -85,7 +96,8 @@ columns = [
 ,"lengthOfUnitCellLatticeB"
 ,"lengthOfUnitCellLatticeC"
 ]
-QUERY_TPL = "?pdbids=%s&customReportColumns={}&service=wsfile&format=csv".format(",".join(columns))
+#QUERY_TPL = "?pdbids=%s&customReportColumns={}&service=wsfile&format=csv".format(",".join(columns))
+QUERY_TPL = "https://data.rcsb.org/rest/v1/core/entry/{}"
 
 def dpi(a, b, c, alpha, beta, gamma, natoms, reflections, rfree):
     dbg("a={}".format(a))
@@ -107,28 +119,45 @@ def dpi(a, b, c, alpha, beta, gamma, natoms, reflections, rfree):
     dbg("rfree={}".format(rfree))
     return 1.28*(natoms**(1.0/2))*(V**(1.0/3))*(reflections**(-5.0/6))*rfree
 
-def get_custom_report(pdbids_list):
-    if not pdbids_list:
-        print("No PDB ids found!")
-        raise Exception("No PDB ids found!")
-    urlstring = SERVICELOCATION + QUERY_TPL % ','.join(pdbids_list)
+#def get_custom_report(pdbids_list):
+    #if not pdbids_list:
+        #print("No PDB ids found!")
+        #raise Exception("No PDB ids found!")
+    #urlstring = SERVICELOCATION + QUERY_TPL % ','.join(pdbids_list)
+    #print(urlstring)
+    #with contextlib.closing(urlopen(urlstring)) as urlhandler:
+        #if urlhandler.code != 200:
+            #print(urlhandler.msg)
+            #raise IOError(urlhandler.msg)
+        #reader = csv.reader(urlhandler)
+        #result = {}
+        #next(reader)
+        #for row in reader:
+            #rowdict = {}
+            #if row[1] == "X-RAY DIFFRACTION":
+                #for n, column in enumerate(columns[1:]):
+                    #n2 = n+2
+                    #if row[n2] or row[n2] == 0:
+                        #rowdict[column] = float(row[n2])
+            #result[row[0]] = rowdict
+    #return result
+
+def get_custom_report(pdbid):
+    urlstring = QUERY_TPL.format(pdbid)
     print(urlstring)
-    with contextlib.closing(urllib2.urlopen(urlstring)) as urlhandler:
-        if urlhandler.code != 200:
-            print urlhandler.msg
-            raise IOError(urlhandler.msg)
-        reader = csv.reader(urlhandler)
-        result = {}
-        reader.next()
-        for row in reader:
-            rowdict = {}
-            if row[1] == "X-RAY DIFFRACTION":
-                for n, column in enumerate(columns[1:]):
-                    n2 = n+2
-                    if row[n2] or row[n2] == 0:
-                        rowdict[column] = float(row[n2])
-            result[row[0]] = rowdict
-    return result
+    rawdict = json.load(urlopen(urlstring))
+    rowdict = {}
+    rowdict["experimentalTechnique"] = rawdict["rcsb_entry_info"]["experimental_method"]
+    rowdict["rFree"] = rawdict["pdbx_vrpt_summary"]["pdbrfree"]
+    rowdict["rWork"] = rawdict["pdbx_vrpt_summary"]["pdbr"]
+    rowdict["refinementResolution"] = rawdict["pdbx_vrpt_summary"]["pdbresolution"]
+    rowdict["unitCellAngleAlpha"] = rawdict["cell"]["angle_alpha"]
+    rowdict["unitCellAngleBeta"] = rawdict["cell"]["angle_beta"]
+    rowdict["unitCellAngleGamma"] = rawdict["cell"]["angle_gamma"]
+    rowdict["lengthOfUnitCellLatticeA"] = rawdict["cell"]["length_a"]
+    rowdict["lengthOfUnitCellLatticeB"] = rawdict["cell"]["length_b"]
+    rowdict["lengthOfUnitCellLatticeC"] = rawdict["cell"]["length_c"]
+    return {pdbid.upper():rowdict}
 
 def get_sptopdb_dict():
     """
@@ -138,7 +167,7 @@ def get_sptopdb_dict():
     sptopdb_dict = {}
     temppdbdict = {}
     print("Loading Swissprot-PDB dict...")
-    reader = urllib2.urlopen(url)
+    reader = urlopen(url)
     pdbid = None
     for line in reader:
         if not len(line) > 28:
@@ -205,17 +234,20 @@ def parse_binding_site(argtuple):
     pdbfilepath = PDBfiles.get_pdb_file(pdbid.upper())
     natoms = 0
     if pdbfilepath.endswith('.gz'):
-        pdbfile = gzip.GzipFile(pdbfilepath)
+        pdbfile = gzip.open(pdbfilepath, "rt")
     else:
-        pdbfile = open(pdbfilepath, 'r')
+        pdbfile = open(pdbfilepath, 'rt')
+    dbg("Reading {}".format(pdbfilepath))
     try:
         error = False
         for line in pdbfile:
             line = line.strip()
             label = line[:6].strip()
+            #dbg(label)
             if label in ("ATOM", "HETATM"):
                 atom = PdbAtom(line)
                 residue = atom.residue
+                #dbg(residue)
                 #if atom.occupancy == 1.0:
                 #    natoms += 1
                 natoms += atom.occupancy
@@ -233,8 +265,10 @@ def parse_binding_site(argtuple):
                         except KeyError:
                             res_atom_dict[residue] = set([atom, ])
                         notligands[residue] = "Blacklisted ligand"
+                        dbg("{} is blacklisted".format(atom.hetid))
                         continue
                     ligand_residues.add(atom.residue)
+                    dbg("{} is ligand".format(atom.hetid))
                     if not residue in ligand_res_atom_dict:
                         ligand_res_atom_dict[residue] = set()
                     ligand_res_atom_dict[residue].add(atom)
@@ -251,7 +285,7 @@ def parse_binding_site(argtuple):
                         reflections = int(line.split(":")[1].strip())
                     except:
                         return  (pdbid, "number of reflections")
-    except IOError, error:
+    except IOError as error:
         dbg(pdbfilepath)
         dbg(error)
     finally:
@@ -584,11 +618,15 @@ def results_to_csv(results, outputfile):
         for rs in residue_stats:
             for t in "CTE", "Ligand", "Binding Site":
                 csvtitles.append("{} ({})".format(rs, t))
-    with open(outputfile, 'wb') as outfile:
+    with open(outputfile, 'wt') as outfile:
+        print("Writing to {}".format(outputfile))
         csvfile = csv.writer(outfile)
         csvfile.writerow(csvtitles)
-        with open(os.path.splitext(outputfile)[0] + '_rejected.txt', 'w') as rejectedfile:
+        rejectedfn = os.path.splitext(outputfile)[0] + '_rejected.txt'
+        print("Writing to {}".format(rejectedfn))
+        with open(rejectedfn, 'w') as rejectedfile:
             badoc_fn = os.path.splitext(outputfile)[0] + '_low_occupancy.txt'
+            print("Writing to {}".format(badoc_fn))
             with open(badoc_fn, 'w') as badoc_file:
                 badoc_w = csv.writer(badoc_file, delimiter="\t")
                 badoc_w.writerow(['Binding Site', 'Low Occupancy Residues'])
@@ -602,7 +640,7 @@ def results_to_csv(results, outputfile):
                         continue
                     elif restuplelen == 4:
                         pdbid, ligand_bs_list, notligands, struc_dict = restuple
-                        for nonligand, reason in notligands.iteritems():
+                        for nonligand, reason in notligands.items():
             #                resname = nonligand[:3].strip()
                             line = '{}:\t{} {}\n'.format(pdbid, nonligand, reason)
                             rejectedfile.write( line)
@@ -633,7 +671,7 @@ def results_to_csv(results, outputfile):
     if not datawritten:
         os.remove(outputfile)
     else:
-        print "Results written to {}".format(outputfile)
+        print("Results written to {}".format(outputfile))
     return datawritten
 
 def main(values):
@@ -699,7 +737,7 @@ def main(values):
         cofactors.dump_lists(writeexcludes)
         dbg('List of excluded Hetids written to %s' % writeexcludes)
     if values.swissprot:
-        print("Retrieving PDB ids for {}".format(", ".join(values.swissprot)))
+        print(("Retrieving PDB ids for {}".format(", ".join(values.swissprot))))
         sptopdb_dict = get_sptopdb_dict()
         #print(sptopdb_dict)
         for swissprot_id in values.swissprot:
@@ -716,14 +754,12 @@ def main(values):
         raise Exception("No PDB ids found!")
     #get_custom_report
     npdbs = len(pdblist)
-    maxn = 1000
-    if npdbs > maxn:
-        pdbids_extra_data_dict = {}
-        p = multiprocessing.Pool(multiprocessing.cpu_count())
-        for d in p.imap(get_custom_report, [pdblist[i:i+maxn] for i in xrange(0, npdbs, maxn)]):
-            pdbids_extra_data_dict.update(d)
-    else:
-        pdbids_extra_data_dict = get_custom_report(pdblist)
+
+    pdbids_extra_data_dict = {}
+    p = multiprocessing.Pool(multiprocessing.cpu_count())
+    for d in p.imap(get_custom_report, pdblist):
+        pdbids_extra_data_dict.update(d)
+
     argsarray = [(pdbid, pdbids_extra_data_dict.get(pdbid.upper(), {})) for pdbid in pdblist if pdbid]
     pool = multiprocessing.Pool(multiprocessing.cpu_count())
     results = pool.imap(parse_binding_site, argsarray)

@@ -1,7 +1,7 @@
 #/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-#   Copyright 2012-2020 Adrià Cereto Massagué <adrian.cereto@.urv.cat>
+#   Copyright 2012 - 2021 Adrià Cereto Massagué <adria.cereto@fundacio.urv.cat>
 #
 import sys; sys.path.append("one-jar/src/pylib/")
 import rsr_analysis
