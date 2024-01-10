@@ -55,7 +55,7 @@ from org.jmol.adapter.smarter import SmarterJmolAdapter
 from org.jmol.api import JmolViewer
 from org.openscience.jmol.app.jmolpanel.console import AppConsole
 
-VHELIBS_VERSION = "5.0"
+VHELIBS_VERSION = "5.1"
 TITLE =  "VHELIBS " + VHELIBS_VERSION
 
 #Own stuff
