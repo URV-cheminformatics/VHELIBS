@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-#   Copyright 2010 - 2021 Adrià Cereto Massagué <adria.cereto@fundacio.urv.cat>
+#   Copyright 2010 - 2024 Adrià Cereto Massagué <adria.cereto@fundacio.urv.cat>
 #
 """
 Module dealing with getting EDM data and validation stats
