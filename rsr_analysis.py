@@ -1,7 +1,7 @@
 #/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-#   Copyright 2011 - 2021 Adrià Cereto Massagué <adria.cereto@fundacio.urv.cat>
+#   Copyright 2011 - 2024 Adrià Cereto Massagué <adria.cereto@fundacio.urv.cat>
 #
 import os, gzip, sys, csv, itertools, math, contextlib
 import json
@@ -85,21 +85,8 @@ def dbg(s):
 
 def dummy(*args): pass
 
-#SERVICELOCATION="http://www.rcsb.org/pdb/rest/customReport"
-columns = [
-"experimentalTechnique"
-,"rFree"
-,"rWork"
-,"refinementResolution"
-,"unitCellAngleAlpha"
-,"unitCellAngleBeta"
-,"unitCellAngleGamma"
-,"lengthOfUnitCellLatticeA"
-,"lengthOfUnitCellLatticeB"
-,"lengthOfUnitCellLatticeC"
-]
-#QUERY_TPL = "?pdbids=%s&customReportColumns={}&service=wsfile&format=csv".format(",".join(columns))
-QUERY_TPL = "https://data.rcsb.org/rest/v1/core/entry/{}"
+def average_occ(residue_atoms):
+    return sum([atom.occupancy for atom in residue_atoms])/len(residue_atoms)
 
 def dpi(a, b, c, alpha, beta, gamma, natoms, reflections, rfree):
     dbg("a={}".format(a))
@@ -120,46 +107,6 @@ def dpi(a, b, c, alpha, beta, gamma, natoms, reflections, rfree):
     dbg("natoms={}".format(natoms))
     dbg("rfree={}".format(rfree))
     return 1.28*(natoms**(1.0/2))*(V**(1.0/3))*(reflections**(-5.0/6))*rfree
-
-#def get_custom_report(pdbids_list):
-    #if not pdbids_list:
-        #print("No PDB ids found!")
-        #raise Exception("No PDB ids found!")
-    #urlstring = SERVICELOCATION + QUERY_TPL % ','.join(pdbids_list)
-    #print(urlstring)
-    #with contextlib.closing(urlopen(urlstring)) as urlhandler:
-        #if urlhandler.code != 200:
-            #print(urlhandler.msg)
-            #raise IOError(urlhandler.msg)
-        #reader = csv.reader(urlhandler)
-        #result = {}
-        #next(reader)
-        #for row in reader:
-            #rowdict = {}
-            #if row[1] == "X-RAY DIFFRACTION":
-                #for n, column in enumerate(columns[1:]):
-                    #n2 = n+2
-                    #if row[n2] or row[n2] == 0:
-                        #rowdict[column] = float(row[n2])
-            #result[row[0]] = rowdict
-    #return result
-
-def get_custom_report(pdbid):
-    urlstring = QUERY_TPL.format(pdbid)
-    print(urlstring)
-    rawdict = json.load(urlopen(urlstring))
-    rowdict = {}
-    rowdict["experimentalTechnique"] = rawdict["rcsb_entry_info"]["experimental_method"]
-    rowdict["rFree"] = rawdict["refine"][0]["ls_rfactor_rfree"]
-    rowdict["rWork"] = rawdict["refine"][0]["ls_rfactor_rwork"]
-    rowdict["refinementResolution"] = rawdict["refine"][0]["ls_dres_high"]
-    rowdict["unitCellAngleAlpha"] = rawdict["cell"]["angle_alpha"]
-    rowdict["unitCellAngleBeta"] = rawdict["cell"]["angle_beta"]
-    rowdict["unitCellAngleGamma"] = rawdict["cell"]["angle_gamma"]
-    rowdict["lengthOfUnitCellLatticeA"] = rawdict["cell"]["length_a"]
-    rowdict["lengthOfUnitCellLatticeB"] = rawdict["cell"]["length_b"]
-    rowdict["lengthOfUnitCellLatticeC"] = rawdict["cell"]["length_c"]
-    return {pdbid.upper():rowdict}
 
 def get_sptopdb_dict():
     """
@@ -217,35 +164,25 @@ def parse_binding_site(argtuple):
         edd_dict = pdb_redo.get_ED_data(pdbid)
         if not edd_dict:
             return  (pdbid, "Not in PDB_REDO")
-        struc_dict['rFree'] = argtuple[1].get('RFFIN',-100)
-        struc_dict['rWork'] = argtuple[1].get('RFIN', 1000)
-        if USE_DPI:
-            reflections = float(argtuple[1].get('NREFCNT', 0))
-            a = argtuple[1].get('AAXIS', 0)
-            b = argtuple[1].get('BAXIS', 0)
-            c = argtuple[1].get('CAXIS', 0)
-            alpha = argtuple[1].get('ALPHA', 0)
-            beta = argtuple[1].get('BETA', 0)
-            gamma = argtuple[1].get('GAMMA', 0)
-        resolution = argtuple[1].get('RESOLUTION', 0)
     else:
         if not argtuple[1]:
             dbg("Model not obtained by X-ray crystallography")
             return  (pdbid, "Model not obtained by X-ray crystallography")
         pdbdict, edd_dict = EDS_parser.get_EDS(pdbid)
         if not edd_dict:
-            dbg("No EDS data available for %s, it will be discarded" % pdbid)
-            return  (pdbid, "No EDS data available")
-        struc_dict['rFree'] = argtuple[1].get('rFree', float("nan"))
-        struc_dict['rWork'] = argtuple[1].get('rWork', float("nan"))
-        if USE_DPI:
-            a = argtuple[1].get('lengthOfUnitCellLatticeA', 0)
-            b = argtuple[1].get('lengthOfUnitCellLatticeB', 0)
-            c = argtuple[1].get('lengthOfUnitCellLatticeC', 0)
-            alpha = argtuple[1].get('unitCellAngleAlpha', 0)
-            beta = argtuple[1].get('unitCellAngleBeta', 0)
-            gamma = argtuple[1].get('unitCellAngleGamma', 0)
-        resolution = argtuple[1].get('refinementResolution', 0) if CHECK_RESOLUTION else 1714
+            dbg("No EDM data available for %s, it will be discarded" % pdbid)
+            return  (pdbid, "No EDM data available")
+    struc_dict['rFree'] = argtuple[1].get('rFree', float("nan"))
+    struc_dict['rWork'] = argtuple[1].get('rWork', float("nan"))
+    if USE_DPI:
+        reflections = argtuple[1].get("nreflections", 0)
+        a = argtuple[1].get('lengthOfUnitCellLatticeA', 0)
+        b = argtuple[1].get('lengthOfUnitCellLatticeB', 0)
+        c = argtuple[1].get('lengthOfUnitCellLatticeC', 0)
+        alpha = argtuple[1].get('unitCellAngleAlpha', 0)
+        beta = argtuple[1].get('unitCellAngleBeta', 0)
+        gamma = argtuple[1].get('unitCellAngleGamma', 0)
+    resolution = argtuple[1].get('refinementResolution', 0) if CHECK_RESOLUTION else 1714
     if CHECK_RESOLUTION:
         struc_dict['Resolution'] = resolution
     if USE_RDIFF:
@@ -312,6 +249,15 @@ def parse_binding_site(argtuple):
         pdbfile.close()
         if error:
             return  (pdbid, str(error))
+    for residue, residue_dict in edd_dict.items():
+        residue = residue.strip()
+        if "occupancy" not in residue_dict.keys():
+                dbg("{} has no occupancy, filling it in".format(residue))
+                try:
+                    residue_dict['occupancy'] = average_occ(res_atom_dict[residue])
+                except KeyError:
+                    residue_dict['occupancy'] = average_occ(ligand_res_atom_dict[residue])
+                dbg("{} occupancy: {}".format(residue, residue_dict['occupancy']))
     if USE_DPI:
         if reflections:
             struc_dict["DPI"] = dpi(a, b, c, alpha, beta, gamma, natoms, reflections, struc_dict["rFree"])
@@ -371,7 +317,7 @@ def parse_binding_site(argtuple):
         ligand_score = 0
         for res in list(ligand):
             residue_dict = edd_dict.get(res, None)
-            score,  reason = classificate_residue(res, edd_dict.get(res, None), struc_dict, good_rsr, dubious_rsr, bad_rsr)
+            score,  reason = classificate_residue(res, residue_dict, struc_dict, good_rsr, dubious_rsr, bad_rsr)
             if reason and score >= 1000:
                 notligands[res] = reason
                 ligand.remove(res)
@@ -778,18 +724,13 @@ def main(values):
     pdblist = [pdbid.lower() for pdbid in pdblist]
     if not pdblist:
         raise Exception("No PDB ids found!")
-    #get_custom_report
-    npdbs = len(pdblist)
 
-    pdbids_extra_data_dict = {}
-    p = multiprocessing.Pool(multiprocessing.cpu_count())
-    for d in p.imap(get_custom_report, pdblist):
-        pdbids_extra_data_dict.update(d)
+    npdbs = len(pdblist)
 
     if not PDB_REDO:
         pdbids_extra_data_dict = {}
         p = multiprocessing.Pool(multiprocessing.cpu_count())
-        for d in p.imap(get_custom_report, pdblist):
+        for d in p.imap(PDBfiles.get_custom_report, pdblist):
             pdbids_extra_data_dict.update(d)
     else:
         pdbids_extra_data_dict = pdb_redo.get_pdbredo_data(pdblist)

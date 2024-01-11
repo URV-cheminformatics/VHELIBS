@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 #
-#   Copyright 2010 - 2021 Adrià Cereto Massagué <adria.cereto@fundacio.urv.cat>
+#   Copyright 2010 - 2024 Adrià Cereto Massagué <adria.cereto@fundacio.urv.cat>
 #
 """
 Handle and download PDB files
 """
-import os, time, tempfile
+import os, time, tempfile, json
 
 try:
     from urllib.parse import urlparse, urlencode
@@ -19,8 +19,32 @@ except ImportError:
     from urllib2 import urlopen, Request, HTTPError
 
 PDBbase = "http://www.rcsb.org/pdb/files/{}.pdb.gz"
+PDBREDObase_full = "https://pdb-redo.eu/db/PDBID/PDBID_final.pdb"
 #On guardarem els fitxers:
 CACHEDIR = tempfile.mkdtemp()
+
+#SERVICELOCATION="http://www.rcsb.org/pdb/rest/customReport"
+
+#QUERY_TPL = "?pdbids=%s&customReportColumns={}&service=wsfile&format=csv".format(",".join(columns))
+QUERY_TPL = "https://data.rcsb.org/rest/v1/core/entry/{}"
+
+def get_custom_report(pdbid):
+    urlstring = QUERY_TPL.format(pdbid)
+    print(urlstring)
+    rawdict = json.load(urlopen(urlstring))
+    rowdict = {}
+    rowdict["experimentalTechnique"] = rawdict["rcsb_entry_info"]["experimental_method"]
+    rowdict["rFree"] = rawdict["refine"][0]["ls_rfactor_rfree"]
+    rowdict["rWork"] = rawdict["refine"][0]["ls_rfactor_rwork"]
+    rowdict["refinementResolution"] = rawdict["refine"][0]["ls_dres_high"]
+    rowdict["nreflections"] = rawdict["refine"][0]["ls_number_reflns_rfree"]
+    rowdict["unitCellAngleAlpha"] = rawdict["cell"]["angle_alpha"]
+    rowdict["unitCellAngleBeta"] = rawdict["cell"]["angle_beta"]
+    rowdict["unitCellAngleGamma"] = rawdict["cell"]["angle_gamma"]
+    rowdict["lengthOfUnitCellLatticeA"] = rawdict["cell"]["length_a"]
+    rowdict["lengthOfUnitCellLatticeB"] = rawdict["cell"]["length_b"]
+    rowdict["lengthOfUnitCellLatticeC"] = rawdict["cell"]["length_c"]
+    return {pdbid.upper():rowdict}
 
 def get_pdb_file(pdbcode, pdb_redo = False):
     """
@@ -34,7 +58,9 @@ def get_pdb_file(pdbcode, pdb_redo = False):
         filename = os.path.join(CACHEDIR, pdbcode.upper() + ".pdb.gz")
         print("Downloading {} to {}".format(url, filename))
     else:
-        raise Exception("PDB_REDO not supported anymore")
+         pdbcode = pdbcode.lower()
+         url = PDBREDObase_full.replace('PDBID', pdbcode)
+         filename = os.path.join(CACHEDIR, os.path.basename(url))
     if os.path.isfile(filename):
         return filename
     tries = 0
