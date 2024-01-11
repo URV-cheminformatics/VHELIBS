@@ -148,9 +148,9 @@ def get_custom_report(pdbid):
     rawdict = json.load(urlopen(urlstring))
     rowdict = {}
     rowdict["experimentalTechnique"] = rawdict["rcsb_entry_info"]["experimental_method"]
-    rowdict["rFree"] = rawdict["pdbx_vrpt_summary"]["pdbrfree"]
-    rowdict["rWork"] = rawdict["pdbx_vrpt_summary"]["pdbr"]
-    rowdict["refinementResolution"] = rawdict["pdbx_vrpt_summary"]["pdbresolution"]
+    rowdict["rFree"] = rawdict["refine"][0]["ls_rfactor_rfree"]
+    rowdict["rWork"] = rawdict["refine"][0]["ls_rfactor_rwork"]
+    rowdict["refinementResolution"] = rawdict["refine"][0]["ls_dres_high"]
     rowdict["unitCellAngleAlpha"] = rawdict["cell"]["angle_alpha"]
     rowdict["unitCellAngleBeta"] = rawdict["cell"]["angle_beta"]
     rowdict["unitCellAngleGamma"] = rawdict["cell"]["angle_gamma"]
