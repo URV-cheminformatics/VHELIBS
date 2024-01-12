@@ -144,7 +144,6 @@ def get_sptopdb_dict():
 
 def parse_pdb_file(pdbfilepath):
     natoms = 0
-    ligand_residues = set() #Set of ligand residues
     res_atom_dict = {} #Dictionary of atoms by residue
     ligand_res_atom_dict = {} #Dictionary of ligand atoms by residue
     notligands = {} #Residues that may look like ligands but aren't'
@@ -179,7 +178,6 @@ def parse_pdb_file(pdbfilepath):
                         notligands[residue] = "Blacklisted ligand"
                         dbg("{} is blacklisted".format(atom.hetid))
                         continue
-                    ligand_residues.add(atom.residue)
                     dbg("{} is ligand".format(atom.hetid))
                     if not residue in ligand_res_atom_dict:
                         ligand_res_atom_dict[residue] = set()
@@ -197,8 +195,8 @@ def parse_pdb_file(pdbfilepath):
     finally:
         pdbfile.close()
         if error:
-            return  (pdbid, str(error), 0, 0, 0, 0)
-    return (natoms, res_atom_dict, ligand_res_atom_dict, notligands, links, ligand_residues)
+            return  (pdbid, str(error), 0, 0, 0)
+    return (natoms, res_atom_dict, ligand_res_atom_dict, notligands, links)
 
 def parse_binding_site(argtuple):
     """
@@ -244,7 +242,7 @@ def parse_binding_site(argtuple):
         struc_dict['Rdiff'] = Rdiff
     pdbfilepath = PDBfiles.get_pdb_file(pdbid.upper(), PDB_REDO)
     #Parse PDB file
-    natoms, res_atom_dict, ligand_res_atom_dict, notligands, links, ligand_residues = parse_pdb_file(pdbfilepath)
+    natoms, res_atom_dict, ligand_res_atom_dict, notligands, links = parse_pdb_file(pdbfilepath)
     if natoms == pdbid:
         return (natoms, res_atom_dict) # error
 
@@ -282,9 +280,7 @@ def parse_binding_site(argtuple):
                     notligands[ligres] = "Covalently bound to the sequence"
                 links.remove((res1,  res2,  blen))
                 dbg('%s is not a ligand!' % ligres)
-                if ligres in ligand_residues:
-                    ligand_residues.remove(ligres)
-                    dbg('%s removed from ligand residues' % ligres)
+                dbg('%s removed from ligand residues' % ligres)
                 if ligres in ligand_res_atom_dict:
                     res_atom_dict[ligres] = ligand_res_atom_dict.pop(ligres)
                     dbg('%s atoms added to protein' % ligres)
@@ -308,10 +304,10 @@ def parse_binding_site(argtuple):
             struc_dict["DPI"] = float("nan")
         dbg("DPI is {}".format(struc_dict["DPI"]))
 
-    if not ligand_residues:
+    if not ligand_res_atom_dict:
         dbg('%s has no ligands!' % pdbid)
         return (pdbid, "no ligands found")
-    ligands = group_ligands(ligand_residues, links)
+    ligands = group_ligands(ligand_res_atom_dict.keys(), links)
     ligand_scores = []
     for ligand in ligands:
         ligand_score = 0
@@ -332,9 +328,6 @@ def parse_binding_site(argtuple):
             bs = get_binding_site(ligand, ligand_score, good_rsr, bad_rsr, dubious_rsr, pdbid, res_atom_dict, ligands, ligand_res_atom_dict, rsr_upper, rsr_lower, edd_dict, struc_dict, notligands)
             if len(bs) == 1:
                 for ligandres in ligand:
-                    if ligandres in ligand_residues:
-                        ligand_residues.remove(ligandres)
-                        dbg('{} removed from ligand residues because {}'.format(ligandres, bs[0]))
                     if ligandres in ligand_res_atom_dict:
                         res_atom_dict[ligandres] = ligand_res_atom_dict.pop(ligandres)
                         dbg('{} atoms added to protein because {}'.format(ligandres, bs[0]))
