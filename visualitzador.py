@@ -734,7 +734,7 @@ class StructureSelectDialog(object):
 
 class SettingsDialog(object):
     profiles = {'Default (PDB)':{
-                            'distance':math.sqrt(rsr_analysis.inner_distance)
+                            'distance':math.sqrt(rsr_analysis.INNER_DISTANCE)
                             , 'rsr_lower':rsr_analysis.RSR_lower
                             , 'rsr_upper':rsr_analysis.RSR_upper
                             , 'max_owab':rsr_analysis.OWAB_max
@@ -754,7 +754,7 @@ class SettingsDialog(object):
                             , 'max_DPI': rsr_analysis.DPI_max
                             }
                     , 'Default (PDB_REDO)':{
-                            'distance':math.sqrt(rsr_analysis.inner_distance)
+                            'distance':math.sqrt(rsr_analysis.INNER_DISTANCE)
                             , 'rsr_lower': 0.165
                             , 'rsr_upper':rsr_analysis.RSR_upper
                             , 'max_owab':rsr_analysis.OWAB_max
