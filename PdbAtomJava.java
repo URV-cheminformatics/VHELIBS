@@ -6,6 +6,7 @@ public class PdbAtomJava{
     public String variant;
     public float occupancy;
     public float[] xyz;
+    public PdbAtomJava(){}
     public PdbAtomJava(String record){
         //Needs an ATOM or HETATM record
         residue = record.substring(17,27);
