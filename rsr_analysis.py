@@ -50,7 +50,7 @@ RDIFF_max = 0.05
 DPI_max = 0.42
 OCCUPANCY_min = 1.0
 TOLERANCE = 2
-inner_distance = 4.5**2
+INNER_DISTANCE = 4.5**2
 STATS = False
 titles = ['PDB ID', "Coordinates to exam", "Ligand Residues", "Binding Site Residues", "Good Ligand", "Good Binding Site", "Model source", 'Ligand Score', 'Binding Site Score']
 stat_titles = ['rFree', 'rWork']
@@ -69,7 +69,7 @@ parser.add_argument('-M','--max-rdiff', type=float, default=None, metavar='FLOAT
 parser.add_argument('-D','--max-DPI', type=float, default=None, metavar='FLOAT', help='maximum model DPI')
 parser.add_argument('-r','--max-resolution', type=float, default=None, metavar='FLOAT', help='set maximum resolution (in Å) below which to consider Good models')
 parser.add_argument('-T','--tolerance', type=int, default=TOLERANCE, metavar='INT', help='set maximum number of non-met criteria of Dubious structures')
-parser.add_argument('-d','--distance', type=float, default=math.sqrt(inner_distance), metavar='Å', help='consider part of the binding sites all the residues nearer than this to the ligand (in Å)')
+parser.add_argument('-d','--distance', type=float, default=math.sqrt(INNER_DISTANCE), metavar='Å', help='consider part of the binding sites all the residues nearer than this to the ligand (in Å)')
 parser.add_argument('-f','--pdbidfile', metavar='PATH', type=str, default=None, required=False, help='text file containing a list of PDB ids, one per line')
 parser.add_argument('-o','--outputfile', metavar='PATH', type=str, default='vhelibs_analysis.csv', required=False, help='output file name')
 parser.add_argument('-w','--writeexcludes', metavar='PATH', type=str, default=None, required=False, help='Write current excluded HET ids to a file')
@@ -142,54 +142,13 @@ def get_sptopdb_dict():
         raise Exception("Could not load the Swissprot-PDB dictionary!")
     return sptopdb_dict
 
-def parse_binding_site(argtuple):
-    """
-    argtuple = (pdbid, )
-    """
-    pdbid = argtuple[0]
-    rsr_upper, rsr_lower = RSR_upper, RSR_lower
+def parse_pdb_file(pdbfilepath):
+    natoms = 0
     ligand_residues = set()
-    good_rsr = set()
-    dubious_rsr = set()
-    bad_rsr = set()
     res_atom_dict = {}
     ligand_res_atom_dict = {}
     notligands = {}
     links = []
-    struc_dict = {}
-    reflections = 0
-    if PDB_REDO:
-        if not argtuple[1]:
-            return  (pdbid, "Not in PDB_REDO")
-        edd_dict = pdb_redo.get_ED_data(pdbid)
-        if not edd_dict:
-            return  (pdbid, "Not in PDB_REDO")
-    else:
-        if not argtuple[1]:
-            dbg("Model not obtained by X-ray crystallography")
-            return  (pdbid, "Model not obtained by X-ray crystallography")
-        pdbdict, edd_dict = EDS_parser.get_EDS(pdbid)
-        if not edd_dict:
-            dbg("No EDM data available for %s, it will be discarded" % pdbid)
-            return  (pdbid, "No EDM data available")
-    struc_dict['rFree'] = argtuple[1].get('rFree', float("nan"))
-    struc_dict['rWork'] = argtuple[1].get('rWork', float("nan"))
-    if USE_DPI:
-        reflections = argtuple[1].get("nreflections", 0)
-        a = argtuple[1].get('lengthOfUnitCellLatticeA', 0)
-        b = argtuple[1].get('lengthOfUnitCellLatticeB', 0)
-        c = argtuple[1].get('lengthOfUnitCellLatticeC', 0)
-        alpha = argtuple[1].get('unitCellAngleAlpha', 0)
-        beta = argtuple[1].get('unitCellAngleBeta', 0)
-        gamma = argtuple[1].get('unitCellAngleGamma', 0)
-    resolution = argtuple[1].get('refinementResolution', 0) if CHECK_RESOLUTION else 1714
-    if CHECK_RESOLUTION:
-        struc_dict['Resolution'] = resolution
-    if USE_RDIFF:
-        Rdiff = struc_dict['rFree'] - struc_dict['rWork'] 
-        struc_dict['Rdiff'] = Rdiff
-    pdbfilepath = PDBfiles.get_pdb_file(pdbid.upper(), PDB_REDO)
-    natoms = 0
     if pdbfilepath.endswith('.gz'):
         pdbfile = gzip.open(pdbfilepath, "rt")
     else:
@@ -200,15 +159,11 @@ def parse_binding_site(argtuple):
         for line in pdbfile:
             line = line.strip()
             label = line[:6].strip()
-            #dbg(label)
             if label in ("ATOM", "HETATM"):
                 atom = PdbAtom(line)
                 residue = atom.residue
-                #dbg(residue)
-                #if atom.occupancy == 1.0:
-                #    natoms += 1
                 natoms += atom.occupancy
-                if label == "ATOM" and inner_distance: #Don't care about protein when distance = 0
+                if label == "ATOM" and INNER_DISTANCE: #Don't care about protein when distance = 0
                     try:
                         res_atom_dict[residue].add(atom)
                     except KeyError:
@@ -236,34 +191,69 @@ def parse_binding_site(argtuple):
                     dbg("bogus LINK distance")
                     dist = 1714 #Distance will be calculated when looking for the binding site
                 links.append((line[17:27],  line[47:57], float(dist))) #distance
-            elif USE_DPI and label == 'REMARK':
-                if line[9] == '3' and "NUMBER OF REFLECTIONS" in line:
-                    try:
-                        reflections = int(line.split(":")[1].strip())
-                    except:
-                        return  (pdbid, "number of reflections")
+            # elif USE_DPI and label == 'REMARK':
+            #     if line[9] == '3' and "NUMBER OF REFLECTIONS" in line:
+            #         try:
+            #             reflections = int(line.split(":")[1].strip())
+            #         except:
+            #             return  (pdbid, "number of reflections")
     except IOError as error:
         dbg(pdbfilepath)
         dbg(error)
     finally:
         pdbfile.close()
         if error:
-            return  (pdbid, str(error))
-    for residue, residue_dict in edd_dict.items():
-        residue = residue.strip()
-        if "occupancy" not in residue_dict.keys():
-                dbg("{} has no occupancy, filling it in".format(residue))
-                try:
-                    residue_dict['occupancy'] = average_occ(res_atom_dict[residue])
-                except KeyError:
-                    residue_dict['occupancy'] = average_occ(ligand_res_atom_dict[residue])
-                dbg("{} occupancy: {}".format(residue, residue_dict['occupancy']))
+            return  (pdbid, str(error), 0, 0, 0, 0)
+    return (natoms, res_atom_dict, ligand_res_atom_dict, notligands, links, ligand_residues)
+
+def parse_binding_site(argtuple):
+    """
+    argtuple = (pdbid, )
+    """
+    pdbid, pdbid_stats = argtuple
+    rsr_upper, rsr_lower = RSR_upper, RSR_lower
+    good_rsr = set()
+    dubious_rsr = set()
+    bad_rsr = set()
+
+    struc_dict = {}
+    reflections = 0
+    if PDB_REDO:
+        if not pdbid_stats:
+            return  (pdbid, "Not in PDB_REDO")
+        edd_dict = pdb_redo.get_ED_data(pdbid)
+        if not edd_dict:
+            return  (pdbid, "Not in PDB_REDO")
+    else:
+        if not pdbid_stats:
+            dbg("Model not obtained by X-ray crystallography")
+            return  (pdbid, "Model not obtained by X-ray crystallography")
+        pdbdict, edd_dict = EDS_parser.get_EDS(pdbid)
+        if not edd_dict:
+            dbg("No EDM data available for %s, it will be discarded" % pdbid)
+            return  (pdbid, "No EDM data available")
+    struc_dict['rFree'] = pdbid_stats.get('rFree', float("nan"))
+    struc_dict['rWork'] = pdbid_stats.get('rWork', float("nan"))
     if USE_DPI:
-        if reflections:
-            struc_dict["DPI"] = dpi(a, b, c, alpha, beta, gamma, natoms, reflections, struc_dict["rFree"])
-        else:
-            struc_dict["DPI"] = float("nan")
-        dbg("DPI is {}".format(struc_dict["DPI"]))
+        reflections = pdbid_stats.get("nreflections", 0)
+        a = pdbid_stats.get('lengthOfUnitCellLatticeA', 0)
+        b = pdbid_stats.get('lengthOfUnitCellLatticeB', 0)
+        c = pdbid_stats.get('lengthOfUnitCellLatticeC', 0)
+        alpha = pdbid_stats.get('unitCellAngleAlpha', 0)
+        beta = pdbid_stats.get('unitCellAngleBeta', 0)
+        gamma = pdbid_stats.get('unitCellAngleGamma', 0)
+    resolution = pdbid_stats.get('refinementResolution', 0) if CHECK_RESOLUTION else 1714
+    if CHECK_RESOLUTION:
+        struc_dict['Resolution'] = resolution
+    if USE_RDIFF:
+        Rdiff = struc_dict['rFree'] - struc_dict['rWork'] 
+        struc_dict['Rdiff'] = Rdiff
+    pdbfilepath = PDBfiles.get_pdb_file(pdbid.upper(), PDB_REDO)
+    #Parse PDB file
+    natoms, res_atom_dict, ligand_res_atom_dict, notligands, links, ligand_residues = parse_pdb_file(pdbfilepath)
+    if natoms == pdbid:
+        return (natoms, res_atom_dict) # error
+
     #Now let's prune covalently bound ligands
     alllinksparsed = False
     while not alllinksparsed:
@@ -307,6 +297,22 @@ def parse_binding_site(argtuple):
                 break
         else:
             alllinksparsed = True
+
+    for residue, residue_dict in edd_dict.items():
+        residue = residue.strip()
+        if "occupancy" not in residue_dict.keys():
+                dbg("{} has no occupancy, filling it in".format(residue))
+                try:
+                    residue_dict['occupancy'] = average_occ(res_atom_dict[residue])
+                except KeyError:
+                    residue_dict['occupancy'] = average_occ(ligand_res_atom_dict[residue])
+                dbg("{} occupancy: {}".format(residue, residue_dict['occupancy']))
+    if USE_DPI:
+        if reflections:
+            struc_dict["DPI"] = dpi(a, b, c, alpha, beta, gamma, natoms, reflections, struc_dict["rFree"])
+        else:
+            struc_dict["DPI"] = float("nan")
+        dbg("DPI is {}".format(struc_dict["DPI"]))
 
     if not ligand_residues:
         dbg('%s has no ligands!' % pdbid)
@@ -501,7 +507,7 @@ def get_binding_site(ligand, ligand_score, good_rsr, bad_rsr, dubious_rsr, pdbid
             for atom in res_atom_dict[res]:
                 for ligandatom in ligand_res_atom_dict[ligandres]:
                     distance = atom | ligandatom
-                    if distance <= inner_distance:
+                    if distance <= INNER_DISTANCE:
                         if distance < 2.1:
                             hetid = ligandres[:3].strip()
                             if hetid in cofactors.ligand_blacklist:
@@ -523,7 +529,7 @@ def get_binding_site(ligand, ligand_score, good_rsr, bad_rsr, dubious_rsr, pdbid
                 for latom in ligand_res_atom_dict[lres]:
                     for ligandatom in ligand_res_atom_dict[ligandres]:
                         distance = latom | ligandatom
-                        if distance <= inner_distance:
+                        if distance <= INNER_DISTANCE:
                             inner_binding_site.add(lres)
                             break
     bad_occupancy = [ligres for ligres in ligand if edd_dict.get(ligres, {'occupancy':0})['occupancy'] < 1]
@@ -699,8 +705,8 @@ def main(values):
     if not (values.pdbids or values.swissprot or values.pdbidfile):
         return False
     if distance != None:
-        global inner_distance
-        inner_distance = distance**2
+        global INNER_DISTANCE
+        INNER_DISTANCE = distance**2
     pdblist = values.pdbids
     if excludesfile:
         cofactors.load_lists(excludesfile)
