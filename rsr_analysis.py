@@ -31,7 +31,8 @@ try:
 except:
     #Fallback to pure python
     from PdbAtom import PdbAtom
-
+    
+from pdbx.reader import PdbxReader
 import PDBfiles, EDS_parser, pdb_redo
 import cofactors
 
@@ -142,62 +143,131 @@ def get_sptopdb_dict():
         raise Exception("Could not load the Swissprot-PDB dictionary!")
     return sptopdb_dict
 
-def parse_pdb_file(pdbfilepath):
+class PdbxAtom(PdbAtom):
+    """
+    Represents an atom from a PDBx file
+    """
+    def __init__(self, atom_dict):
+        """
+        Needs an ATOM or HETATM record
+        """
+        self.name = atom_dict["auth_atom_id"]
+        pos = atom_dict["auth_seq_id"]
+        while len(pos) < 4:
+            pos = " " + pos
+        self.residue = "{} {}{}".format(atom_dict["auth_comp_id"],  atom_dict["auth_asym_id"], pos)
+        self.hetid = atom_dict["auth_comp_id"]
+        self.xyz = (float(atom_dict["Cartn_x"]), float(atom_dict["Cartn_y"]), float(atom_dict["Cartn_z"]))
+        self.occupancy = float(atom_dict["occupancy"])
+        self.variant = atom_dict["label_alt_id"]
+
+atom_attrs = (
+        "group_PDB" #Section
+        ,"id" #Serial_No
+        ,"auth_atom_id" #Atom_Name
+        ,"label_alt_id" # Alt_Loc
+        ,"auth_comp_id" #Residue Name
+        , "auth_asym_id" #Strand_ID
+        , "auth_seq_id" #Residue_No
+        #, "pdbx_PDB_ins_code" # Ins_code
+        , "Cartn_x" # X
+        , "Cartn_y" # Y
+        , "Cartn_z" # Z
+        ,"occupancy" #Occupancy
+        ,"B_iso_or_equiv"  #T_Factor
+        # ,"Cartn_x_esd " #Sigma_X
+        # ,"Cartn_y_esd " #Sigma_Y
+        # ,"Cartn_z_esd " #Sigma_Z
+        # ,"occupancy_esd " #Sigma_Occupancy
+        # ,"B_iso_or_equiv_esd " #Sigma_T_Factor
+        ,"type_symbol" #Symbol
+        #,"pdbx_formal_charge" #Charge
+        )
+
+conn_attrs = (
+    "ptnr1_label_atom_id"#Atom name 1
+    ,"pdbx_ptnr1_label_alt_id"#Alt Loc 1
+    ,"ptnr1_auth_comp_id"# Res name 1
+    ,"ptnr1_auth_asym_id"# strand 1
+    ,"ptnr1_auth_seq_id" #Res number 1
+    ,"pdbx_ptnr1_PDB_ins_code" #Ins Code 1
+    ,"ptnr2_label_atom_id"#Atom name 2
+    ,"pdbx_ptnr2_label_alt_id"#Alt Loc 2
+    ,"ptnr2_auth_comp_id"# Res name 2
+    ,"ptnr2_auth_asym_id"# strand 2
+    , "ptnr2_auth_seq_id" #Res number 2
+    ,"pdbx_ptnr2_PDB_ins_code" #Ins Code 2
+    ,"ptnr1_symmetry"#Symmetry_Operator_1
+    ,"ptnr2_symmetry"#Symmetry_Operator_2
+    ,"pdbx_dist_value"#Distance
+    )
+
+def parse_mmcif_file(mmciffilepath, pdbid):
     natoms = 0
     res_atom_dict = {} #Dictionary of atoms by residue
     ligand_res_atom_dict = {} #Dictionary of ligand atoms by residue
     notligands = {} #Residues that may look like ligands but aren't'
     links = [] #list of tuples with linked atoms
-    if pdbfilepath.endswith('.gz'):
-        pdbfile = gzip.open(pdbfilepath, "rt")
+    if mmciffilepath.endswith('.gz'):
+        pdbxfile = gzip.open(mmciffilepath, "rt")
     else:
-        pdbfile = open(pdbfilepath, 'rt')
-    dbg("Reading {}".format(pdbfilepath))
-    try:
-        error = False
-        for line in pdbfile:
-            line = line.strip()
-            label = line[:6].strip()
-            if label in ("ATOM", "HETATM"):
-                atom = PdbAtom(line)
-                residue = atom.residue
-                natoms += atom.occupancy
-                if label == "ATOM" and INNER_DISTANCE: #Don't care about protein when distance = 0
-                    try:
-                        res_atom_dict[residue].add(atom)
-                    except KeyError:
-                        res_atom_dict[residue] = set([atom, ])
-                elif label == 'HETATM':
-                    if atom.hetid == 'HOH':
-                        continue #Skip waters
-                    if (atom.hetid in cofactors.ligand_blacklist) or (atom.hetid in cofactors.metals):
-                        try:
-                            res_atom_dict[residue].add(atom)
-                        except KeyError:
-                            res_atom_dict[residue] = set([atom, ])
-                        notligands[residue] = "Blacklisted ligand"
-                        dbg("{} is blacklisted".format(atom.hetid))
-                        continue
-                    dbg("{} is ligand".format(atom.hetid))
-                    if not residue in ligand_res_atom_dict:
-                        ligand_res_atom_dict[residue] = set()
-                    ligand_res_atom_dict[residue].add(atom)
-            elif label == 'LINK':
+        pdbxfile = open(mmciffilepath, 'rt')
+    dbg("Reading {}".format(mmciffilepath))
+    pRd =  PdbxReader.PdbxReader(pdbxfile)
+    data = []
+    pRd.read(data)
+    for block in data:
+        if block.getName() == pdbid.upper():
+            break
+        else:
+            return "error parsing mmCIF file"
+    struct_conn = block.getObj("struct_conn") #LINK
+    atom_site = block.getObj("atom_site") #LINK
+    for ai in range(atom_site.getRowCount()):
+        atom_dict = {}
+        for att in atom_attrs:
+            atom_dict[att] = atom_site.getValueFormatted(attributeName=att, rowIndex=ai)
+        atom = PdbxAtom(atom_dict)
+        residue = atom.residue
+        natoms += atom.occupancy
+        label = atom_dict["group_PDB"]
+        if label == "ATOM" and INNER_DISTANCE: #Don't care about protein when distance = 0
+            try:
+                res_atom_dict[residue].add(atom)
+            except KeyError:
+                res_atom_dict[residue] = set([atom, ])
+        elif label == 'HETATM':
+            if atom.hetid == 'HOH':
+                continue #Skip waters
+            if (atom.hetid in cofactors.ligand_blacklist) or (atom.hetid in cofactors.metals):
                 try:
-                    dist = float(line[73:78].strip())
-                except ValueError:
-                    dbg("bogus LINK distance")
-                    dist = 1714 #Distance will be calculated when looking for the binding site
-                links.append((line[17:27],  line[47:57], float(dist))) #distance
-    except IOError as error:
-        dbg(pdbfilepath)
-        dbg(error)
-    finally:
-        pdbfile.close()
-        if error:
-            return  (pdbid, str(error), 0, 0, 0)
-    return (natoms, res_atom_dict, ligand_res_atom_dict, notligands, links)
-
+                    res_atom_dict[residue].add(atom)
+                except KeyError:
+                    res_atom_dict[residue] = set([atom, ])
+                notligands[residue] = "Blacklisted ligand"
+                dbg("{} is blacklisted".format(atom.hetid))
+                continue
+            dbg("{} is ligand".format(atom.hetid))
+            if not residue in ligand_res_atom_dict:
+                ligand_res_atom_dict[residue] = set()
+            ligand_res_atom_dict[residue].add(atom)
+    for ci in range(struct_conn.getRowCount()):
+        conn_dict = {}
+        for att in conn_attrs:
+            conn_dict[att] = struct_conn.getValueFormatted(attributeName=att, rowIndex=ci)
+        pos1 = conn_dict["ptnr1_auth_seq_id"]
+        while len(pos1) < 4:
+            pos1 = " " + pos1
+        res1 =  "{} {}{}".format(conn_dict["ptnr1_auth_comp_id"], conn_dict["ptnr1_auth_asym_id"], pos1)
+        
+        pos2 = conn_dict["ptnr2_auth_seq_id"]
+        while len(pos2) < 4:
+            pos2 = " " + pos2
+        res2 =  "{} {}{}".format(conn_dict["ptnr2_auth_comp_id"],conn_dict["ptnr2_auth_asym_id"], pos2)
+        links.append((res1, res2, float(conn_dict["pdbx_dist_value"])))
+        
+        return (natoms, res_atom_dict, ligand_res_atom_dict, notligands, links)
+    
 def parse_binding_site(argtuple):
     """
     argtuple = (pdbid, )
@@ -242,7 +312,7 @@ def parse_binding_site(argtuple):
         struc_dict['Rdiff'] = Rdiff
     pdbfilepath = PDBfiles.get_pdb_file(pdbid.upper(), PDB_REDO)
     #Parse PDB file
-    natoms, res_atom_dict, ligand_res_atom_dict, notligands, links = parse_pdb_file(pdbfilepath)
+    natoms, res_atom_dict, ligand_res_atom_dict, notligands, links = parse_mmcif_file(pdbfilepath, pdbid)
     if natoms == pdbid:
         return (natoms, res_atom_dict) # error
 

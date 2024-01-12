@@ -18,8 +18,8 @@ except ImportError:
     from urllib import urlencode
     from urllib2 import urlopen, Request, HTTPError
 
-PDBbase = "http://www.rcsb.org/pdb/files/{}.pdb.gz"
-PDBREDObase_full = "https://pdb-redo.eu/db/PDBID/PDBID_final.pdb"
+PDBbase = "http://www.rcsb.org/pdb/files/{}.cif.gz"
+PDBREDObase_full = "https://pdb-redo.eu/db/PDBID/PDBID_final.cif"
 #On guardarem els fitxers:
 CACHEDIR = tempfile.mkdtemp()
 
@@ -55,7 +55,7 @@ def get_pdb_file(pdbcode, pdb_redo = False):
         os.makedirs(CACHEDIR)
     if not pdb_redo:
         url = PDBbase.format(pdbcode)
-        filename = os.path.join(CACHEDIR, pdbcode.upper() + ".pdb.gz")
+        filename = os.path.join(CACHEDIR, pdbcode.upper() + ".cif.gz")
         print("Downloading {} to {}".format(url, filename))
     else:
          pdbcode = pdbcode.lower()
