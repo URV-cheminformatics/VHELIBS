@@ -144,11 +144,11 @@ def get_sptopdb_dict():
 
 def parse_pdb_file(pdbfilepath):
     natoms = 0
-    ligand_residues = set()
-    res_atom_dict = {}
-    ligand_res_atom_dict = {}
-    notligands = {}
-    links = []
+    ligand_residues = set() #Set of ligand residues
+    res_atom_dict = {} #Dictionary of atoms by residue
+    ligand_res_atom_dict = {} #Dictionary of ligand atoms by residue
+    notligands = {} #Residues that may look like ligands but aren't'
+    links = [] #list of tuples with linked atoms
     if pdbfilepath.endswith('.gz'):
         pdbfile = gzip.open(pdbfilepath, "rt")
     else:
@@ -191,12 +191,6 @@ def parse_pdb_file(pdbfilepath):
                     dbg("bogus LINK distance")
                     dist = 1714 #Distance will be calculated when looking for the binding site
                 links.append((line[17:27],  line[47:57], float(dist))) #distance
-            # elif USE_DPI and label == 'REMARK':
-            #     if line[9] == '3' and "NUMBER OF REFLECTIONS" in line:
-            #         try:
-            #             reflections = int(line.split(":")[1].strip())
-            #         except:
-            #             return  (pdbid, "number of reflections")
     except IOError as error:
         dbg(pdbfilepath)
         dbg(error)
