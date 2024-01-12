@@ -398,7 +398,8 @@ class StruVa(Runnable):
             showErrorDialog(e)
 
     def displayEDM(self, atoms, name, color):
-        if self.source == 'PDB':
+        #if self.source == 'PDB':
+        if True: #FIXME
             omapfile, sigma_c = EDS_parser.get_EDM(self.pdbid)
             if not omapfile:
                 self.console.sendConsoleMessage("ED unavailable at edmaps.rcsb.org")
