@@ -31,7 +31,11 @@ try:
 except:
     #Fallback to pure python
     from PdbAtom import PdbAtom
-    
+
+try:
+    from concurrent import futures
+except:
+    futures = None
 from pdbx.reader import PdbxReader
 import PDBfiles, EDS_parser, pdb_redo
 import cofactors
@@ -265,7 +269,7 @@ def parse_mmcif_file(mmciffilepath, pdbid):
             while len(pos2) < 4:
                 pos2 = " " + pos2
             res2 =  "{} {}{}".format(conn_dict["ptnr2_auth_comp_id"],conn_dict["ptnr2_auth_asym_id"], pos2)
-            links.append((res1, res2, float(conn_dict["pdbx_dist_value"])))
+            links.append((res1, res2, float(conn_dict["pdbx_dist_value"].replace("?", "1714"))))
         
     return (natoms, res_atom_dict, ligand_res_atom_dict, notligands, links)
     
@@ -358,16 +362,22 @@ def parse_binding_site(argtuple):
                 break
         else:
             alllinksparsed = True
-
+    bad_res = set()
     for residue, residue_dict in edd_dict.items():
         residue = residue.strip()
         if "occupancy" not in residue_dict.keys():
                 dbg("{} has no occupancy, filling it in".format(residue))
                 try:
                     residue_dict['occupancy'] = average_occ(res_atom_dict[residue])
+                    dbg("{} occupancy: {}".format(residue, residue_dict['occupancy']))
                 except KeyError:
-                    residue_dict['occupancy'] = average_occ(ligand_res_atom_dict[residue])
-                dbg("{} occupancy: {}".format(residue, residue_dict['occupancy']))
+                    try:
+                        residue_dict['occupancy'] = average_occ(ligand_res_atom_dict[residue])
+                        dbg("{} occupancy: {}".format(residue, residue_dict['occupancy']))
+                    except KeyError:
+                        dbg("No occupancy for {} because it's not a ligand".format(residue))
+                        bad_res.add(residue)
+    [edd_dict.pop(b) for b in bad_res]
     if USE_DPI:
         if reflections:
             struc_dict["DPI"] = dpi(a, b, c, alpha, beta, gamma, natoms, reflections, struc_dict["rFree"])
@@ -781,7 +791,7 @@ def main(values):
                 if swissprot_id in key:
                     pdblist = itertools.chain(pdblist, sptopdb_dict[key])
     if filepath:
-        pdblistfile = open(filepath, 'rb')
+        pdblistfile = open(filepath, 'rt')
         pdb_ids_from_file = [line.strip() for line in pdblistfile.read().replace(',', '\n').replace('\t', '\n').split() if line.strip()]
         pdblist = itertools.chain(pdblist, pdb_ids_from_file)
         pdblistfile.close()
@@ -793,7 +803,11 @@ def main(values):
 
     if not PDB_REDO:
         pdbids_extra_data_dict = {}
-        p = multiprocessing.Pool(multiprocessing.cpu_count())
+        if not futures:
+            p = multiprocessing.Pool(multiprocessing.cpu_count())
+        else:
+            p =futures.ThreadPoolExecutor(multiprocessing.cpu_count())
+            p.imap = p.map
         for d in p.imap(PDBfiles.get_custom_report, pdblist):
             pdbids_extra_data_dict.update(d)
     else:

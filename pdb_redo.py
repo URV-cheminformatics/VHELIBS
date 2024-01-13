@@ -105,14 +105,21 @@ def get_ED_data(pdbid):
         edd_dict[residue] = d
     return edd_dict
 
-def get_pdbredo_data(pdbids=[], tries = 3):
+def get_pdbredo_data(pdbids=[], ntries = 3):
     parseddata = {}
     for pdbid in pdbids:
+        tries = ntries
         url = ALLDATA_URL.replace("PDBID", pdbid)
-        alldatapath = os.path.join(PDBfiles.CACHEDIR, os.path.basename(url))
+        cachedir = os.path.join(PDBfiles.CACHEDIR, pdbid)
+        try:
+            os.makedirs(cachedir)
+        except:
+            pass
+        alldatapath = os.path.join(cachedir, os.path.basename(url))
         #if not os.path.isfile(alldatapath): #Download
         while tries > 0:
             tries -= 1
+            e = "unknown"
             if sys.platform.startswith('java'):
                 oldlocale = Locale.getDefault()
                 Locale.setDefault(Locale.ENGLISH)
@@ -121,10 +128,12 @@ def get_pdbredo_data(pdbids=[], tries = 3):
                 olddate = datetime.datetime(1,1,1)
                 if os.path.isfile(alldatapath):
                     rawdict = json.load(open(alldatapath, 'r'))
-                    olddate = rawdict["properties"]["TIME"]
+                    break
                 else:
                     rawdict = json.load(urlopen(url))
-                break
+                    with open(alldatapath, "wb") as cache_file:
+                         cache_file.write(json.dumps(rawdict))
+                    break
             except Exception as e:
                 print("Could not download {}".format( url))
                 print(e)
@@ -134,8 +143,7 @@ def get_pdbredo_data(pdbids=[], tries = 3):
                 Locale.setDefault(oldlocale)
         else:
             print("Unable to download %s" % url)
-            print(e)
-            return
+            continue
         #line 7 contains date
         #lines[11:111] are the columns explained
             #We need columns:
