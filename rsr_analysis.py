@@ -251,22 +251,23 @@ def parse_mmcif_file(mmciffilepath, pdbid):
             if not residue in ligand_res_atom_dict:
                 ligand_res_atom_dict[residue] = set()
             ligand_res_atom_dict[residue].add(atom)
-    for ci in range(struct_conn.getRowCount()):
-        conn_dict = {}
-        for att in conn_attrs:
-            conn_dict[att] = struct_conn.getValueFormatted(attributeName=att, rowIndex=ci)
-        pos1 = conn_dict["ptnr1_auth_seq_id"]
-        while len(pos1) < 4:
-            pos1 = " " + pos1
-        res1 =  "{} {}{}".format(conn_dict["ptnr1_auth_comp_id"], conn_dict["ptnr1_auth_asym_id"], pos1)
+    if struct_conn:
+        for ci in range(struct_conn.getRowCount()):
+            conn_dict = {}
+            for att in conn_attrs:
+                conn_dict[att] = struct_conn.getValueFormatted(attributeName=att, rowIndex=ci)
+            pos1 = conn_dict["ptnr1_auth_seq_id"]
+            while len(pos1) < 4:
+                pos1 = " " + pos1
+            res1 =  "{} {}{}".format(conn_dict["ptnr1_auth_comp_id"], conn_dict["ptnr1_auth_asym_id"], pos1)
+            
+            pos2 = conn_dict["ptnr2_auth_seq_id"]
+            while len(pos2) < 4:
+                pos2 = " " + pos2
+            res2 =  "{} {}{}".format(conn_dict["ptnr2_auth_comp_id"],conn_dict["ptnr2_auth_asym_id"], pos2)
+            links.append((res1, res2, float(conn_dict["pdbx_dist_value"])))
         
-        pos2 = conn_dict["ptnr2_auth_seq_id"]
-        while len(pos2) < 4:
-            pos2 = " " + pos2
-        res2 =  "{} {}{}".format(conn_dict["ptnr2_auth_comp_id"],conn_dict["ptnr2_auth_asym_id"], pos2)
-        links.append((res1, res2, float(conn_dict["pdbx_dist_value"])))
-        
-        return (natoms, res_atom_dict, ligand_res_atom_dict, notligands, links)
+    return (natoms, res_atom_dict, ligand_res_atom_dict, notligands, links)
     
 def parse_binding_site(argtuple):
     """
