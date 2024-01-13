@@ -37,7 +37,7 @@ def get_custom_report(pdbid):
     rowdict["rFree"] = rawdict["refine"][0]["ls_rfactor_rfree"]
     rowdict["rWork"] = rawdict["refine"][0]["ls_rfactor_rwork"]
     rowdict["refinementResolution"] = rawdict["refine"][0]["ls_dres_high"]
-    rowdict["nreflections"] = rawdict["refine"][0]["ls_number_reflns_rfree"]
+    rowdict["nreflections"] = rawdict["refine"][0].get("ls_number_reflns_rfree", 0)
     rowdict["unitCellAngleAlpha"] = rawdict["cell"]["angle_alpha"]
     rowdict["unitCellAngleBeta"] = rawdict["cell"]["angle_beta"]
     rowdict["unitCellAngleGamma"] = rawdict["cell"]["angle_gamma"]
