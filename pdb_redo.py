@@ -124,14 +124,14 @@ def get_pdbredo_data(pdbids=[], ntries = 3):
                 oldlocale = Locale.getDefault()
                 Locale.setDefault(Locale.ENGLISH)
             try:
-                download = False
-                olddate = datetime.datetime(1,1,1)
                 if os.path.isfile(alldatapath):
-                    rawdict = json.load(open(alldatapath, 'r'))
+                    print("loading {}".format(alldatapath))
+                    rawdict = json.load(open(alldatapath, 'rt'))
                     break
                 else:
                     rawdict = json.load(urlopen(url))
-                    with open(alldatapath, "wb") as cache_file:
+                    if not rawdict: continue
+                    with open(alldatapath, "wt") as cache_file:
                          cache_file.write(json.dumps(rawdict))
                     break
             except Exception as e:
