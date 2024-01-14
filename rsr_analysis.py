@@ -316,6 +316,8 @@ def parse_binding_site(argtuple):
         Rdiff = struc_dict['rFree'] - struc_dict['rWork'] 
         struc_dict['Rdiff'] = Rdiff
     pdbfilepath = PDBfiles.get_pdb_file(pdbid.upper(), PDB_REDO)
+    if not pdbfilepath:
+        return (pdbid, "unable to load PDBx/mmCIF model (missing/empty file?)")
     #Parse PDB file
     natoms, res_atom_dict, ligand_res_atom_dict, notligands, links = parse_mmcif_file(pdbfilepath, pdbid)
     if natoms == pdbid:
