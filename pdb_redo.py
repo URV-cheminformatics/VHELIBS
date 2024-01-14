@@ -64,7 +64,7 @@ def get_ED_data(pdbid):
         os.makedirs(downloaddir)
     url = PDB_REDO_ed_data_url_tmpl.replace('MIDDLE', pdbid[1:3]).replace('PDBID', pdbid)
     filename = os.path.join(downloaddir, os.path.basename(url))
-    if not os.path.isfile(filename)  and os.path.getsize(filename) > 0: #Download
+    if not os.path.isfile(filename)  or os.path.getsize(filename) > 0: #Download
         print("Downloading %s" % url)
         tries = 3
         while tries > 0:
