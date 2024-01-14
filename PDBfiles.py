@@ -30,9 +30,26 @@ QUERY_TPL = "https://data.rcsb.org/rest/v1/core/entry/{}"
 
 def get_custom_report(pdbid):
     urlstring = QUERY_TPL.format(pdbid)
-    print(urlstring)
+    #print(urlstring)
+    cachedir = os.path.join(CACHEDIR, pdbid)
     try:
-        rawdict = json.load(urlopen(urlstring))
+        os.makedirs(cachedir)
+    except:
+        pass
+    alldatapath = os.path.join(cachedir, "pdb_stats.json")
+    try:
+        if os.path.isfile(alldatapath)  and os.path.getsize(alldatapath) > 0:
+            print("loading {}".format(alldatapath))
+            rawdict = json.load(open(alldatapath, 'rt'))
+        else:
+            print("Downloading {}".format(urlstring))
+            rawdict = json.load(urlopen(urlstring))
+            if rawdict:
+                with open(alldatapath, "wt") as cache_file:
+                        cache_file.write(json.dumps(rawdict))
+            else:
+                print("Empty stats for {}?".format(pdbid))
+                return {}
     except Exception as e:
         print(e)
         return {}
@@ -65,7 +82,7 @@ def get_pdb_file(pdbcode, pdb_redo = False):
          pdbcode = pdbcode.lower()
          url = PDBREDObase_full.replace('PDBID', pdbcode)
          filename = os.path.join(CACHEDIR, os.path.basename(url))
-    if os.path.isfile(filename):
+    if os.path.isfile(filename) and os.path.getsize(filename) > 0:
         return filename
     tries = 0
     while tries <= 3:

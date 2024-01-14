@@ -64,7 +64,7 @@ def get_ED_data(pdbid):
         os.makedirs(downloaddir)
     url = PDB_REDO_ed_data_url_tmpl.replace('MIDDLE', pdbid[1:3]).replace('PDBID', pdbid)
     filename = os.path.join(downloaddir, os.path.basename(url))
-    if CACHE_EXPIRED or not os.path.isfile(filename): #Download
+    if not os.path.isfile(filename)  and os.path.getsize(filename) > 0: #Download
         print("Downloading %s" % url)
         tries = 3
         while tries > 0:
@@ -124,7 +124,7 @@ def get_pdbredo_data(pdbids=[], ntries = 3):
                 oldlocale = Locale.getDefault()
                 Locale.setDefault(Locale.ENGLISH)
             try:
-                if os.path.isfile(alldatapath):
+                if os.path.isfile(alldatapath)  and os.path.getsize(alldatapath) > 0:
                     print("loading {}".format(alldatapath))
                     rawdict = json.load(open(alldatapath, 'rt'))
                     break

@@ -194,13 +194,13 @@ conn_attrs = (
     ,"ptnr1_auth_comp_id"# Res name 1
     ,"ptnr1_auth_asym_id"# strand 1
     ,"ptnr1_auth_seq_id" #Res number 1
-    ,"pdbx_ptnr1_PDB_ins_code" #Ins Code 1
+    #,"pdbx_ptnr1_PDB_ins_code" #Ins Code 1
     ,"ptnr2_label_atom_id"#Atom name 2
     ,"pdbx_ptnr2_label_alt_id"#Alt Loc 2
     ,"ptnr2_auth_comp_id"# Res name 2
     ,"ptnr2_auth_asym_id"# strand 2
     , "ptnr2_auth_seq_id" #Res number 2
-    ,"pdbx_ptnr2_PDB_ins_code" #Ins Code 2
+    #,"pdbx_ptnr2_PDB_ins_code" #Ins Code 2
     ,"ptnr1_symmetry"#Symmetry_Operator_1
     ,"ptnr2_symmetry"#Symmetry_Operator_2
     ,"pdbx_dist_value"#Distance
@@ -223,8 +223,10 @@ def parse_mmcif_file(mmciffilepath, pdbid):
     for block in data:
         if block.getName() == pdbid.upper():
             break
-        else:
-            return "error parsing mmCIF file"
+    else:
+        e = "error parsing mmCIF file  {}".format(mmciffilepath)
+        print(e)
+        return e
     struct_conn = block.getObj("struct_conn") #LINK
     atom_site = block.getObj("atom_site") #LINK
     for ai in range(atom_site.getRowCount()):
@@ -319,7 +321,10 @@ def parse_binding_site(argtuple):
     if not pdbfilepath:
         return (pdbid, "unable to load PDBx/mmCIF model (missing/empty file?)")
     #Parse PDB file
-    natoms, res_atom_dict, ligand_res_atom_dict, notligands, links = parse_mmcif_file(pdbfilepath, pdbid)
+    parsedfile = parse_mmcif_file(pdbfilepath, pdbid)
+    if len(parsedfile) == 1:
+        return (pdbid, parsedfile)
+    natoms, res_atom_dict, ligand_res_atom_dict, notligands, links = parsedfile
     if natoms == pdbid:
         return (natoms, res_atom_dict) # error
 
@@ -379,7 +384,8 @@ def parse_binding_site(argtuple):
                     except KeyError:
                         dbg("No occupancy for {} because it's not a ligand".format(residue))
                         bad_res.add(residue)
-    [edd_dict.pop(b) for b in bad_res]
+    edd_dict = {k.strip():v for k,v in edd_dict.items() if k.strip() not in bad_res}
+
     if USE_DPI:
         if reflections:
             struc_dict["DPI"] = dpi(a, b, c, alpha, beta, gamma, natoms, reflections, struc_dict["rFree"])
