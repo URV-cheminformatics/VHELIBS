@@ -31,11 +31,15 @@ QUERY_TPL = "https://data.rcsb.org/rest/v1/core/entry/{}"
 def get_custom_report(pdbid):
     urlstring = QUERY_TPL.format(pdbid)
     print(urlstring)
-    rawdict = json.load(urlopen(urlstring))
+    try:
+        rawdict = json.load(urlopen(urlstring))
+    except Exception as e:
+        print(e)
+        return {}
     rowdict = {}
     rowdict["experimentalTechnique"] = rawdict["rcsb_entry_info"]["experimental_method"]
-    rowdict["rFree"] = rawdict["refine"][0]["ls_rfactor_rfree"]
-    rowdict["rWork"] = rawdict["refine"][0]["ls_rfactor_rwork"]
+    rowdict["rFree"] = rawdict["refine"][0].get("ls_rfactor_rfree", 9999)
+    rowdict["rWork"] = rawdict["refine"][0].get("ls_rfactor_rwork", 9999)
     rowdict["refinementResolution"] = rawdict["refine"][0]["ls_dres_high"]
     rowdict["nreflections"] = rawdict["refine"][0].get("ls_number_reflns_rfree", 0)
     rowdict["unitCellAngleAlpha"] = rawdict["cell"]["angle_alpha"]
