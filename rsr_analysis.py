@@ -225,9 +225,9 @@ def parse_mmcif_file(mmciffilepath, pdbid):
         if block.getName() == pdbid.upper():
             break
     else:
-        e = "error parsing mmCIF file  {}".format(mmciffilepath)
+        e = "error parsing mmCIF file  {}. No block matching {}. Using block named {}".format(mmciffilepath, pdbid, block.getName())
         print(e)
-        return e
+        #return [e]
     struct_conn = block.getObj("struct_conn") #LINK
     atom_site = block.getObj("atom_site") #LINK
     for ai in range(atom_site.getRowCount()):
