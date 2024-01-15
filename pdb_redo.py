@@ -133,7 +133,7 @@ def get_pdbredo_data(pdbids=[]):
                     with open(alldatapath, "wt") as cache_file:
                          cache_file.write(json.dumps(rawdict))
                     break
-            except Exception as e:
+            except HTTPError as e:
                 print("Could not download {}".format( url))
                 print(e)
                 print("Retrying... {}".format(tries))

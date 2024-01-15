@@ -50,6 +50,9 @@ def get_custom_report(pdbid):
             else:
                 print("Empty stats for {}?".format(pdbid))
                 return {}
+        rawdict["rcsb_entry_info"]
+        rawdict["refine"]
+        rawdict["cell"]
     except Exception as e:
         print(e)
         return {}

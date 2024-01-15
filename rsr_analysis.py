@@ -125,6 +125,8 @@ def get_sptopdb_dict():
     reader = urlopen(url)
     pdbid = None
     for line in reader:
+        if type(line) != type(''):
+            line = line.decode()
         if not len(line) > 28:
             continue
         if line[:28].strip():
@@ -798,6 +800,7 @@ def main(values):
         for swissprot_id in values.swissprot:
             for key in sptopdb_dict:
                 if swissprot_id in key:
+                    print("Adding to the queue: \n{}".format("\n".join(sptopdb_dict[key])))
                     pdblist = itertools.chain(pdblist, sptopdb_dict[key])
     if filepath:
         pdblistfile = open(filepath, 'rt')
