@@ -103,79 +103,75 @@ def get_ED_data(pdbid):
         edd_dict[residue] = d
     return edd_dict
 
-def get_pdbredo_data(pdbids=[]):
-    ntries = 3
-    parseddata = {}
-    for pdbid in pdbids:
-        tries = ntries
-        url = ALLDATA_URL.replace("PDBID", pdbid)
-        cachedir = os.path.join(PDBfiles.CACHEDIR, pdbid)
+def get_pdbredo_data(pdbid):
+    tries = 3
+    url = ALLDATA_URL.replace("PDBID", pdbid)
+    cachedir = os.path.join(PDBfiles.CACHEDIR, pdbid)
+    try:
+        os.makedirs(cachedir)
+    except:
+        pass
+    alldatapath = os.path.join(cachedir, os.path.basename(url))
+    #if not os.path.isfile(alldatapath): #Download
+    while tries > 0:
+        tries -= 1
+        e = "unknown"
+        if sys.platform.startswith('java'):
+            oldlocale = Locale.getDefault()
+            Locale.setDefault(Locale.ENGLISH)
         try:
-            os.makedirs(cachedir)
-        except:
-            pass
-        alldatapath = os.path.join(cachedir, os.path.basename(url))
-        #if not os.path.isfile(alldatapath): #Download
-        while tries > 0:
-            tries -= 1
-            e = "unknown"
-            if sys.platform.startswith('java'):
-                oldlocale = Locale.getDefault()
-                Locale.setDefault(Locale.ENGLISH)
-            try:
-                if os.path.isfile(alldatapath)  and os.path.getsize(alldatapath) > 0:
-                    print("loading {}".format(alldatapath))
-                    rawdict = json.load(open(alldatapath, 'rt'))
-                    break
-                else:
-                    rawdict = json.load(urlopen(url))
-                    if not rawdict: continue
-                    with open(alldatapath, "wt") as cache_file:
-                         cache_file.write(json.dumps(rawdict))
-                    break
-            except HTTPError as e:
-                print("Could not download {}".format( url))
-                print(e)
-                print("Retrying... {}".format(tries))
-                time.sleep(1)
-            if sys.platform.startswith('java'):
-                Locale.setDefault(oldlocale)
-        else:
-            print("Unable to download %s" % url)
-            continue
-        #line 7 contains date
-        #lines[11:111] are the columns explained
-            #We need columns:
-            #0   PDBID
-            #14  RFIN
-            #15  RFFIN
-            #62  RESOLUTION
-            # 65  NREFCNT    Number of reflections
-            # 70  AAXIS      Length of cell axis a
-            # 71  BAXIS      Length of cell axis b
-            # 72  CAXIS      Length of cell axis c
-            # 73  ALPHA      Cell angle alpha
-            # 74  BETA       Cell angle beta
-            # 75  GAMMA      Cell angle gamma
-        #lines[112] == '#START DATA'
-        #lines[113] are the column headers
-        #here the data [114:-3]
-        #lines[-3] == ''
-        #lines[-2] == '#END DATA'
-        rowdict = {}
-        rowdict["experimentalTechnique"] = rawdict["properties"]["EXPTYP"]
-        rowdict["rFree"] = rawdict["properties"]["RFFIN"]
-        rowdict["rWork"] = rawdict["properties"]["RFIN"]
-        rowdict["refinementResolution"] = rawdict["properties"]["RESOLUTION"]
-        rowdict["unitCellAngleAlpha"] = rawdict["properties"]["ALPHA"]
-        rowdict["unitCellAngleBeta"] = rawdict["properties"]["BETA"]
-        rowdict["unitCellAngleGamma"] = rawdict["properties"]["GAMMA"]
-        rowdict["lengthOfUnitCellLatticeA"] = rawdict["properties"]["AAXIS"]
-        rowdict["lengthOfUnitCellLatticeB"] = rawdict["properties"]["BAXIS"]
-        rowdict["lengthOfUnitCellLatticeC"] = rawdict["properties"]["CAXIS"]
-        rowdict["nreflections"] = rawdict["properties"]["NREFCNT"]
-        parseddata[pdbid.upper()] = rowdict
-    return parseddata
+            if os.path.isfile(alldatapath)  and os.path.getsize(alldatapath) > 0:
+                print("loading {}".format(alldatapath))
+                rawdict = json.load(open(alldatapath, 'rt'))
+                break
+            else:
+                rawdict = json.load(urlopen(url))
+                if not rawdict: return
+                with open(alldatapath, "wt") as cache_file:
+                        cache_file.write(json.dumps(rawdict))
+                break
+        except HTTPError as e:
+            print("Could not download {}".format( url))
+            print(e)
+            print("Retrying... {}".format(tries))
+            time.sleep(1)
+        if sys.platform.startswith('java'):
+            Locale.setDefault(oldlocale)
+    else:
+        print("Unable to download %s" % url)
+        return
+    #line 7 contains date
+    #lines[11:111] are the columns explained
+        #We need columns:
+        #0   PDBID
+        #14  RFIN
+        #15  RFFIN
+        #62  RESOLUTION
+        # 65  NREFCNT    Number of reflections
+        # 70  AAXIS      Length of cell axis a
+        # 71  BAXIS      Length of cell axis b
+        # 72  CAXIS      Length of cell axis c
+        # 73  ALPHA      Cell angle alpha
+        # 74  BETA       Cell angle beta
+        # 75  GAMMA      Cell angle gamma
+    #lines[112] == '#START DATA'
+    #lines[113] are the column headers
+    #here the data [114:-3]
+    #lines[-3] == ''
+    #lines[-2] == '#END DATA'
+    rowdict = {}
+    rowdict["experimentalTechnique"] = rawdict["properties"]["EXPTYP"]
+    rowdict["rFree"] = rawdict["properties"]["RFFIN"]
+    rowdict["rWork"] = rawdict["properties"]["RFIN"]
+    rowdict["refinementResolution"] = rawdict["properties"]["RESOLUTION"]
+    rowdict["unitCellAngleAlpha"] = rawdict["properties"]["ALPHA"]
+    rowdict["unitCellAngleBeta"] = rawdict["properties"]["BETA"]
+    rowdict["unitCellAngleGamma"] = rawdict["properties"]["GAMMA"]
+    rowdict["lengthOfUnitCellLatticeA"] = rawdict["properties"]["AAXIS"]
+    rowdict["lengthOfUnitCellLatticeB"] = rawdict["properties"]["BAXIS"]
+    rowdict["lengthOfUnitCellLatticeC"] = rawdict["properties"]["CAXIS"]
+    rowdict["nreflections"] = rawdict["properties"]["NREFCNT"]
+    return rowdict
 
 if __name__ == "__main__":
     print('start')

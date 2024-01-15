@@ -33,10 +33,6 @@ except:
     #Fallback to pure python
     from PdbAtom import PdbAtom
 
-try:
-    from concurrent import futures
-except:
-    futures = None
 from pdbx.reader import PdbxReader
 import PDBfiles, EDS_parser, pdb_redo
 import cofactors
@@ -278,11 +274,16 @@ def parse_mmcif_file(mmciffilepath, pdbid):
         
     return (natoms, res_atom_dict, ligand_res_atom_dict, notligands, links)
     
-def parse_binding_site(argtuple):
+def parse_binding_site(pdbid):
     """
     argtuple = (pdbid, )
     """
-    pdbid, pdbid_stats = argtuple
+    # pdbid, pdbid_stats = argtuple
+    if not PDB_REDO:
+        pdbids_extra_data_dict = {}
+        pdbid_stats = PDBfiles.get_custom_report(pdbid)
+    else:
+        pdbid_stats = pdb_redo.get_pdbredo_data(pdbid)
     rsr_upper, rsr_lower = RSR_upper, RSR_lower
     good_rsr = set()
     dubious_rsr = set()
@@ -813,20 +814,8 @@ def main(values):
 
     npdbs = len(pdblist)
 
-    if not PDB_REDO:
-        pdbids_extra_data_dict = {}
-        if not futures:
-            p = multiprocessing.Pool(multiprocessing.cpu_count())
-        else:
-            p =futures.ThreadPoolExecutor(multiprocessing.cpu_count())
-            p.imap = p.map
-        for d in p.imap(PDBfiles.get_custom_report, pdblist):
-            pdbids_extra_data_dict.update(d)
-    else:
-        pdbids_extra_data_dict = pdb_redo.get_pdbredo_data(pdblist)
-    argsarray = [(pdbid, pdbids_extra_data_dict.get(pdbid.upper(), {})) for pdbid in pdblist if pdbid]
     pool = multiprocessing.Pool(multiprocessing.cpu_count())
-    results = pool.imap(parse_binding_site, argsarray)
+    results = pool.imap(parse_binding_site, pdblist)
     #results = (parse_binding_site(argstuple) for argstuple in argsarray)
     datawritten = results_to_csv(results, values.outputfile)
     pool.terminate()
