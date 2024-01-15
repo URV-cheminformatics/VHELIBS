@@ -27,6 +27,7 @@ try:
         #CPython
         import multiprocessing
         #Use cython optimized version
+        import pyximport; pyximport.install()
         from cPdbAtom import PdbAtom
 except:
     #Fallback to pure python

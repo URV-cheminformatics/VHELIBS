@@ -31,7 +31,7 @@ def get_EDM(pdbid):
         os.makedirs(downloaddir)
     url = PDB_REDO_edm_url_tmpl.replace('PDBID', pdbid)
     filename = os.path.join(downloaddir, pdbid + "_final.mtz")
-    if not os.path.isfile(filename): #Download
+    if not (os.path.isfile(filename) and os.path.getsize(filename) > 0): #Download
         print("Downloading %s" % url)
         tries = 3
         while tries > 0:
@@ -50,7 +50,6 @@ def get_EDM(pdbid):
                 time.sleep(1)
         else:
             print("Unable to download %s" % url)
-            print(e)
             return
     return filename
 
@@ -64,7 +63,7 @@ def get_ED_data(pdbid):
         os.makedirs(downloaddir)
     url = PDB_REDO_ed_data_url_tmpl.replace('MIDDLE', pdbid[1:3]).replace('PDBID', pdbid)
     filename = os.path.join(downloaddir, os.path.basename(url))
-    if not os.path.isfile(filename)  or os.path.getsize(filename) > 0: #Download
+    if not (os.path.isfile(filename) and os.path.getsize(filename) > 0): #Download
         print("Downloading %s" % url)
         tries = 3
         while tries > 0:
@@ -83,7 +82,6 @@ def get_ED_data(pdbid):
                 time.sleep(1)
         else:
             print("Unable to download %s" % url)
-            print(e)
             return
     #pdbdict={pdbid:None}
     edd_dict = {}
@@ -105,7 +103,8 @@ def get_ED_data(pdbid):
         edd_dict[residue] = d
     return edd_dict
 
-def get_pdbredo_data(pdbids=[], ntries = 3):
+def get_pdbredo_data(pdbids=[]):
+    ntries = 3
     parseddata = {}
     for pdbid in pdbids:
         tries = ntries
