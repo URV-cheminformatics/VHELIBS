@@ -11,17 +11,19 @@ cdef class PdbAtom(object):
     cdef public float occupancy
     cdef public str variant
     cdef float[3] xyz
-    def __init__(PdbAtom self, str record):
-        """
-        Needs an ATOM or HETATM record
-        """
-        self.residue = record[17:27]
-        self.hetid = self.residue[:3].strip()
-        self.xyz[0] = float(record[30:38])
-        self.xyz[1] = float(record[38:46])
-        self.xyz[2] = float(record[46:54])
-        self.occupancy = float(record[54:60])
-        self.variant = record[16]
+    def __init__(PdbAtom self, dict atom_dict):
+        cdef str pos
+        pos = atom_dict["auth_seq_id"]
+        while len(pos) < 4:
+            pos = " " + pos
+        self.residue = "{} {}{}".format(atom_dict["auth_comp_id"],  atom_dict["auth_asym_id"], pos)
+        self.hetid = atom_dict["auth_comp_id"]
+        self.xyz[0] = float(atom_dict["Cartn_x"])
+        self.xyz[1] = float(atom_dict["Cartn_y"])
+        self.xyz[2] = float(atom_dict["Cartn_z"])
+        self.occupancy = float(atom_dict["occupancy"])
+        self.variant = atom_dict["label_alt_id"]
+
     def __or__(PdbAtom self, PdbAtom other):
         """
         Return squared distance

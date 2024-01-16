@@ -10,15 +10,11 @@ import xml.etree.ElementTree as ET
 import PDBfiles
 
 try:
-    from urllib.parse import urlparse, urlencode
-    from urllib.request import urlopen, Request
-    from urllib.error import HTTPError
+    from urllib.request import urlopen
     import ssl
     ssl._create_default_https_context = ssl._create_unverified_context
 except ImportError:
-    from urlparse import urlparse
-    from urllib import urlencode
-    from urllib2 import urlopen, Request, HTTPError
+    from urllib2 import urlopen
 
 edmapsurl = "https://edmaps.rcsb.org/maps/{}_2fofc.dsn6"
 edstatsurl = "https://www.ebi.ac.uk/pdbe/entry-files/download/{}_validation.xml"

@@ -3,17 +3,19 @@ class PdbAtom(object):
     """
     Represents an atom from a PDB file
     """
-    def __init__(self, record):
+    def __init__(self, atom_dict):
         """
         Needs an ATOM or HETATM record
         """
-        self.name = record[12:16]
-        self.residue = record[17:27]
-        self.hetid = self.residue[:3].strip()
-        self.residue = self.residue.strip()
-        self.xyz = (float(record[30:38]), float(record[38:46]), float(record[46:54]))
-        self.occupancy = float(record[54:60])
-        self.variant = record[16]
+        self.name = atom_dict["auth_atom_id"]
+        pos = atom_dict["auth_seq_id"]
+        while len(pos) < 4:
+            pos = " " + pos
+        self.residue = "{} {}{}".format(atom_dict["auth_comp_id"],  atom_dict["auth_asym_id"], pos)
+        self.hetid = atom_dict["auth_comp_id"]
+        self.xyz = (float(atom_dict["Cartn_x"]), float(atom_dict["Cartn_y"]), float(atom_dict["Cartn_z"]))
+        self.occupancy = float(atom_dict["occupancy"])
+        self.variant = atom_dict["label_alt_id"]
     def __or__(self, other):
         """
         Return squared distance

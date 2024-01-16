@@ -3,25 +3,36 @@
 #
 #   Copyright 2011 - 2024 Adrià Cereto Massagué <adria.cereto@fundacio.urv.cat>
 #
-import os, gzip, sys, csv, itertools, math, contextlib
+import os, gzip, sys, csv, itertools, math
 import json
+
+from pdbx.reader import PdbxReader
+import PDBfiles, EDS_parser, pdb_redo
+import cofactors
+
 try:
-    from urllib.parse import urlparse, urlencode
-    from urllib.request import urlopen, Request
     from urllib.error import HTTPError
     import ssl
     ssl._create_default_https_context = ssl._create_unverified_context
 except ImportError:
-    from urlparse import urlparse
-    from urllib import urlencode
-    from urllib2 import urlopen, Request, HTTPError
+    from urllib2 import urlopen
 try:
     if sys.platform.startswith('java'):
         import java
         #Do appropiate things for jython
         import multithreading as multiprocessing
         #Load optimized java version
-        import PdbAtomJava as PdbAtom
+        import PdbAtomJava
+        class PdbAtom(PdbAtomJava):
+            def __init__(self, atom_dict):
+                pos = atom_dict["auth_seq_id"]
+                while len(pos) < 4:
+                    pos = " " + pos
+                self.residue = "{} {}{}".format(atom_dict["auth_comp_id"],  atom_dict["auth_asym_id"], pos)
+                self.hetid = atom_dict["auth_comp_id"]
+                self.xyz = (float(atom_dict["Cartn_x"]), float(atom_dict["Cartn_y"]), float(atom_dict["Cartn_z"]))
+                self.occupancy = float(atom_dict["occupancy"])
+                self.variant = atom_dict["label_alt_id"]
     else:
         java = None
         #CPython
@@ -29,13 +40,11 @@ try:
         #Use cython optimized version
         import pyximport; pyximport.install()
         from cPdbAtom import PdbAtom
-except:
+except Exception as e:
+    print(e)
     #Fallback to pure python
+    print("Falling back to slow pure-Python implementation")
     from PdbAtom import PdbAtom
-
-from pdbx.reader import PdbxReader
-import PDBfiles, EDS_parser, pdb_redo
-import cofactors
 
 PDB_REDO = False
 CHECK_OWAB = False
@@ -146,24 +155,6 @@ def get_sptopdb_dict():
         raise Exception("Could not load the Swissprot-PDB dictionary!")
     return sptopdb_dict
 
-class PdbxAtom(PdbAtom):
-    """
-    Represents an atom from a PDBx file
-    """
-    def __init__(self, atom_dict):
-        """
-        Needs an ATOM or HETATM record
-        """
-        self.name = atom_dict["auth_atom_id"]
-        pos = atom_dict["auth_seq_id"]
-        while len(pos) < 4:
-            pos = " " + pos
-        self.residue = "{} {}{}".format(atom_dict["auth_comp_id"],  atom_dict["auth_asym_id"], pos)
-        self.hetid = atom_dict["auth_comp_id"]
-        self.xyz = (float(atom_dict["Cartn_x"]), float(atom_dict["Cartn_y"]), float(atom_dict["Cartn_z"]))
-        self.occupancy = float(atom_dict["occupancy"])
-        self.variant = atom_dict["label_alt_id"]
-
 atom_attrs = (
         "group_PDB" #Section
         ,"id" #Serial_No
@@ -232,7 +223,7 @@ def parse_mmcif_file(mmciffilepath, pdbid):
         atom_dict = {}
         for att in atom_attrs:
             atom_dict[att] = atom_site.getValueFormatted(attributeName=att, rowIndex=ai)
-        atom = PdbxAtom(atom_dict)
+        atom = PdbAtom(atom_dict)
         residue = atom.residue
         natoms += atom.occupancy
         label = atom_dict["group_PDB"]

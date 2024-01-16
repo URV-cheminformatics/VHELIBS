@@ -8,15 +8,11 @@ Handle and download PDB files
 import os, time, tempfile, json
 
 try:
-    from urllib.parse import urlparse, urlencode
-    from urllib.request import urlopen, Request
-    from urllib.error import HTTPError
+    from urllib.request import urlopen
     import ssl
     ssl._create_default_https_context = ssl._create_unverified_context
 except ImportError:
-    from urlparse import urlparse
-    from urllib import urlencode
-    from urllib2 import urlopen, Request, HTTPError
+    from urllib2 import urlopen
 
 PDBbase = "http://www.rcsb.org/pdb/files/{}.cif.gz"
 PDBREDObase_full = "https://pdb-redo.eu/db/PDBID/PDBID_final.cif"
@@ -80,16 +76,17 @@ def get_pdb_file(pdbcode, pdb_redo = False):
     if not pdb_redo:
         url = PDBbase.format(pdbcode)
         filename = os.path.join(CACHEDIR, pdbcode.upper() + ".cif.gz")
-        print("Downloading {} to {}".format(url, filename))
     else:
          pdbcode = pdbcode.lower()
          url = PDBREDObase_full.replace('PDBID', pdbcode)
          filename = os.path.join(CACHEDIR, os.path.basename(url))
     if os.path.isfile(filename) and os.path.getsize(filename) > 0:
+        print("loading {}".format(filename))
         return filename
-    tries = 0
-    while tries <= 3:
-        tries += 1
+    print("Downloading {} to {}".format(url, filename))
+    tries = 3
+    while tries > 0:
+        tries -= 1
         try:
             handler = urlopen(url)
             filehandle = open(filename, "wb")

@@ -3,15 +3,12 @@
 #   Copyright 2013-2024 Adrià Cereto Massagué <adrian.cereto@.urv.cat>
 #
 try:
-    from urllib.parse import urlparse, urlencode
-    from urllib.request import urlopen, Request
+    from urllib.request import urlopen
     from urllib.error import HTTPError
     import ssl
     ssl._create_default_https_context = ssl._create_unverified_context
 except ImportError:
-    from urlparse import urlparse
-    from urllib import urlencode
-    from urllib2 import urlopen, Request, HTTPError
+    from urllib2 import urlopen, HTTPError
 import  sys, os, time, csv, datetime
 if sys.platform.startswith('java'):
     from java.util import Locale
