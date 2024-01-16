@@ -5,7 +5,8 @@
 """
 Module dealing with getting EDM data and validation stats
 """
-import os, time
+import os
+import time
 import xml.etree.ElementTree as ET
 import PDBfiles
 
@@ -19,6 +20,7 @@ except ImportError:
 edmapsurl = "https://edmaps.rcsb.org/maps/{}_2fofc.dsn6"
 edstatsurl = "https://www.ebi.ac.uk/pdbe/entry-files/download/{}_validation.xml"
 
+
 def get_EDM(pdbid):
     """
     Downloads the EDM of the given pdb code
@@ -29,7 +31,7 @@ def get_EDM(pdbid):
         os.makedirs(downloaddir)
     omapfile = os.path.join(downloaddir,  os.path.basename(edmurl))
     tries = 0
-    while tries <=3:
+    while tries <= 3:
         try:
             if os.path.isfile(omapfile):
                 sigma = 1
@@ -42,15 +44,16 @@ def get_EDM(pdbid):
             outfile.close()
         except Exception as e:
             print(e)
-            tries +=1
+            tries += 1
     return None, None
+
 
 def get_EDS(pdbid):
     """
     Extract data from EDS site for a given PDB code
     """
     pdbid = pdbid.lower()
-    pdbdict={pdbid:None}
+    pdbdict = {pdbid: None}
     edd_dict = {}
     url = edstatsurl.format(pdbid.lower())
     downloaddir = os.path.join(PDBfiles.CACHEDIR, pdbid.lower())
@@ -60,10 +63,10 @@ def get_EDS(pdbid):
     try:
         if not os.path.isfile(statfilepath):
             tries = 0
-            
+
             print('Downloading %s' % url)
             statfilelines = []
-            while tries <=3:
+            while tries <= 3:
                 tries += 1
                 try:
                     req = urlopen(url)
@@ -77,7 +80,7 @@ def get_EDS(pdbid):
                     statfile.close()
                     tries = 999
                 except Exception as e:
-                    if tries >3:
+                    if tries > 3:
                         print(e)
                         raise e
                     time.sleep(1)
@@ -85,33 +88,30 @@ def get_EDS(pdbid):
             print('could not read stat file')
             pdbdict[pdbid] = False
             return pdbdict, edd_dict
-        
+
         tree = ET.parse(statfilepath)
         for res in tree.findall("ModelledSubgroup"):
-            
+
             resname = list("   ")
             for i, c in enumerate(res.get("resname")[::-1]):
                 resname[2-i] = c
             resname = "".join(resname)
-            
+
             resnum = list("    ")
             for i, c in enumerate(res.get("resnum")[::-1]):
                 resnum[3-i] = c
             resnum = "".join(resnum)
-            
-            residue = "{} {}{}{}".format(resname, res.get("chain"), resnum, res.get("icode")).strip()
-            
-            resdict = {"RSR": float(res.get("rsr", 100))
-                ,"RSCC": float(res.get("rscc", 0))
-                ,"OWAB": float(res.get("owab", 1000))
-                ,"RSRZ": float(res.get("rsrz", 9999))
-                ,"occupancy": float(res.get("avgoccu", 0))
-                }
-            
+
+            residue = "{} {}{}{}".format(resname, res.get(
+                "chain"), resnum, res.get("icode")).strip()
+
+            resdict = {"RSR": float(res.get("rsr", 100)), "RSCC": float(res.get("rscc", 0)), "OWAB": float(res.get("owab", 1000)), "RSRZ": float(res.get("rsrz", 9999)), "occupancy": float(res.get("avgoccu", 0))
+                       }
+
             edd_dict[residue] = resdict
-                
+
         pdbdict[pdbid] = True
-        
+
     except Exception as e:
         if hasattr(e, 'reason'):
             pdbdict[pdbid] = e.reason

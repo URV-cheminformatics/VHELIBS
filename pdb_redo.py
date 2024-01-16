@@ -9,7 +9,11 @@ try:
     ssl._create_default_https_context = ssl._create_unverified_context
 except ImportError:
     from urllib2 import urlopen, HTTPError
-import  sys, os, time, csv, datetime
+import sys
+import os
+import time
+import csv
+import datetime
 if sys.platform.startswith('java'):
     from java.util import Locale
 import PDBfiles
@@ -20,6 +24,7 @@ PDB_REDO_edm_url_tmpl = "https://pdb-redo.eu/db/PDBID/PDBID_final.mtz"
 ALLDATA_URL = "https://pdb-redo.eu/db/PDBID/data.json"
 CACHE_EXPIRED = True
 
+
 def get_EDM(pdbid):
     """Downloads the EDM and returns its path"""
     pdbid = pdbid.lower()
@@ -28,7 +33,7 @@ def get_EDM(pdbid):
         os.makedirs(downloaddir)
     url = PDB_REDO_edm_url_tmpl.replace('PDBID', pdbid)
     filename = os.path.join(downloaddir, pdbid + "_final.mtz")
-    if not (os.path.isfile(filename) and os.path.getsize(filename) > 0): #Download
+    if not (os.path.isfile(filename) and os.path.getsize(filename) > 0):  # Download
         print("Downloading %s" % url)
         tries = 3
         while tries > 0:
@@ -41,7 +46,7 @@ def get_EDM(pdbid):
                 rfh.close()
                 break
             except Exception as e:
-                print("Could not download " +  url)
+                print("Could not download " + url)
                 print(e)
                 print("Retrying... {}".format(tries))
                 time.sleep(1)
@@ -49,6 +54,7 @@ def get_EDM(pdbid):
             print("Unable to download %s" % url)
             return
     return filename
+
 
 def get_ED_data(pdbid):
     """
@@ -58,9 +64,10 @@ def get_ED_data(pdbid):
     downloaddir = os.path.join(PDBfiles.CACHEDIR, pdbid.lower())
     if not os.path.isdir(downloaddir):
         os.makedirs(downloaddir)
-    url = PDB_REDO_ed_data_url_tmpl.replace('MIDDLE', pdbid[1:3]).replace('PDBID', pdbid)
+    url = PDB_REDO_ed_data_url_tmpl.replace(
+        'MIDDLE', pdbid[1:3]).replace('PDBID', pdbid)
     filename = os.path.join(downloaddir, os.path.basename(url))
-    if not (os.path.isfile(filename) and os.path.getsize(filename) > 0): #Download
+    if not (os.path.isfile(filename) and os.path.getsize(filename) > 0):  # Download
         print("Downloading %s" % url)
         tries = 3
         while tries > 0:
@@ -73,22 +80,21 @@ def get_ED_data(pdbid):
                 rfh.close()
                 break
             except Exception as e:
-                print("Could not download " +  url)
+                print("Could not download " + url)
                 print(e)
                 print("Retrying... {}".format(tries))
                 time.sleep(1)
         else:
             print("Unable to download %s" % url)
             return
-    #pdbdict={pdbid:None}
+    # pdbdict={pdbid:None}
     edd_dict = {}
     edfile = open(filename, 'r')
     ed_data = json.load(edfile)
     for comp in ed_data:
-        d = {"RSR":float(comp["RSR"] or 100)
-                ,"RSCC": float(comp["RSCCS"] or 0)
-    #            , "occupancy": 1.0 #FIXME
-                             }
+        d = {"RSR": float(comp["RSR"] or 100), "RSCC": float(comp["RSCCS"] or 0)
+             #            , "occupancy": 1.0 #FIXME
+             }
         hetid = comp['pdb']["compID"]
         while len(hetid) < 3:
             hetid = " " + hetid
@@ -100,6 +106,7 @@ def get_ED_data(pdbid):
         edd_dict[residue] = d
     return edd_dict
 
+
 def get_pdbredo_data(pdbid):
     tries = 3
     url = ALLDATA_URL.replace("PDBID", pdbid)
@@ -109,7 +116,7 @@ def get_pdbredo_data(pdbid):
     except:
         pass
     alldatapath = os.path.join(cachedir, os.path.basename(url))
-    #if not os.path.isfile(alldatapath): #Download
+    # if not os.path.isfile(alldatapath): #Download
     while tries > 0:
         tries -= 1
         e = "unknown"
@@ -117,18 +124,19 @@ def get_pdbredo_data(pdbid):
             oldlocale = Locale.getDefault()
             Locale.setDefault(Locale.ENGLISH)
         try:
-            if os.path.isfile(alldatapath)  and os.path.getsize(alldatapath) > 0:
+            if os.path.isfile(alldatapath) and os.path.getsize(alldatapath) > 0:
                 print("loading {}".format(alldatapath))
                 rawdict = json.load(open(alldatapath, 'rt'))
                 break
             else:
                 rawdict = json.load(urlopen(url))
-                if not rawdict: return
+                if not rawdict:
+                    return
                 with open(alldatapath, "wt") as cache_file:
-                        cache_file.write(json.dumps(rawdict))
+                    cache_file.write(json.dumps(rawdict))
                 break
         except HTTPError as e:
-            print("Could not download {}".format( url))
+            print("Could not download {}".format(url))
             print(e)
             print("Retrying... {}".format(tries))
             time.sleep(1)
@@ -137,13 +145,13 @@ def get_pdbredo_data(pdbid):
     else:
         print("Unable to download %s" % url)
         return
-    #line 7 contains date
-    #lines[11:111] are the columns explained
-        #We need columns:
-        #0   PDBID
-        #14  RFIN
-        #15  RFFIN
-        #62  RESOLUTION
+    # line 7 contains date
+    # lines[11:111] are the columns explained
+        # We need columns:
+        # 0   PDBID
+        # 14  RFIN
+        # 15  RFFIN
+        # 62  RESOLUTION
         # 65  NREFCNT    Number of reflections
         # 70  AAXIS      Length of cell axis a
         # 71  BAXIS      Length of cell axis b
@@ -151,11 +159,11 @@ def get_pdbredo_data(pdbid):
         # 73  ALPHA      Cell angle alpha
         # 74  BETA       Cell angle beta
         # 75  GAMMA      Cell angle gamma
-    #lines[112] == '#START DATA'
-    #lines[113] are the column headers
-    #here the data [114:-3]
-    #lines[-3] == ''
-    #lines[-2] == '#END DATA'
+    # lines[112] == '#START DATA'
+    # lines[113] are the column headers
+    # here the data [114:-3]
+    # lines[-3] == ''
+    # lines[-2] == '#END DATA'
     rowdict = {}
     rowdict["experimentalTechnique"] = rawdict["properties"]["EXPTYP"]
     rowdict["rFree"] = rawdict["properties"]["RFFIN"]
@@ -170,8 +178,8 @@ def get_pdbredo_data(pdbid):
     rowdict["nreflections"] = rawdict["properties"]["NREFCNT"]
     return rowdict
 
+
 if __name__ == "__main__":
     print('start')
     d = get_pdbredo_data(["3dzu"])
     print(len(d))
-
