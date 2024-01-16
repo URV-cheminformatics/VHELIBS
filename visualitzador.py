@@ -1525,3 +1525,5 @@ if __name__ == '__main__':
     except Exception, e:
         print e
         showErrorDialog(e)
+    finally:
+        exit(0)
