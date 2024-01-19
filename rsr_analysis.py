@@ -777,7 +777,7 @@ def results_to_csv(results, outputfile):
                                     for k in stat_titles:
                                         row.append(struc_dict[k])
                                     for k2 in residue_stats:
-                                        row += ['; '.join([str(res_stat_dict[res][k2]) for res in resl]) for resl in [
+                                        row += ['; '.join([str((res_stat_dict[res] or {k2:''})[k2]) for res in resl]) for resl in [
                                             residues_to_exam, ligandresidues, binding_site]]
                                 csvfile.writerow(row)
                                 outfile.flush()
