@@ -55,7 +55,7 @@ from org.jmol.adapter.smarter import SmarterJmolAdapter
 from org.jmol.api import JmolViewer
 from org.openscience.jmol.app.jmolpanel.console import AppConsole
 
-VHELIBS_VERSION = "5.3-beta4"
+VHELIBS_VERSION = "6.0"
 TITLE =  "VHELIBS " + VHELIBS_VERSION
 
 #Own stuff
@@ -406,16 +406,8 @@ class StruVa(Runnable):
                 return
             self.execute('isosurface %s color %s cutoff %s within %s %s "%s" mesh dots fill translucent 0.3' %\
                         (name, color, sigma_c*float(prefs.get('sigma', '1.0')), prefs.get('edmdistance', '2.1'), atoms, omapfile.replace(os.sep, '/')))
-        elif self.source == 'PDB_REDO':
-            ccp4file = pdb_redo.get_EDM(self.pdbid)
-            if ccp4file:
-                self.execute('isosurface %s color %s sigma %s within %s %s insideout "%s" mesh dots fill translucent 0.3'%\
-                        (name, color, float(prefs.get('sigma', '1.0')), prefs.get('edmdistance', '2.1'), atoms, ccp4file.replace(os.sep, '/')))
-            else:
-                self.console.sendConsoleMessage("ED unavailable at %s" % self.source)
-
-        else:
-            self.console.sendConsoleMessage("Unable to load ED from %s" % self.source)
+        if self.source == 'PDB_REDO':
+            self.console.sendConsoleMessage("WARNING: Unable to load Electron Density Map from PDB_REDO due to no supported file format offered. Using the PDB EDM instead!")
 
     def displayBindingSite(self, visible=True):
         if not self.binding_site:
@@ -568,10 +560,13 @@ class StruVa(Runnable):
         ndublig = 0
         nbadbs = 0
         nbadlig = 0
+        from_PDB_REDO = False
         for fields in reader:
             id, residues_to_exam_string, ligandresidues_string, binding_site_string, ligandgood, bsgood = fields[:6]
             if has_source:
                 source = fields[6]
+                if source == "PDB_REDO":
+                    from_PDB_REDO = True
             else:
                 source = 'PDB'
             bsgood = bsgood.lower()
@@ -636,6 +631,8 @@ class StruVa(Runnable):
             print 'File without data! %s' % values.outputfile
             showWarningDialog('No binding sites to be viewed.')
             restart = True
+        if from_PDB_REDO:
+            showWarningDialog("WARNING: Unable to load Electron Density Maps from PDB_REDO due to no supported file format offered. PDB EDMs will be used instead!")
         return restart
 
     def restart(self):
@@ -1282,9 +1279,9 @@ class AboutDialog(object):
         constraints.gridy += 1
 
         website = JLabel()
-        website.text = "<html><a href=\"\">urvnutrigenomica-ctns.github.com/VHELIBS</a></html>"
+        website.text = "<html><a href=\"\">URV-cheminformatics.github.com/VHELIBS</a></html>"
         website.cursor = Cursor(Cursor.HAND_CURSOR)
-        website.mouseClicked = lambda e: Desktop.getDesktop().browse(URI("http://urvnutrigenomica-ctns.github.com/VHELIBS"))
+        website.mouseClicked = lambda e: Desktop.getDesktop().browse(URI("http://URV-cheminformatics.github.com/VHELIBS"))
         self.panel.add(website, constraints)
 
         self.diag = JDialog(self.frame, title = 'About VHELIBS')
