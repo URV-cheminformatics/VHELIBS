@@ -20,11 +20,16 @@ import cofactors
 
 try:
     from urllib.request import urlopen
+    # __pragma__ ('skip')
     import ssl
     ssl._create_default_https_context = ssl._create_unverified_context
+    # __pragma__ ('noskip')
 except ImportError:
+    # __pragma__ ('skip')
     from urllib2 import urlopen
+    # __pragma__ ('noskip')
 try:
+    # __pragma__ ('skip')
     if sys.platform.startswith('java'):
         import java
         # Do appropiate things for jython
@@ -52,6 +57,7 @@ try:
         import pyximport
         pyximport.install()
         from cPdbAtom import PdbAtom
+    # __pragma__ ('noskip')
 except Exception as e:
     print(e)
     # Fallback to pure python
