@@ -18,6 +18,9 @@ import EDS_parser
 import pdb_redo
 import cofactors
 
+if sys.platform == 'emscripten':
+    import pyodide_http
+    pyodide_http.patch_all()
 import requests
 
 try:
@@ -158,7 +161,7 @@ def get_sptopdb_dict():
     """
     Returns a dictionary containing the pdb entries for each Swiss-Prot entry
     """
-    url = "http://www.uniprot.org/docs/pdbtosp.txt"
+    url = "https://www.uniprot.org/docs/pdbtosp.txt"
     sptopdb_dict = {}
     temppdbdict = {}
     print("Loading Swissprot-PDB dict...")
@@ -791,6 +794,106 @@ def results_to_csv(results, outputfile):
     return datawritten
 
 
+def results_to_lists(results):
+    """
+    Writes the output of parse_binding_site's to a csv file
+    """
+    datawritten = False
+    csvtitles = titles
+    if STATS:
+        csvtitles += stat_titles
+        residue_stats = ["RSR", "RSCC", "occupancy"]
+        if CHECK_OWAB:
+            residue_stats.append("OWAB")
+        for rs in residue_stats:
+            for t in "CTE", "Ligand", "Binding Site":
+                csvtitles.append("{} ({})".format(rs, t))
+    dbg("Calculating...")
+    rows = []
+    badoc_w = []
+    rejected = []
+    for restuple in results:
+        restuplelen = len(restuple)
+        if restuplelen == 2:
+            pdbid, reason = restuple
+            rejected.append("%s:\t%s\n" % (pdbid, reason))
+            continue
+        elif restuplelen == 4:
+            pdbid, ligand_bs_list, notligands, struc_dict = restuple
+            for nonligand, reason in notligands.items():
+                #                resname = nonligand[:3].strip()
+                line = "{}:\t{} {}\n".format(pdbid, nonligand, reason)
+                rejected.append(line)
+            for data in ligand_bs_list:
+                (
+                    ligandresidues,
+                    binding_site,
+                    residues_to_exam,
+                    ligandgood,
+                    bsgood,
+                    bad_occupancy,
+                    ligand_score,
+                    bs_score,
+                    res_stat_dict,
+                ) = data
+                id = pdbid
+                residues_to_exam = list(residues_to_exam)
+                ligandresidues = list(ligandresidues)
+                binding_site = list(binding_site)
+                if not ligandresidues:
+                    dbg(
+                        "%s has no actual ligands, it will be discarded"
+                        % pdbid
+                    )
+                else:
+                    if PDB_REDO:
+                        source = "PDB_REDO"
+                    else:
+                        source = "PDB"
+                    row = [
+                        id,
+                        ";".join(residues_to_exam),
+                        ";".join(ligandresidues),
+                        ";".join(binding_site),
+                        ligandgood,
+                        bsgood,
+                        source,
+                        ligand_score,
+                        bs_score,
+                    ]
+                    if STATS:
+                        for k in stat_titles:
+                            row.append(struc_dict[k])
+                        for k2 in residue_stats:
+                            row += [
+                                "; ".join(
+                                    [
+                                        str(
+                                            (
+                                                res_stat_dict[res]
+                                                or {k2: ""}
+                                            )[k2]
+                                        )
+                                        for res in resl
+                                    ]
+                                )
+                                for resl in [
+                                    residues_to_exam,
+                                    ligandresidues,
+                                    binding_site,
+                                ]
+                            ]
+                    rows.append(row)
+                    if bad_occupancy:
+                        erase_badoc = False
+                        badoc_w.append(
+                            [
+                                id + "|" + list(ligandresidues)[0],
+                                ";".join(bad_occupancy),
+                            ]
+                        )
+    return rows, badoc_w, rejected
+
 def main(values):
     global CHECK_OWAB, OWAB_max, CHECK_RESOLUTION, RESOLUTION_max, RSCC_min, TOLERANCE
     global RSR_upper, RSR_lower, RFREE_max, OCCUPANCY_min, PDB_REDO
@@ -877,7 +980,9 @@ def main(values):
         raise Exception("No PDB ids found!")
 
     npdbs = len(pdblist)
-
+    if sys.platform == 'emscripten':
+        results = (parse_binding_site(pdbid) for pdbid in pdblist)
+        return results_to_lists(results)
     pool = multiprocessing.Pool(multiprocessing.cpu_count())
     results = pool.imap(parse_binding_site, pdblist)
     # results = (parse_binding_site(argstuple) for argstuple in argsarray)

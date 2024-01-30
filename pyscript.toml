@@ -1,0 +1,26 @@
+name = "VHELIBS"
+packages = ["pandas", "requests", "ssl", "pyodide-http"]
+[files]
+"./argparse.py" = "./argparse.py"
+"./cofactors.py" = "./cofactors.py"
+"./cytonize.py" = "./cytonize.py"
+"./EDS_parser.py" = "./EDS_parser.py"
+#"./jsvhelibs.py" = "./jsvhelibs.py"
+#"./multithreading.py" = "./multithreading.py"
+"./PdbAtom.py" = "./PdbAtom.py"
+"./PDBfiles.py" = "./PDBfiles.py"
+"./pdb_redo.py" = "./pdb_redo.py"
+"./rsr_analysis.py" = "./rsr_analysis.py"
+"./pdbx/reader/PdbxContainers.py" = "./pdbx/reader/PdbxContainers.py"
+"./pdbx/reader/PdbxReader.py" = "./pdbx/reader/PdbxReader.py"
+"./pdbx/reader/__init__.py" = "./pdbx/reader/__init__.py"
+"./pdbx/__init__.py" = "./pdbx/__init__.py"
+
+# [js_modules.main]
+# "lib/jquery-3.5.0.min.js" = "jquery"
+# "lib/jquery-ui-1.13.2.min.js" = "jquery_ui"
+# "lib/jquery-ui-1.13.2.min.css" = "jquery_ui"
+# "lib/three_0.151.0.min.js" = "three"
+# "lib/icn3d_3.29.4.min.js" = "icn3d"
+# "lib/icn3d_3.29.4.css" = "icn3d"#CSS
+

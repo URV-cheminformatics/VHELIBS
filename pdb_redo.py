@@ -2,9 +2,9 @@
 #
 #   Copyright 2013-2024 Adrià Cereto Massagué <adrian.cereto@.urv.cat>
 #
+import sys
 import requests
 from urllib.error import HTTPError
-import sys
 import os
 import time
 import csv

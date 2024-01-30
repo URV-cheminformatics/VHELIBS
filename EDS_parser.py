@@ -6,6 +6,7 @@
 Module dealing with getting EDM data and validation stats
 """
 import os
+import sys
 import time
 import xml.etree.ElementTree as ET
 import PDBfiles

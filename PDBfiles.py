@@ -9,9 +9,10 @@ import os
 import time
 import tempfile
 import json
+import sys
 import requests
 
-PDBbase = "http://www.rcsb.org/pdb/files/{}.cif.gz"
+PDBbase = "https://files.wwpdb.org/pub/pdb/data/structures/divided/mmCIF/dz/{}.cif.gz"
 PDBREDObase_full = "https://pdb-redo.eu/db/PDBID/PDBID_final.cif"
 # On guardarem els fitxers:
 CACHEDIR = tempfile.mkdtemp()
@@ -74,7 +75,7 @@ def get_pdb_file(pdbcode, pdb_redo=False):
     if not os.path.isdir(CACHEDIR):
         os.makedirs(CACHEDIR)
     if not pdb_redo:
-        url = PDBbase.format(pdbcode)
+        url = PDBbase.format(pdbcode.lower())
         filename = os.path.join(CACHEDIR, pdbcode.upper() + ".cif.gz")
     else:
         pdbcode = pdbcode.lower()
