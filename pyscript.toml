@@ -3,10 +3,7 @@ packages = ["pandas", "requests", "ssl", "pyodide-http"]
 [files]
 "./argparse.py" = "./argparse.py"
 "./cofactors.py" = "./cofactors.py"
-"./cytonize.py" = "./cytonize.py"
 "./EDS_parser.py" = "./EDS_parser.py"
-#"./jsvhelibs.py" = "./jsvhelibs.py"
-#"./multithreading.py" = "./multithreading.py"
 "./PdbAtom.py" = "./PdbAtom.py"
 "./PDBfiles.py" = "./PDBfiles.py"
 "./pdb_redo.py" = "./pdb_redo.py"
