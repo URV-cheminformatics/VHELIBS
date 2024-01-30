@@ -9,13 +9,7 @@ import os
 import time
 import tempfile
 import json
-
-try:
-    from urllib.request import urlopen
-    import ssl
-    ssl._create_default_https_context = ssl._create_unverified_context
-except ImportError:
-    from urllib2 import urlopen
+import requests
 
 PDBbase = "http://www.rcsb.org/pdb/files/{}.cif.gz"
 PDBREDObase_full = "https://pdb-redo.eu/db/PDBID/PDBID_final.cif"
@@ -43,7 +37,7 @@ def get_custom_report(pdbid):
             rawdict = json.load(open(alldatapath, 'rt'))
         else:
             print("Downloading {}".format(urlstring))
-            rawdict = json.load(urlopen(urlstring))
+            rawdict = requests.get(urlstring).json()
             if rawdict:
                 with open(alldatapath, "wt") as cache_file:
                     cache_file.write(json.dumps(rawdict))
@@ -94,11 +88,9 @@ def get_pdb_file(pdbcode, pdb_redo=False):
     while tries > 0:
         tries -= 1
         try:
-            handler = urlopen(url)
             filehandle = open(filename, "wb")
-            filehandle.write(handler.read())
+            filehandle.write(requests.get(url).content)
             filehandle.close()
-            handler.close()
             return filename
         except Exception as e:
             print("Could not download",  url)

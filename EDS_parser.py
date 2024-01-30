@@ -9,13 +9,7 @@ import os
 import time
 import xml.etree.ElementTree as ET
 import PDBfiles
-
-try:
-    from urllib.request import urlopen
-    import ssl
-    ssl._create_default_https_context = ssl._create_unverified_context
-except ImportError:
-    from urllib2 import urlopen
+import requests
 
 edmapsurl = "https://edmaps.rcsb.org/maps/{}_2fofc.dsn6"
 edstatsurl = "https://www.ebi.ac.uk/pdbe/entry-files/download/{}_validation.xml"
@@ -69,14 +63,14 @@ def get_EDS(pdbid):
             while tries <= 3:
                 tries += 1
                 try:
-                    req = urlopen(url)
-                    statfilelines = req.readlines()
+                    req = requests.get(url)
+                    statfilelines = req.content
                     if not statfilelines:
                         print('could not read stat file')
                         pdbdict[pdbid] = False
                         return pdbdict, edd_dict
                     statfile = open(statfilepath, 'wb')
-                    statfile.writelines(statfilelines)
+                    statfile.write(statfilelines)
                     statfile.close()
                     tries = 999
                 except Exception as e:

@@ -2,13 +2,8 @@
 #
 #   Copyright 2013-2024 Adrià Cereto Massagué <adrian.cereto@.urv.cat>
 #
-try:
-    from urllib.request import urlopen
-    from urllib.error import HTTPError
-    import ssl
-    ssl._create_default_https_context = ssl._create_unverified_context
-except ImportError:
-    from urllib2 import urlopen, HTTPError
+import requests
+from urllib.error import HTTPError
 import sys
 import os
 import time
@@ -39,11 +34,10 @@ def get_EDM(pdbid):
         while tries > 0:
             tries -= 1
             try:
-                rfh = urlopen(url)
+                rfh = requests.get(url)
                 ed_file = open(filename, 'wb')
-                ed_file.write((rfh.read()))
+                ed_file.write((rfh.content))
                 ed_file.close()
-                rfh.close()
                 break
             except Exception as e:
                 print("Could not download " + url)
@@ -73,11 +67,10 @@ def get_ED_data(pdbid):
         while tries > 0:
             tries -= 1
             try:
-                rfh = urlopen(url)
+                rfh = requests.get(url)
                 ed_file = open(filename, 'wb')
-                ed_file.write(rfh.read())
+                ed_file.write(rfh.content)
                 ed_file.close()
-                rfh.close()
                 break
             except Exception as e:
                 print("Could not download " + url)
@@ -129,7 +122,7 @@ def get_pdbredo_data(pdbid):
                 rawdict = json.load(open(alldatapath, 'rt'))
                 break
             else:
-                rawdict = json.load(urlopen(url))
+                rawdict = requests.get(url).json()
                 if not rawdict:
                     return
                 with open(alldatapath, "wt") as cache_file:

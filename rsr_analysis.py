@@ -18,18 +18,9 @@ import EDS_parser
 import pdb_redo
 import cofactors
 
+import requests
+
 try:
-    from urllib.request import urlopen
-    # __pragma__ ('skip')
-    import ssl
-    ssl._create_default_https_context = ssl._create_unverified_context
-    # __pragma__ ('noskip')
-except ImportError:
-    # __pragma__ ('skip')
-    from urllib2 import urlopen
-    # __pragma__ ('noskip')
-try:
-    # __pragma__ ('skip')
     if sys.platform.startswith('java'):
         import java
         # Do appropiate things for jython
@@ -171,7 +162,7 @@ def get_sptopdb_dict():
     sptopdb_dict = {}
     temppdbdict = {}
     print("Loading Swissprot-PDB dict...")
-    reader = urlopen(url)
+    reader = requests.get(url).split("\n")
     pdbid = None
     for line in reader:
         if type(line) != type(''):
@@ -190,7 +181,6 @@ def get_sptopdb_dict():
             spinfo = line[28:].strip()
             temppdbdict[pdbid].update([item.strip()
                                       for item in spinfo.split(',') if item])
-    reader.close()
     for pdbid in temppdbdict:
         for sp_id in temppdbdict[pdbid]:
             if sp_id not in sptopdb_dict:
