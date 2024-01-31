@@ -201,7 +201,7 @@ class VHELIBS():
         if hasattr(self, "icn3dui"):
             print("Not re-showing 3D structure")
             #print(self.icn3dui)
-            self.command(self.cfg.command)
+            self.recenter()
         else:
             self.icn3dui = icn3d.iCn3DUI.new(self.cfg)
             print("showing 3D structure")
@@ -209,13 +209,11 @@ class VHELIBS():
             js.viewer = self.icn3dui
         #self.ic = self.icn3dui.icn3d
         
-        
     async def load_pdb(self, event=None):
         print("Loading PDB")
         print(self.pdbid)
         pdbid = self.pdbid
         command = self.template.replace("LOAD_CMD", pdb_struc_command).replace("MAP_CMD", pdb_map_command).format(pdbid)
-        print(command)
         self.cfg.command = command
         await self.load()
         #await self.ic.loadScriptCls.loadScript(command, False)
@@ -225,7 +223,6 @@ class VHELIBS():
         pdbid = self.pdbid
         command = self.template.replace("LOAD_CMD", redo_struc_command).replace("MAP_CMD", redo_map_command).format(pdbid)
         self.cfg.command = command
-        print(command)
         await self.load()
         #await self.ic.loadScriptCls.loadScript(command, False)
         print("done")
@@ -234,8 +231,8 @@ class VHELIBS():
         print(command)
         await self.icn3dui.icn3d.loadScriptCls.loadScript(command, False)
         
-    async def recenter(self, event):
-        await self.command("clear all; saved atoms svligand; zoom selection; center selection; clear all")
+    async def recenter(self, even=None):
+        await self.command(self.cfg.command)
 
 
 
