@@ -139,7 +139,7 @@ profiles = {'Default (PDB)':{
 def translate_single(res):
     print(res)
     resname = res[:3]
-    chain = res[4]
+    chain = res[4].strip()
     resnum = res[5:].strip()
     if not resnum.isdigit():
         for char in resnum:
