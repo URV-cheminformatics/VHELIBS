@@ -39,6 +39,8 @@ style sidec lines
 style chemicals lines
 style ions lines
 color white
+center selection
+zoom selection
 
 select {2} | name svligand
 saved atoms svligand
@@ -64,6 +66,10 @@ style sidec ball and stick
 color b factor percentile
 
 MAP_CMD
+
+select {2} 
+center selection
+zoom selection
 clear all
 """
 
