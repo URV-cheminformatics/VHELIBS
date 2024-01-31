@@ -12,7 +12,7 @@ import itertools
 import math
 import json
 
-from pdbx.reader import PdbxReader
+import PdbxReader
 import PDBfiles
 import EDS_parser
 import pdb_redo

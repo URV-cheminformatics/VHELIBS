@@ -8,10 +8,7 @@ packages = ["pandas", "requests", "ssl", "pyodide-http"]
 "./PDBfiles.py" = "./PDBfiles.py"
 "./pdb_redo.py" = "./pdb_redo.py"
 "./rsr_analysis.py" = "./rsr_analysis.py"
-"./pdbx/reader/PdbxContainers.py" = "./pdbx/reader/PdbxContainers.py"
-"./pdbx/reader/PdbxReader.py" = "./pdbx/reader/PdbxReader.py"
-"./pdbx/reader/__init__.py" = "./pdbx/reader/__init__.py"
-"./pdbx/__init__.py" = "./pdbx/__init__.py"
+"./PdbxReader.py" = "./PdbxReader.py"
 
 # [js_modules.main]
 # "lib/jquery-3.5.0.min.js" = "jquery"
