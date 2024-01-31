@@ -39,8 +39,6 @@ style sidec lines
 style chemicals lines
 style ions lines
 color white
-center selection
-zoom selection
 
 select {2} | name svligand
 saved atoms svligand
@@ -51,8 +49,6 @@ style nucleotides ball and stick
 style ntbase ball and stick
 style sidec ball and stick
 color magenta
-center selection
-zoom selection
 
 select {1} | coords_to_exam
 saved atoms coords_to_exam
@@ -69,6 +65,7 @@ MAP_CMD
 
 select {2} 
 center selection
+select all
 zoom selection
 clear all
 """
@@ -162,10 +159,9 @@ class VHELIBS():
         self.cfg = cfg
         #self.pdbid = pdbid
         #print(self.pdbid)
-        self.load_pdb = when("click", "#load_pdb")(self.load_pdb)
-        self.load_pdb_redo = when("click", "#load_pdb_redo")(self.load_pdb_redo)
         self.next_struct = when("click", "#do_something")(self.next_struct)
         self.analysis = when("click", "#start")(self.analysis)
+        self.recenter = when("click", "#recenter")(self.recenter)
         if rows:
             self.icn3dui = icn3d.iCn3DUI.new(cfg)
             #await self.next_struct()
@@ -205,7 +201,7 @@ class VHELIBS():
         if hasattr(self, "icn3dui"):
             print("Not re-showing 3D structure")
             #print(self.icn3dui)
-            self.icn3dui.icn3d.loadScriptCls.loadScript(self.cfg.command, False)
+            self.command(self.cfg.command)
         else:
             self.icn3dui = icn3d.iCn3DUI.new(self.cfg)
             print("showing 3D structure")
@@ -233,8 +229,14 @@ class VHELIBS():
         await self.load()
         #await self.ic.loadScriptCls.loadScript(command, False)
         print("done")
-    
-    
+        
+    async def command(self, command):
+        await self.icn3dui.icn3d.loadScriptCls.loadScript(command, False)
+        
+    async def recenter(self, event):
+        await self.command("select all; zoom selection; clear all")
+
+
 
 vhelibs = VHELIBS()
 
