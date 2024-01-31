@@ -231,10 +231,11 @@ class VHELIBS():
         print("done")
         
     async def command(self, command):
+        print(command)
         await self.icn3dui.icn3d.loadScriptCls.loadScript(command, False)
         
     async def recenter(self, event):
-        await self.command("select all; zoom selection; clear all")
+        await self.command("clear all; saved atoms svligand; zoom selection; center selection; clear all")
 
 
 
