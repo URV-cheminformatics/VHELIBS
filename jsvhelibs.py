@@ -61,10 +61,12 @@ style ntbase ball and stick
 style sidec ball and stick
 color b factor percentile
 
-MAP_CMD
-
 select {2} 
 center selection
+zoom selection
+
+MAP_CMD
+
 select all
 zoom selection
 clear all
@@ -201,7 +203,8 @@ class VHELIBS():
         if hasattr(self, "icn3dui"):
             print("Not re-showing 3D structure")
             #print(self.icn3dui)
-            await self.recenter()
+           self.command(self.cfg.command)
+            print("recentered")
         else:
             self.icn3dui = icn3d.iCn3DUI.new(self.cfg)
             print("showing 3D structure")
@@ -227,12 +230,12 @@ class VHELIBS():
         #await self.ic.loadScriptCls.loadScript(command, False)
         print("done")
         
-    async def command(self, command):
+    def command(self, command):
         print(command)
-        await self.icn3dui.icn3d.loadScriptCls.loadScript(command, False)
+        self.icn3dui.icn3d.loadScriptCls.loadScript(command, False)
         
     async def recenter(self, even=None):
-        await self.command(self.cfg.command)
+        self.command(self.cfg.command)
 
 
 
