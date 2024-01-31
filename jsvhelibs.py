@@ -201,7 +201,7 @@ class VHELIBS():
         if hasattr(self, "icn3dui"):
             print("Not re-showing 3D structure")
             #print(self.icn3dui)
-            self.recenter()
+            await self.recenter()
         else:
             self.icn3dui = icn3d.iCn3DUI.new(self.cfg)
             print("showing 3D structure")
