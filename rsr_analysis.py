@@ -165,7 +165,7 @@ def get_sptopdb_dict():
     sptopdb_dict = {}
     temppdbdict = {}
     print("Loading Swissprot-PDB dict...")
-    reader = requests.get(url).split("\n")
+    reader = requests.get(url).text.split("\n")
     pdbid = None
     for line in reader:
         if type(line) != type(''):
