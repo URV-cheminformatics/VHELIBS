@@ -63,12 +63,8 @@ color b factor percentile
 
 select {2} 
 center selection
-zoom selection
-
 MAP_CMD
 
-select all
-zoom selection
 clear all
 """
 

@@ -161,7 +161,7 @@ def get_sptopdb_dict():
     """
     Returns a dictionary containing the pdb entries for each Swiss-Prot entry
     """
-    url = "https://www.uniprot.org/docs/pdbtosp.txt"
+    url = "https://ftp.uniprot.org/pub/databases/uniprot/knowledgebase/complete/docs/pdbtosp.txt"
     sptopdb_dict = {}
     temppdbdict = {}
     print("Loading Swissprot-PDB dict...")
