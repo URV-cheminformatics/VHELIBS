@@ -15,7 +15,7 @@ import rsr_analysis
 rsr_analysis.parser.add_argument('--no-args', required=False, action='store_true')
 
 pdb_map_command = "set map 2fofc sigma 0.2 file dsn6 | https://edmaps.rcsb.org/maps/{0}_2fofc.dsn6"
-redo_map_command = 'set map 2fofc sigma 0.2 file rcsbmtz | https://pdb-redo.eu/db/{0}/{0}_final.mtz'
+redo_map_command = 'set map 2fofc sigma 0.2 file mtz | https://pdb-redo.eu/db/{0}/{0}_final.mtz'
 redo_struc_command = "load url https://pdb-redo.eu/db/{0}/{0}_final.cif | type mmcif"
 pdb_struc_command = "load url https://files.rcsb.org/view/{0}.cif | type mmcif"
 
